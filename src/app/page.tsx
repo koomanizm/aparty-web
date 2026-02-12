@@ -54,7 +54,7 @@ export default function Home() {
       {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 (화사한 코랄 오렌지: #ff6f42) */}
       <div className="absolute top-6 right-6 md:top-8 md:right-10 z-20">
         <Link
-          href="https://aparty.co.kr"
+          href="https://pro.aparty.co.kr"
           target="_blank"
           className="flex items-center gap-2 bg-[#ff6f42] hover:bg-[#ff5a28] text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl shadow-[0_4px_14px_0_rgba(255,111,66,0.39)] transition-all hover:scale-105 active:scale-95 group"
         >
