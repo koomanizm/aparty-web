@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #FF8C42;
+  /* Orange */
+  --color-cream: #FFF8F0;
+  /* Cream White */
+  --color-brown: #4A403A;
+  /* Warm Brown */
+}
+
+/* Reset & Base Styles */
+:root {
+  --background: var(--color-cream);
+  --foreground: var(--color-brown);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  /* Replace with a specific web font if needed later */
+}
+
+/* Remove Dark Mode overrides or forcing light mode logic if needed, 
+   but with CSS variables mapped this way, it's naturally 'light' themed. 
+   We explicitly avoid dark mode media queries here. */
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
