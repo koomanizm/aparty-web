@@ -5,9 +5,8 @@ import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
 import Image from "next/image";
+import Link from "next/link";
 import { Search } from "lucide-react";
-
-// ❌ [삭제] import logo ... (이제 이거 필요 없습니다!)
 
 export default function Home() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -50,14 +49,35 @@ export default function Home() {
   }, [searchQuery, activeFilter, properties]);
 
   return (
-    <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6">
+    <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6 relative">
 
-      {/* 헤더 영역 */}
+      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 (화사한 코랄 오렌지: #ff6f42) */}
+      <div className="absolute top-6 right-6 md:top-8 md:right-10 z-20">
+        <Link
+          href="https://aparty.co.kr"
+          target="_blank"
+          className="flex items-center gap-2 bg-[#ff6f42] hover:bg-[#ff5a28] text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl shadow-[0_4px_14px_0_rgba(255,111,66,0.39)] transition-all hover:scale-105 active:scale-95 group"
+        >
+          {/* 아이콘 이미지 */}
+          <div className="w-5 h-5 md:w-6 md:h-6 overflow-hidden">
+            <img
+              src="/agent-icon.png"
+              alt="상담사아이콘"
+              className="w-full h-full object-contain group-hover:scale-100 transition-transform"
+            />
+          </div>
+          <span className="text-xs md:text-sm font-black tracking-tight">
+            분양상담사 코너
+          </span>
+          {/* 화사함을 더해줄 작은 화살표 */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="ml-1 group-hover:translate-x-1 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
+        </Link>
+      </div>
+
+      {/* 헤더 영역 (기존 디자인 유지) */}
       <header className="w-full max-w-6xl flex justify-start items-center mb-10 pl-2">
         <a href="/" className="flex items-center gap-3 cursor-pointer group">
           <div className="relative w-10 h-10 overflow-hidden rounded-lg">
-
-            {/* ✅ [정석] public 폴더가 밖으로 나왔으니, 그냥 슬래시(/)만 쓰면 됩니다! */}
             <Image
               src="/logo.png"
               alt="아파티로고"
@@ -73,14 +93,11 @@ export default function Home() {
 
       {/* 1. 상단 환영 섹션 */}
       <div className="w-full max-w-4xl mb-12 text-center">
-
-        {/* 메인 타이틀 */}
         <h1 className="text-3xl md:text-4xl font-bold text-[#4a403a] leading-tight mb-3">
           안녕? 난 <span className="text-orange-500">아파티</span>야. <br />
           너에게 딱 맞는 집을 찾아줄게!
         </h1>
 
-        {/* 보조 문구 */}
         <p className="text-xs md:text-sm text-gray-400 font-medium leading-relaxed mb-10">
           대한민국 모든 프리미엄 아파트,<br className="md:hidden" />
           복잡한 부동산 정보, <br className="hidden md:inline" />
@@ -96,8 +113,6 @@ export default function Home() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-
-          {/* 돋보기 버튼 */}
           <button className="absolute right-2 top-2 bottom-2 w-10 bg-orange-400 hover:bg-orange-500 text-white rounded-xl flex items-center justify-center transition-all shadow-md active:scale-95">
             <Search size={20} strokeWidth={3} />
           </button>
@@ -120,7 +135,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 4. 리스트 섹션 */}
+      {/* 리스트 섹션 */}
       <section className="w-full max-w-6xl mb-20">
         <div className="flex items-center justify-between mb-8 px-2">
           <h2 className="text-xl font-bold text-[#4a403a]">
@@ -146,7 +161,6 @@ export default function Home() {
       </section>
 
       <ChatBot />
-
     </main>
   );
 }
