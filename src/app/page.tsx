@@ -51,7 +51,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6 relative">
 
-      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 (화사한 코랄 오렌지: #ff6f42) */}
+      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 (화사해진 코랄 오렌지: #ff6f42) */}
       <div className="absolute top-6 right-6 md:top-8 md:right-10 z-20">
         <Link
           href="https://pro.aparty.co.kr"
