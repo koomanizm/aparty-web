@@ -3,57 +3,82 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Newspaper, ExternalLink, ArrowRight } from "lucide-react";
+import { Newspaper, ArrowRight, Loader2 } from "lucide-react";
 
+// 뉴스 데이터 타입 정의
 interface NewsItem {
     title: string;
     link: string;
     pubDate: string;
 }
+
+// ✅ 우리가 보여줄 뉴스 카테고리들 (버튼 이름 : 실제 검색어)
+const CATEGORIES = [
+    { label: "🔥 주요뉴스", query: "부동산+이슈" },
+    { label: "🏗️ 청약/분양", query: "아파트+분양+청약" },
+    { label: "📈 시장전망", query: "부동산+전망+시세" },
+    { label: "🏛️ 정책/규제", query: "부동산+정책+대출" },
+];
+
 export default function NewsSection() {
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState(CATEGORIES[0].query); // 기본 선택: 첫 번째 탭
 
+    // 탭이 바뀔 때마다 뉴스 다시 불러오기
     useEffect(() => {
         async function fetchNews() {
-            // ✅ 서버 사이드에서 실행되도록 API 호출 방식으로 변경하거나, 
-            // 지금은 간단하게 클라이언트에서 호출 (CORS 이슈가 생기면 Next.js API Route로 변경 필요)
-            // *참고: RSS Parser는 브라우저에서 직접 막힐 수 있으므로, 
-            // 실제로는 Server Action이나 API Route를 쓰는 게 정석입니다.
-            // 일단 간단한 테스트를 위해 useEffect 내부 로직을 사용합니다.
-
+            setLoading(true); // 로딩 시작
             try {
-                // 임시: 브라우저 CORS 문제 회피를 위해 fetch 대신 Server Action을 권장하지만,
-                // 지금은 UI 확인을 위해 더미 데이터를 넣거나, Next.js API를 만들어야 합니다.
-                // 정규인 님을 위해 [API Route] 방식은 4단계에서 설명할게요.
-                // 여기서는 fetch('/api/news')를 호출한다고 가정합니다.
-                const res = await fetch('/api/news');
+                // API에 검색어(q)를 같이 보냅니다!
+                const res = await fetch(`/api/news?q=${activeTab}`);
                 const data = await res.json();
                 setNews(data);
             } catch (err) {
                 console.error(err);
             } finally {
-                setLoading(false);
+                setLoading(false); // 로딩 끝
             }
         }
         fetchNews();
-    }, []);
+    }, [activeTab]); // activeTab이 바뀔 때마다 실행됨
 
     return (
-        <section className="w-full max-w-6xl mb-20 px-4">
-            <div className="flex items-center justify-between mb-8">
+        <section className="w-full max-w-6xl mb-24 px-4">
+            {/* 섹션 헤더 */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <h2 className="text-xl md:text-2xl font-bold text-[#4a403a] flex items-center gap-2">
                     <Newspaper className="text-orange-500" />
-                    부동산 핫 이슈
+                    부동산 인사이트
                 </h2>
-                <span className="text-xs text-gray-400">실시간 업데이트</span>
+
+                {/* ✅ 카테고리 탭 버튼들 */}
+                <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((cat) => (
+                        <button
+                            key={cat.label}
+                            onClick={() => setActiveTab(cat.query)}
+                            className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold transition-all ${activeTab === cat.query
+                                    ? "bg-[#4a403a] text-white shadow-md scale-105" // 선택된 버튼
+                                    : "bg-white text-gray-400 border border-gray-100 hover:text-orange-500 hover:border-orange-200" // 안 선택된 버튼
+                                }`}
+                        >
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
+            {/* 뉴스 카드 그리드 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
-                    // 로딩 스켈레톤
+                    // 로딩 중일 때 보여줄 스켈레톤 (깜빡임 효과)
                     [...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-white h-32 rounded-2xl shadow-sm animate-pulse"></div>
+                        <div key={i} className="bg-white h-40 rounded-2xl shadow-sm border border-gray-50 p-6 flex flex-col justify-between animate-pulse">
+                            <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
+                            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                            <div className="h-8 w-8 bg-gray-100 rounded-full self-end mt-4"></div>
+                        </div>
                     ))
                 ) : news.length > 0 ? (
                     news.map((item, idx) => (
@@ -61,22 +86,27 @@ export default function NewsSection() {
                             href={item.link}
                             key={idx}
                             target="_blank"
-                            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all group flex flex-col justify-between h-40"
+                            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all group flex flex-col justify-between h-48"
                         >
-                            <h3 className="font-bold text-gray-800 line-clamp-2 group-hover:text-orange-600 transition-colors leading-relaxed">
-                                {item.title}
-                            </h3>
-                            <div className="flex justify-between items-end mt-4">
-                                <span className="text-xs text-gray-400 font-medium">{item.pubDate}</span>
-                                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                                    <ArrowRight size={14} className="text-gray-400 group-hover:text-orange-500" />
+                            <div>
+                                <h3 className="font-bold text-gray-800 line-clamp-2 group-hover:text-orange-600 transition-colors leading-relaxed text-lg">
+                                    {item.title}
+                                </h3>
+                            </div>
+
+                            <div className="flex justify-between items-end mt-4 pt-4 border-t border-gray-50">
+                                <span className="text-xs text-gray-400 font-medium bg-gray-50 px-2 py-1 rounded-md">
+                                    {item.pubDate}
+                                </span>
+                                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-500 transition-colors">
+                                    <ArrowRight size={14} className="text-orange-400 group-hover:text-white" />
                                 </div>
                             </div>
                         </Link>
                     ))
                 ) : (
-                    <div className="col-span-3 text-center py-10 text-gray-400">
-                        뉴스를 불러오는 중입니다...
+                    <div className="col-span-3 text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <p className="text-gray-400">관련된 뉴스를 찾을 수 없습니다.</p>
                     </div>
                 )}
             </div>
