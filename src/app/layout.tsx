@@ -16,8 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "아파티 (APARTY) - 대한민국 1등 프리미엄 분양 포털",
+  title: "아파티 (APARTY) - 프리미엄 분양권 포털",
   description: "전국의 모든 아파트 분양 정보, 아파티가 쉽고 정확하게 알려드립니다. 청약, 줍줍, 미분양 정보를 한눈에 확인하세요.",
+
+
 };
 
 export default function RootLayout({
