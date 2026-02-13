@@ -7,6 +7,7 @@ import { getPropertiesFromSheet, Property } from "../lib/sheet";
 import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
+import NewsSection from "../components/NewsSection";
 
 export default function Home() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -165,6 +166,9 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* ✅ [추가] 뉴스 섹션 */}
+      <NewsSection />
 
       <ChatBot />
     </main>
