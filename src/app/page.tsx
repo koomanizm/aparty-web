@@ -51,26 +51,32 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6 relative">
 
-      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 (화사해진 코랄 오렌지: #ff6f42) */}
-      <div className="absolute top-6 right-6 md:top-8 md:right-10 z-20">
+      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 */}
+      {/* 모바일에서는 여백을 줄여서(top-4 right-4) 더 구석으로 붙임 */}
+      <div className="absolute top-4 right-4 md:top-8 md:right-10 z-20">
         <Link
           href="https://pro.aparty.co.kr"
           target="_blank"
-          className="flex items-center gap-2 bg-[#ff6f42] hover:bg-[#ff5a28] text-white px-4 py-2.5 md:px-5 md:py-3 rounded-2xl shadow-[0_4px_14px_0_rgba(255,111,66,0.39)] transition-all hover:scale-105 active:scale-95 group"
+          // 모바일: 동그라미 모양(rounded-full)에 아이콘만 딱 들어가는 p-2.5
+          // PC: 둥근 사각형(rounded-2xl)에 텍스트까지 넉넉한 px-5 py-3
+          className="flex items-center gap-2 bg-[#ff6f42] hover:bg-[#ff5a28] text-white p-2.5 md:px-5 md:py-3 rounded-full md:rounded-2xl shadow-[0_4px_14px_0_rgba(255,111,66,0.39)] transition-all hover:scale-105 active:scale-95 group"
         >
           {/* 아이콘 이미지 */}
-          <div className="w-5 h-5 md:w-6 md:h-6 overflow-hidden">
+          <div className="w-5 h-5 md:w-6 md:h-6 overflow-hidden relative">
             <img
               src="/agent-icon.png"
               alt="상담사아이콘"
-              className="w-full h-full object-contain group-hover:scale-100 transition-transform"
+              className="w-full h-full object-contain group-hover:scale-110 transition-transform"
             />
           </div>
-          <span className="text-xs md:text-sm font-black tracking-tight">
+
+          {/* 텍스트: 모바일에서는 숨김(hidden), PC에서만 보임(md:block) */}
+          <span className="hidden md:block text-sm font-black tracking-tight">
             분양상담사 코너
           </span>
-          {/* 화사함을 더해줄 작은 화살표 */}
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="ml-1 group-hover:translate-x-1 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
+
+          {/* 화살표: 모바일에서는 숨김 */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="hidden md:block ml-1 group-hover:translate-x-1 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
         </Link>
       </div>
 
