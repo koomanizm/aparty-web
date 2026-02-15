@@ -1,45 +1,27 @@
-@import "tailwindcss";
+/* src/app/globals.css */
 
-@theme {
-  --color-primary: #FF8C42;
-  /* Orange */
-  --color-cream: #FFF8F0;
-  /* Cream White */
-  --color-brown: #4A403A;
-  /* Warm Brown */
-}
+/* 1. 테일윈드 기본 기능을 불러옵니다 (이건 필수!) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Reset & Base Styles */
-:root {
-  --background: var(--color-cream);
-  --foreground: var(--color-brown);
-}
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  /* Replace with a specific web font if needed later */
-}
 
-/* Remove Dark Mode overrides or forcing light mode logic if needed, 
-   but with CSS variables mapped this way, it's naturally 'light' themed. 
-   We explicitly avoid dark mode media queries here. */
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
 
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* 뱃지 박스는 가만히 있고, 그 위의 '가상 요소'만 움직입니다 */
+.aparty-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0) 100%);
+  /* 애니메이션을 여기에만 걸어야 뱃지가 안 움직입니다! */
+  animation: shimmer-sweep 2.5s infinite linear;
+  pointer-events: none;
 }
