@@ -6,7 +6,7 @@ import ChatBot from "../components/ChatBot";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Sparkles, Flame } from "lucide-react"; // ✅ 아이콘 추가 (Sparkles, Flame)
 import NewsSection from "../components/NewsSection";
 
 export default function Home() {
@@ -52,45 +52,26 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6 relative">
 
-      {/* ✅ [수정] 우측 상단 분양상담사 코너 버튼 */}
-      {/* 모바일에서는 여백을 줄여서(top-4 right-4) 더 구석으로 붙임 */}
+      {/* 우측 상단 버튼 (기존 유지) */}
       <div className="absolute top-4 right-4 md:top-8 md:right-10 z-20">
         <Link
           href="https://pro.aparty.co.kr"
           target="_blank"
-          // 모바일: 동그라미 모양(rounded-full)에 아이콘만 딱 들어가는 p-2.5
-          // PC: 둥근 사각형(rounded-2xl)에 텍스트까지 넉넉한 px-5 py-3
           className="flex items-center gap-2 bg-[#ff6f42] hover:bg-[#ff5a28] text-white p-2.5 md:px-5 md:py-3 rounded-full md:rounded-2xl shadow-[0_4px_14px_0_rgba(255,111,66,0.39)] transition-all hover:scale-105 active:scale-95 group"
         >
-          {/* 아이콘 이미지 */}
           <div className="w-5 h-5 md:w-6 md:h-6 overflow-hidden relative">
-            <img
-              src="/agent-icon.png"
-              alt="상담사아이콘"
-              className="w-full h-full object-contain group-hover:scale-110 transition-transform"
-            />
+            <img src="/agent-icon.png" alt="상담사아이콘" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
           </div>
-
-          {/* 텍스트: 모바일에서는 숨김(hidden), PC에서만 보임(md:block) */}
-          <span className="hidden md:block text-sm font-black tracking-tight">
-            분양상담사 코너
-          </span>
-
-          {/* 화살표: 모바일에서는 숨김 */}
+          <span className="hidden md:block text-sm font-black tracking-tight">분양상담사 코너</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="hidden md:block ml-1 group-hover:translate-x-1 transition-transform"><path d="m9 18 6-6-6-6" /></svg>
         </Link>
       </div>
 
-      {/* 헤더 영역 (기존 디자인 유지) */}
+      {/* 헤더 영역 (기존 유지) */}
       <header className="w-full max-w-6xl flex justify-start items-center mb-10 pl-2">
         <a href="/" className="flex items-center gap-3 cursor-pointer group">
           <div className="relative w-10 h-10 overflow-hidden rounded-lg">
-            <Image
-              src="/logo.png"
-              alt="아파티로고"
-              fill
-              className="object-contain group-hover:rotate-12 transition-transform duration-300"
-            />
+            <Image src="/logo.png" alt="아파티로고" fill className="object-contain group-hover:rotate-12 transition-transform duration-300" />
           </div>
           <h1 className="text-2xl font-black text-[#4a403a] tracking-tighter group-hover:text-orange-500 transition-colors">
             APARTY
@@ -98,13 +79,12 @@ export default function Home() {
         </a>
       </header>
 
-      {/* 1. 상단 환영 섹션 */}
+      {/* 환영 섹션 (기존 유지) */}
       <div className="w-full max-w-4xl mb-12 text-center">
         <h1 className="text-3xl md:text-4xl font-bold text-[#4a403a] leading-tight mb-3">
           안녕? 난 <span className="text-orange-500">아파티</span>야. <br />
           너에게 딱 맞는 집을 찾아줄게!
         </h1>
-
         <p className="text-xs md:text-sm text-gray-400 font-medium leading-relaxed mb-10">
           대한민국 모든 프리미엄 아파트,<br className="md:hidden" />
           복잡한 부동산 정보, <br className="hidden md:inline" />
@@ -145,8 +125,21 @@ export default function Home() {
       {/* 리스트 섹션 */}
       <section className="w-full max-w-6xl mb-20">
         <div className="flex items-center justify-between mb-8 px-2">
-          <h2 className="text-xl font-bold text-[#4a403a]">
-            {activeFilter === "전체" ? "👀 아파티가 찍은 호재 뉴스" : `🔥 ${activeFilter} 단지`}
+          {/* ✅ [수정] 이모티콘을 'Sparkles(반짝임)' 아이콘으로 교체하고 글자 크기 통일 */}
+          <h2 className="text-xl md:text-2xl font-bold text-[#4a403a] flex items-center gap-2 tracking-tight">
+            {activeFilter === "전체" ? (
+              <>
+                {/* Sparkles: 호재/반짝임 의미 */}
+                <Sparkles className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
+                아파티가 찍은 호재 뉴스
+              </>
+            ) : (
+              <>
+                {/* Flame: 핫한/마감임박 등 필터 걸었을 때 */}
+                <Flame className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
+                {activeFilter} 단지 모아보기
+              </>
+            )}
           </h2>
           <span className="text-sm text-gray-400 font-medium">총 {filteredProperties.length}곳</span>
         </div>
@@ -167,7 +160,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* ✅ [추가] 뉴스 섹션 */}
+      {/* 뉴스 섹션 */}
       <NewsSection />
 
       <ChatBot />
