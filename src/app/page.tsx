@@ -6,7 +6,7 @@ import ChatBot from "../components/ChatBot";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Sparkles, Flame } from "lucide-react"; // ✅ 아이콘 추가 (Sparkles, Flame)
+import { Search, Sparkles, Flame } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 
 export default function Home() {
@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center py-6 px-6 relative">
 
-      {/* 우측 상단 버튼 (기존 유지) */}
+      {/* 우측 상단 버튼 */}
       <div className="absolute top-4 right-4 md:top-8 md:right-10 z-20">
         <Link
           href="https://pro.aparty.co.kr"
@@ -67,7 +67,7 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* 헤더 영역 (기존 유지) */}
+      {/* 헤더 영역 */}
       <header className="w-full max-w-6xl flex justify-start items-center mb-10 pl-2">
         <a href="/" className="flex items-center gap-3 cursor-pointer group">
           <div className="relative w-10 h-10 overflow-hidden rounded-lg">
@@ -79,7 +79,7 @@ export default function Home() {
         </a>
       </header>
 
-      {/* 환영 섹션 (기존 유지) */}
+      {/* 환영 섹션 */}
       <div className="w-full max-w-4xl mb-12 text-center">
         <h1 className="text-3xl md:text-4xl font-bold text-[#4a403a] leading-tight mb-3">
           안녕? 난 <span className="text-orange-500">아파티</span>야. <br />
@@ -92,7 +92,7 @@ export default function Home() {
         </p>
 
         {/* 검색창 */}
-        <div className="relative w-full max-w-lg mx-auto mb-12 group">
+        <div className="relative w-full max-w-lg mx-auto mb-10 group">
           <input
             type="text"
             placeholder="어떤 지역, 어떤 아파트를 찾으세요?"
@@ -105,37 +105,50 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 필터 버튼 */}
-        <div className="flex flex-wrap justify-center gap-2.5 mb-16">
-          {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2 rounded-full font-bold text-xs md:text-sm transition-all ${activeFilter === filter
-                ? "bg-[#4a403a] text-white shadow-md transform scale-105"
-                : "bg-white text-gray-400 border border-gray-100 hover:border-orange-200 hover:text-orange-500"
-                }`}
-            >
-              {filter === "전체" ? "전체보기" : `#${filter}`}
-            </button>
-          ))}
+        {/* 필터 및 도구 링크 영역 */}
+        <div className="flex flex-col items-center gap-6 mb-12 w-full">
+          <div className="flex flex-wrap justify-center gap-2.5 px-2">
+            {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${activeFilter === filter
+                  ? "bg-[#4a403a] text-white shadow-md transform scale-105"
+                  : "bg-white text-gray-400 border border-gray-100 hover:border-orange-200 hover:text-orange-500"
+                  }`}
+              >
+                {filter === "전체" ? "전체보기" : `#${filter}`}
+              </button>
+            ))}
+          </div>
+
+          <div className="w-10 h-1 bg-gray-200/50 rounded-full my-1"></div>
+
+          <div className="flex flex-wrap justify-center gap-3 w-full px-4">
+            <Link href="/tools/tax" className="flex items-center gap-1.5 px-4 py-2 bg-[#FFF8F0] border border-[#FF8C42]/20 text-[#4A403A] text-sm font-bold rounded-xl shadow-sm hover:bg-[#FF8C42] hover:text-white transition-all group">
+              <span className="text-base group-hover:animate-bounce">🧮</span> 취득세 계산
+            </Link>
+            <Link href="/tools/loan" className="flex items-center gap-1.5 px-4 py-2 bg-[#FFF8F0] border border-[#FF8C42]/20 text-[#4A403A] text-sm font-bold rounded-xl shadow-sm hover:bg-[#FF8C42] hover:text-white transition-all group">
+              <span className="text-base group-hover:animate-bounce">🏦</span> 대출 비교
+            </Link>
+            <Link href="/tools/yield" className="flex items-center gap-1.5 px-4 py-2 bg-[#FFF8F0] border border-[#FF8C42]/20 text-[#4A403A] text-sm font-bold rounded-xl shadow-sm hover:bg-[#FF8C42] hover:text-white transition-all group">
+              <span className="text-base group-hover:animate-bounce">📈</span> 수익률 계산
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* 리스트 섹션 */}
-      <section className="w-full max-w-6xl mb-20">
+      {/* 리스트 섹션 (호재 뉴스) */}
+      <section className="w-full max-w-6xl mb-16">
         <div className="flex items-center justify-between mb-8 px-2">
-          {/* ✅ [수정] 이모티콘을 'Sparkles(반짝임)' 아이콘으로 교체하고 글자 크기 통일 */}
           <h2 className="text-xl md:text-2xl font-bold text-[#4a403a] flex items-center gap-2 tracking-tight">
             {activeFilter === "전체" ? (
               <>
-                {/* Sparkles: 호재/반짝임 의미 */}
                 <Sparkles className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
                 아파티가 찍은 호재 뉴스
               </>
             ) : (
               <>
-                {/* Flame: 핫한/마감임박 등 필터 걸었을 때 */}
                 <Flame className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
                 {activeFilter} 단지 모아보기
               </>
@@ -159,6 +172,50 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* 🎬 [프리미엄 영상 배너] 문구 및 영상 파일명 수정 완료 */}
+      <div className="w-full max-w-5xl mb-20 px-2">
+        <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between p-7 md:p-10 group min-h-[220px]">
+
+          {/* ✅ 생성하신 영상 파일을 public 폴더에 넣고 이 이름으로 맞춰주세요! */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-0 scale-105 group-hover:scale-100 transition-transform duration-1000"
+            src="/vip-bg.mp4"
+          />
+
+          <div className="absolute inset-0 bg-black/20 bg-gradient-to-r from-black/60 via-black/30 to-transparent z-0"></div>
+
+          <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+            <div className="inline-block bg-[#FF8C42] text-white text-xs font-black px-3 py-1.5 rounded-full mb-3 tracking-wider shadow-sm">
+              ✨ VIP 관심고객 한정
+            </div>
+            {/* 🛠️ 헤드라인 수정 완료 */}
+            <h3 className="text-2xl md:text-3xl font-black text-white mb-2 tracking-tight">
+              누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔
+            </h3>
+            {/* 🛠️ 서브 문구 수정 완료 */}
+            <p className="text-sm md:text-base text-white/80 font-medium">
+              로얄동·로얄층 마감 전, 돈 되는 부산 분양 정보를 알려드립니다!
+            </p>
+          </div>
+
+          <Link
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              alert("VIP 알림 신청 폼(Tally) 주소를 여기에 연결할 예정입니다!");
+            }}
+            className="relative z-10 w-full md:w-auto text-center bg-[#FF8C42] text-white font-black text-lg px-8 py-4 rounded-2xl shadow-[0_4px_15px_rgba(255,140,66,0.5)] hover:bg-white hover:text-[#FF8C42] transition-colors flex items-center justify-center gap-2 group/btn"
+          >
+            <span>무료 알림 신청하기</span>
+            <span className="group-hover/btn:translate-x-1 transition-transform">🚀</span>
+          </Link>
+        </div>
+      </div>
 
       {/* 뉴스 섹션 */}
       <NewsSection />
