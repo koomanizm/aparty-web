@@ -107,7 +107,7 @@ export default function Home() {
       <div className="w-full max-w-4xl px-6 text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-black text-[#4a403a] leading-tight mb-4">
           지금 가장 핫한 <br className="md:hidden" />
-          <span className="text-orange-500">선착순 분양지</span>는?
+          <span className="text-orange-500">선착순 분양단지</span>는?
         </h1>
 
         {/* 검색창 */}
@@ -210,8 +210,17 @@ export default function Home() {
             <h3 className="text-3xl md:text-4xl font-black text-white mb-3">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</h3>
             <p className="text-base md:text-lg text-white/80">로얄동·로얄층 마감 전, 부산 정보를 가장 먼저 알려드립니다!</p>
           </div>
-          <Link href="#" className="relative z-10 bg-[#FF8C42] text-white font-black px-10 py-5 rounded-[20px] shadow-2xl hover:scale-105 transition-all">
-            무료 신청하기 🚀
+          <Link
+            href="http://pf.kakao.com/_EbnAX"
+            target="_blank"
+            className="relative z-10 bg-[#FF8C42] text-white font-black px-8 py-4 md:px-10 md:py-5 rounded-[20px] shadow-2xl hover:scale-105 transition-all flex items-center gap-3"
+          >
+            {/* ✅ 카카오톡 공식 SVG 로고 (흰색) */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3C6.47715 3 2 6.35786 2 10.5C2 13.2664 3.76357 15.7143 6.46429 17.0714L5.35714 21L9.64286 18.1429C10.4046 18.3025 11.1917 18.3857 12 18.3857C17.5228 18.3857 22 15.0279 22 10.8857C22 6.74357 17.5228 3.38571 12 3V3Z" fill="white" />
+            </svg>
+            {/* ✅ 문구 변경 */}
+            <span className="text-lg">아파티 채널추가 하기</span>
           </Link>
         </div>
       </div>
