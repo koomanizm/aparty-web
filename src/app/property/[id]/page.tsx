@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame, TrendingUp, Newspaper } from "lucide-react";
+// ✅ Calculator, Landmark, BarChart3 아이콘 추가
+import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3 } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 
 export default function PropertyDetailPage() {
@@ -159,7 +160,7 @@ export default function PropertyDetailPage() {
                             { icon: Users, label: "세대수", value: property.households, color: "text-blue-500", bg: "bg-blue-50" },
                             { icon: Maximize, label: "평형정보", value: property.size, color: "text-orange-500", bg: "bg-orange-50" },
                             { icon: Calendar, label: "입주예정", value: property.moveIn, color: "text-emerald-500", bg: "bg-emerald-50" },
-                            { icon: Calendar, label: "주차대수", value: property.parking, color: "text-purple-500", bg: "bg-purple-50" },
+                            { icon: Car, label: "주차대수", value: property.parking, color: "text-purple-500", bg: "bg-purple-50" },
                         ].map((item, idx) => (
                             <div key={idx} className="bg-gray-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
                                 <div className={`w-8 h-8 ${item.bg} ${item.color} rounded-full flex items-center justify-center`}><item.icon size={16} /></div>
@@ -170,7 +171,7 @@ export default function PropertyDetailPage() {
                     </div>
 
                     {/* 분양가 정보 */}
-                    <div className="mb-10">
+                    <div className="mb-6">
                         <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {priceList.map((item, idx) => (
@@ -179,6 +180,29 @@ export default function PropertyDetailPage() {
                                     <span className="text-lg font-black text-[#ff6f42]">{item.price}</span>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* ✅ 자금 계획 도우미 (계산기 3종) 추가 */}
+                    <div className="mb-10 bg-[#f8f9fa] rounded-2xl p-4 md:p-5 border border-gray-100">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                            <h3 className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
+                                <Calculator size={14} className="text-gray-400" /> 자금 계획 도우미
+                            </h3>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 md:gap-3">
+                            <Link href="/tools/tax" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
+                                <div className="text-blue-500"><Calculator size={18} /></div>
+                                <span className="text-[11px] font-bold text-gray-600">취득세 계산</span>
+                            </Link>
+                            <Link href="/tools/loan" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
+                                <div className="text-emerald-500"><Landmark size={18} /></div>
+                                <span className="text-[11px] font-bold text-gray-600">대출 한도</span>
+                            </Link>
+                            <Link href="/tools/yield" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
+                                <div className="text-orange-500"><BarChart3 size={18} /></div>
+                                <span className="text-[11px] font-bold text-gray-600">수익률 계산</span>
+                            </Link>
                         </div>
                     </div>
 

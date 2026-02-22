@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Newspaper, ArrowRight } from "lucide-react";
 
-// ... (NewsItem 인터페이스와 CATEGORIES 상수는 그대로 둡니다) ...
 interface NewsItem {
     title: string;
     link: string;
@@ -43,7 +42,7 @@ export default function NewsSection() {
         <section className="w-full max-w-6xl mb-24 px-4">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
                 <div>
-                    {/* ✅ [수정] 글자 크기를 page.tsx와 비슷하게 축소 (text-xl) */}
+                    {/* 타이틀 크기 유지 */}
                     <h2 className="text-xl md:text-2xl font-bold text-[#4a403a] flex items-center gap-2 mb-1 tracking-tight">
                         <Newspaper className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
                         부동산 인사이트
@@ -59,8 +58,8 @@ export default function NewsSection() {
                             key={cat.label}
                             onClick={() => setActiveTab(cat.query)}
                             className={`px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === cat.query
-                                    ? "bg-[#4a403a] text-white shadow-lg scale-105"
-                                    : "bg-white text-gray-400 border border-gray-100 hover:text-orange-500 hover:border-orange-200 hover:bg-orange-50"
+                                ? "bg-[#4a403a] text-white shadow-lg scale-105"
+                                : "bg-white text-gray-400 border border-gray-100 hover:text-orange-500 hover:border-orange-200 hover:bg-orange-50"
                                 }`}
                         >
                             {cat.label}
@@ -96,7 +95,8 @@ export default function NewsSection() {
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
                             <div>
-                                <h3 className="font-bold text-gray-800 text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-orange-600 transition-colors">
+                                {/* 🚀 유일하게 변경된 곳: 모바일에서는 text-[15px](또는 text-base), PC에서는 text-lg 로 반응형 글자 크기 적용 */}
+                                <h3 className="font-bold text-gray-800 text-[15px] md:text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-orange-600 transition-colors">
                                     {item.title}
                                 </h3>
                             </div>
