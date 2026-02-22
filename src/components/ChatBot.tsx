@@ -1,221 +1,151 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { MessageCircle, X, MapPin, Calendar, DollarSign, ArrowLeft, Building2, Coins, Phone, Send } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { MessageCircle, X, Send, Home, Info, HelpCircle } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
 
-type Message = {
+interface Message {
     id: number;
     text: string;
-    sender: "bot" | "user";
-    type?: "text" | "options";
-    options?: any[];
-};
+    sender: "user" | "bot";
+}
 
 export default function ChatBot() {
     const [isOpen, setIsOpen] = useState(false);
-    const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-    const [properties, setProperties] = useState<Property[]>([]);
     const [messages, setMessages] = useState<Message[]>([
-        {
-            id: 1,
-            text: "안녕하세요! 아파티(APARTY) AI입니다. 🤖\n데이터를 불러오고 있어요...",
-            sender: "bot",
-        }
+        { id: 1, text: "안녕하세요! 아파티(APARTY)입니다. 무엇을 도와드릴까요?", sender: "bot" }
     ]);
+    const [input, setInput] = useState("");
+    const [properties, setProperties] = useState<Property[]>([]);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
+    // 시트 데이터 로드
     useEffect(() => {
-        async function loadSheetData() {
+        async function loadProperties() {
             const data = await getPropertiesFromSheet();
             setProperties(data);
-
-            setMessages([
-                {
-                    id: 1,
-                    text: "안녕하세요? 저는 아파티 AI 매니저입니다! 😊\n관심 있는 현장을 선택해주시면 자세히 알려줄게요.",
-                    sender: "bot",
-                    type: "options",
-                    options: data.map(p => ({ label: p.title, value: p.id }))
-                }
-            ]);
         }
-        loadSheetData();
+        loadProperties();
     }, []);
 
+    // 메시지 스크롤 자동 하단 이동
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isOpen]);
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
 
-    const handlePropertySelect = (propertyId: number, propertyTitle: string) => {
-        const userMsg: Message = { id: Date.now(), text: propertyTitle, sender: "user" };
-        const target = properties.find(p => p.id === propertyId);
-        setSelectedPropertyId(propertyId);
+    const handleSend = (text: string) => {
+        if (!text.trim()) return;
 
-        const botMsg: Message = {
-            id: Date.now() + 1,
-            text: `[${target?.title}]\n이 단지에 대해 무엇이 궁금하신가요?`,
-            sender: "bot"
-        };
+        const userMsg: Message = { id: Date.now(), text, sender: "user" };
+        setMessages((prev) => [...prev, userMsg]);
+        setInput("");
 
-        setMessages(prev => [...prev, userMsg, botMsg]);
+        // 봇 응답 로직 (간단한 예시)
+        setTimeout(() => {
+            let botText = "문의하신 내용을 담당자에게 전달해 드릴까요? '관심고객 등록' 버튼을 누르시면 더 자세한 상담이 가능합니다.";
+
+            if (text.includes("분양")) {
+                botText = "현재 부산/경남 지역의 핫한 분양 단지들을 분석해 드릴 수 있습니다. 어떤 단지가 궁금하신가요?";
+            }
+
+            const botMsg: Message = { id: Date.now() + 1, text: botText, sender: "bot" };
+            setMessages((prev) => [...prev, botMsg]);
+        }, 1000);
     };
 
-    const handleDetailQuestion = (type: "price" | "location" | "moveIn" | "reset") => {
-        if (type === "reset") {
-            setSelectedPropertyId(null);
-            setMessages(prev => [...prev,
-            { id: Date.now(), text: "다른 현장 보기", sender: "user" },
-            {
-                id: Date.now() + 1,
-                text: "다른 현장을 선택해주세요.",
-                sender: "bot",
-                type: "options",
-                options: properties.map(p => ({ label: p.title, value: p.id }))
-            }
-            ]);
-            return;
-        }
+    // 🚀 [문제 해결] 매물 선택 시 ID 타입 충돌 방지 로직
+    const handlePropertySelect = (propertyId: string | number, propertyTitle: string) => {
+        const userMsg: Message = { id: Date.now(), text: `[${propertyTitle}] 정보가 궁금해!`, sender: "user" };
+        setMessages((prev) => [...prev, userMsg]);
 
-        const target = properties.find(p => p.id === selectedPropertyId);
-        if (!target) return;
+        // 📍 String()을 사용하여 모든 타입을 문자열로 통일해 비교합니다.
+        const target = properties.find(p => String(p.id) === String(propertyId));
 
-        let questionText = "";
-        let answerText = "";
+        setTimeout(() => {
+            const botText = target
+                ? `${target.title}의 분양가는 약 ${target.price}입니다. 상세페이지에서 실거래가와 뉴스를 확인해 보세요!`
+                : "해당 매물 정보를 찾고 있습니다. 잠시만 기다려 주세요.";
 
-        switch (type) {
-            case "price":
-                questionText = "💰 분양가 문의";
-                answerText = `${target.title}의 분양가는\n[${target.price}] 수준입니다.`;
-                break;
-            case "location":
-                questionText = "📍 위치 확인";
-                answerText = `현장 위치는\n[${target.location}]입니다..`;
-                break;
-            case "moveIn":
-                questionText = "📅 입주시기";
-                answerText = `입주 예정일은\n[${target.moveIn}]입니다.`;
-                break;
-        }
-
-        setMessages(prev => [...prev,
-        { id: Date.now(), text: questionText, sender: "user" },
-        { id: Date.now() + 1, text: answerText, sender: "bot" }
-        ]);
+            const botMsg: Message = { id: Date.now() + 1, text: botText, sender: "bot" };
+            setMessages((prev) => [...prev, botMsg]);
+        }, 800);
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans">
-            {isOpen && (
-                <div className="bg-white w-[90vw] sm:w-[350px] h-[550px] rounded-[2rem] shadow-2xl border border-gray-100 flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 z-[9999]">
+            {/* 챗봇 아이콘 버튼 */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-14 h-14 bg-[#ff6f42] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all active:scale-95"
+            >
+                {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
+            </button>
 
-                    {/* ✅ 헤더: 아파티 다크 브라운 적용 */}
-                    <div className="bg-[#4a403a] p-5 text-white flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-orange-400 rounded-lg flex items-center justify-center shadow-inner">
-                                <MessageCircle size={18} className="text-white" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-black tracking-tight">아파티 AI 매니저</p>
-                                <p className="text-[10px] text-orange-200 font-bold uppercase tracking-wider">Online Now</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white transition hover:rotate-90 duration-200">
-                            <X size={20} />
-                        </button>
+            {/* 채팅창 */}
+            {isOpen && (
+                <div className="absolute bottom-20 right-0 w-[350px] h-[500px] bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-gray-100 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-10 duration-300">
+
+                    {/* 헤더 */}
+                    <div className="bg-[#ff6f42] p-5 text-white">
+                        <h3 className="font-black text-lg flex items-center gap-2">
+                            <span className="text-2xl">🤖</span> APARTY AI 봇
+                        </h3>
+                        <p className="text-[11px] opacity-80 font-medium">실시간 분양 정보 및 시세를 답변해 드립니다.</p>
                     </div>
 
-                    {/* ✅ 대화창 배경: 베이지색 적용 */}
-                    <div className="flex-1 p-4 overflow-y-auto bg-[#fdfbf7] space-y-4 custom-scrollbar">
+                    {/* 메시지 영역 */}
+                    <div ref={scrollRef} className="flex-grow p-4 overflow-y-auto bg-[#fdfbf7] space-y-4">
                         {messages.map((msg) => (
-                            <div key={msg.id} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
-                                <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm whitespace-pre-line shadow-sm mb-1 ${msg.sender === "user"
-                                    ? "bg-orange-400 text-white rounded-tr-none" // ✅ 사용자 말풍선: 오렌지
-                                    : "bg-white text-[#4a403a] border border-gray-100 rounded-tl-none font-medium" // ✅ 봇 말풍선: 화이트/브라운
+                            <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                                <div className={`max-w-[80%] p-3.5 rounded-2xl text-sm font-medium shadow-sm ${msg.sender === "user"
+                                    ? "bg-[#4a403a] text-white rounded-br-none"
+                                    : "bg-white text-[#4a403a] rounded-bl-none border border-gray-100"
                                     }`}>
                                     {msg.text}
                                 </div>
-
-                                {msg.type === "options" && msg.options && (
-                                    <div className="flex flex-col gap-2 w-full mt-2">
-                                        {msg.options.map((opt: any) => (
-                                            <button
-                                                key={opt.value}
-                                                onClick={() => handlePropertySelect(opt.value, opt.label)}
-                                                className="text-xs bg-white border border-orange-100 text-[#4a403a] hover:bg-orange-50 hover:border-orange-200 py-3 px-4 rounded-xl transition-all text-left shadow-sm font-bold flex items-center justify-between group"
-                                            >
-                                                <span>🏠 {opt.label}</span>
-                                                <span className="text-orange-300 group-hover:text-orange-500">→</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         ))}
-                        <div ref={messagesEndRef} />
+
+                        {/* 추천 단지 퀵 버튼 (데이터 연동) */}
+                        {properties.length > 0 && (
+                            <div className="flex flex-col gap-2 pt-2">
+                                <p className="text-[10px] text-gray-400 font-bold px-1">🔥 인기 단지 바로보기</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {properties.slice(0, 3).map((p) => (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => handlePropertySelect(p.id, p.title)}
+                                            className="bg-white border border-orange-100 text-orange-600 text-[11px] font-bold px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors shadow-sm"
+                                        >
+                                            {p.title}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* ✅ 하단 버튼 영역 */}
-                    {selectedPropertyId ? (
-                        <div className="p-4 bg-white border-t border-gray-50">
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                                <button onClick={() => handleDetailQuestion("price")} className="flex flex-col items-center justify-center py-2.5 bg-gray-50 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors text-[11px] font-bold text-gray-500 gap-1 border border-gray-100">
-                                    <Coins size={16} className="text-orange-400" /> 분양가
-                                </button>
-                                <button onClick={() => handleDetailQuestion("location")} className="flex flex-col items-center justify-center py-2.5 bg-gray-50 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors text-[11px] font-bold text-gray-500 gap-1 border border-gray-100">
-                                    <MapPin size={16} className="text-orange-400" /> 위치
-                                </button>
-                                <button onClick={() => handleDetailQuestion("moveIn")} className="flex flex-col items-center justify-center py-2.5 bg-gray-50 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors text-[11px] font-bold text-gray-500 gap-1 border border-gray-100">
-                                    <Building2 size={16} className="text-orange-400" /> 입주시기
-                                </button>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleDetailQuestion("reset")}
-                                    className="w-12 flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl hover:bg-gray-200 transition-colors"
-                                >
-                                    <ArrowLeft size={18} />
-                                </button>
-                                <Link
-                                    href="http://pf.kakao.com/_EbnAX"
-                                    target="_blank"
-                                    className="flex-1 bg-[#FEE500] hover:bg-yellow-400 text-slate-900 text-sm font-black py-3.5 rounded-xl flex justify-center items-center gap-2 transition shadow-md active:scale-95"
-                                >
-                                    <MessageCircle size={18} />
-                                    전문 상담원 연결
-                                </Link>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 bg-white border-t border-gray-50">
-                            <Link
-                                href="http://pf.kakao.com/_EbnAX"
-                                target="_blank"
-                                className="w-full bg-[#FEE500] hover:bg-yellow-400 text-slate-900 text-sm font-black py-3.5 rounded-xl flex justify-center items-center gap-2 transition shadow-md active:scale-95"
-                            >
-                                <MessageCircle size={18} />
-                                무엇이든 물어보세요
-                            </Link>
-                        </div>
-                    )}
+                    {/* 입력 영역 */}
+                    <div className="p-4 bg-white border-t border-gray-50 flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleSend(input)}
+                            placeholder="궁금한 단지 이름을 입력하세요..."
+                            className="flex-grow bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-100 outline-none"
+                        />
+                        <button
+                            onClick={() => handleSend(input)}
+                            className="bg-[#ff6f42] text-white p-2.5 rounded-xl hover:bg-[#ff5a28] transition-colors"
+                        >
+                            <Send size={18} />
+                        </button>
+                    </div>
                 </div>
             )}
-
-            {/* ✅ 플로팅 버튼: 오렌지색 + 2xl 사각형 스타일 */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="bg-orange-400 hover:bg-orange-500 text-white rounded-2xl  transition-all hover:scale-110 active:scale-95 flex items-center justify-center w-14 h-14 relative group"
-            >
-                {isOpen ? <X size={24} /> : (
-                    <>
-                        <MessageCircle size={26} className="group-hover:rotate-12 transition-transform" />
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-orange-400 rounded-full"></span>
-                    </>
-                )}
-            </button>
         </div>
     );
 }
