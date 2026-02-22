@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame } from "lucide-react";
+import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame, TrendingUp, Newspaper } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 
 export default function PropertyDetailPage() {
@@ -13,6 +13,12 @@ export default function PropertyDetailPage() {
     const [property, setProperty] = useState<Property | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // API 데이터를 담을 상태
+    const [news, setNews] = useState<any[]>([]);
+    const [trades, setTrades] = useState<any[]>([]);
+    const [isApiLoading, setIsApiLoading] = useState(true);
+
+    // 1. 매물 기본 정보 불러오기
     useEffect(() => {
         async function loadProperty() {
             try {
@@ -20,7 +26,7 @@ export default function PropertyDetailPage() {
                 const found = allProperties.find((p: Property) => String(p.id) === params.id);
                 if (found) setProperty(found);
             } catch (error) {
-                console.error("로드 실패:", error);
+                console.error("매물 로드 실패:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -28,70 +34,98 @@ export default function PropertyDetailPage() {
         loadProperty();
     }, [params.id]);
 
-    // ✅ [부드러운 Shimmer 버전] 상세 페이지용 스타일 함수
+    // 2. 외부 데이터(시세, 뉴스) 호출
+    useEffect(() => {
+        if (!property) return;
+
+        async function fetchExternalData() {
+            setIsApiLoading(true);
+            try {
+                const p = property as any;
+                const lawdCd = p.lawdCd || "26440";
+                const compareApt = p.compareApt || "";
+                const searchKeyword = p.searchKeyword || `${property?.location} 아파트 호재`;
+                const dealYmd = "202601";
+
+                // 네이버 뉴스 및 국토부 실거래가 동시 호출
+                const [newsRes, tradeRes] = await Promise.all([
+                    fetch(`/api/naver?query=${encodeURIComponent(searchKeyword)}`),
+                    fetch(`/api/molit?lawdCd=${lawdCd}&dealYmd=${dealYmd}`)
+                ]);
+
+                const newsData = await newsRes.json();
+                if (newsData.items) setNews(newsData.items);
+
+                const tradeXml = await tradeRes.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(tradeXml, "text/xml");
+                const items = xmlDoc.getElementsByTagName("item");
+                const tradeList = [];
+
+                for (let i = 0; i < items.length; i++) {
+                    const aptNm = items[i].getElementsByTagName("aptNm")[0]?.textContent;
+                    const dealAmount = items[i].getElementsByTagName("dealAmount")[0]?.textContent;
+                    const excluUseAr = items[i].getElementsByTagName("excluUseAr")[0]?.textContent;
+                    const dealDay = items[i].getElementsByTagName("dealDay")[0]?.textContent;
+
+                    if (aptNm && dealAmount) {
+                        tradeList.push({
+                            aptName: aptNm.trim(),
+                            price: dealAmount.trim(),
+                            area: excluUseAr ? Math.round(Number(excluUseAr)) : 0,
+                            dealDay: dealDay?.trim() || "-"
+                        });
+                    }
+                }
+
+                let filteredTrades = tradeList;
+                if (compareApt) {
+                    filteredTrades = tradeList.filter(t => t.aptName.includes(compareApt));
+                }
+                setTrades(filteredTrades.slice(0, 5));
+
+            } catch (error) {
+                console.error("API 연동 에러:", error);
+            } finally {
+                setIsApiLoading(false);
+            }
+        }
+        fetchExternalData();
+    }, [property]);
+
+    // --- 헬퍼 함수 ---
     const getStatusStyle = (index: number) => {
-        const base = "relative overflow-hidden px-4 py-1.5 rounded-lg text-[11px] font-bold shadow-sm border-b-2 transition-all duration-300 flex items-center gap-1.5 hover:-translate-y-0.5";
-
-        // 메인 카드와 동일한 'shimmer-effect' 클래스 부여 (상위 3개)
-        const shimmerClass = index < 3 ? "shimmer-effect" : "";
-
-        // 눈이 편안한 소프트 파스텔 12가지 팔레트
-        const palette = [
-            "bg-[#fecaca] text-[#b91c1c] border-[#fca5a5]", // 1. 로즈
-            "bg-[#bfdbfe] text-[#1d4ed8] border-[#93c5fd]", // 2. 블루
-            "bg-[#fef3c7] text-[#92400e] border-[#fde68a]", // 3. 오트밀
-            "bg-[#bbf7d0] text-[#15803d] border-[#86efac]", // 4. 민트
-            "bg-[#ddd6fe] text-[#6d28d9] border-[#c4b5fd]", // 5. 라벤더
-            "bg-[#fed7aa] text-[#c2410c] border-[#fdba74]", // 6. 피치
-            "bg-[#e0e7ff] text-[#4338ca] border-[#c7d2fe]", // 7. 인디고
-            "bg-[#cffafe] text-[#0e7490] border-[#a5f3fc]", // 8. 아이스 블루
-            "bg-[#f3f4f6] text-[#374151] border-[#e5e7eb]", // 9. 라이트 그레이
-            "bg-[#ecfccb] text-[#4d7c0f] border-[#d9f99d]", // 10. 피스타치오
-            "bg-[#ccfbf1] text-[#0f766e] border-[#99f6e4]", // 11. 샌드 그린
-            "bg-[#f1f5f9] text-[#475569] border-[#e2e8f0]"  // 12. 클라우드
-        ];
-
-        return `${base} ${palette[index % palette.length]} ${shimmerClass}`;
+        const base = "relative overflow-hidden px-4 py-1.5 rounded-lg text-[11px] font-bold shadow-sm border-b-2 transition-all duration-300 flex items-center gap-1.5";
+        const palette = ["bg-[#fecaca] text-[#b91c1c] border-[#fca5a5]", "bg-[#bfdbfe] text-[#1d4ed8] border-[#93c5fd]", "bg-[#fef3c7] text-[#92400e] border-[#fde68a]", "bg-[#bbf7d0] text-[#15803d] border-[#86efac]", "bg-[#ddd6fe] text-[#6d28d9] border-[#c4b5fd]", "bg-[#fed7aa] text-[#c2410c] border-[#fdba74]"];
+        return `${base} ${palette[index % palette.length]} ${index < 3 ? "shimmer-effect" : ""}`;
     };
 
     const parsePriceList = (priceString: string) => {
         if (!priceString) return [];
         if (!priceString.includes('/')) return [{ type: '대표가', price: priceString }];
-
         return priceString.split('/').map(item => {
             const [type, price] = item.split(':');
-            return {
-                type: type ? type.trim() : '타입',
-                price: price ? price.trim() : item.trim()
-            };
+            return { type: type ? type.trim() : '타입', price: price ? price.trim() : item.trim() };
         });
     };
 
-    if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold tracking-tight">정보를 불러오고 있습니다...</div>;
+    // 🛡️ 중요: 데이터 로딩 중이거나 매물이 없을 때 렌더링 방지 (Null Check)
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">정보를 불러오고 있습니다...</div>;
     if (!property) return <div className="min-h-screen flex items-center justify-center">매물을 찾을 수 없습니다.</div>;
 
     const priceList = parsePriceList(property.price);
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
-            {/* 🛠️ 메인 카드에서 성공한 그 스타일 주입 방식! */}
             <style dangerouslySetInnerHTML={{
                 __html: `
-                @keyframes sweep {
-                    0% { left: -150%; }
-                    100% { left: 150%; }
-                }
-                .shimmer-effect::after {
-                    content: "";
-                    position: absolute;
-                    top: 0;
-                    width: 50px;
-                    height: 100%;
-                    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
-                    transform: skewX(-20deg);
-                    animation: sweep 3s infinite;
-                }
-            `}} />
+        @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }
+        .shimmer-effect::after {
+          content: ""; position: absolute; top: 0; width: 50px; height: 100%;
+          background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
+          transform: skewX(-20deg); animation: sweep 3s infinite;
+        }
+      `}} />
 
             {/* 네비게이션 */}
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/70 backdrop-blur-md border-b border-white/20">
@@ -108,39 +142,24 @@ export default function PropertyDetailPage() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30"></div>
             </div>
 
-            {/* 콘텐츠 카드 */}
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
-                <div className="bg-white rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-6 md:p-10 border border-gray-50">
+                <div className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10 border border-gray-50">
 
-                    {/* ✅ 통일된 뱃지 영역 (첫 번째 불꽃 + 스르륵 효과) */}
+                    {/* 뱃지 영역 */}
                     <div className="flex flex-wrap gap-2.5 mb-5">
-                        {property.status.map((tag: string, i: number) => (
+                        {property.status.map((tag, i) => (
                             <span key={i} className={getStatusStyle(i)}>
-                                {i === 0 && <Flame size={13} className="fill-current border-none" />}
-                                {tag}
+                                {i === 0 && <Flame size={13} className="fill-current" />} {tag}
                             </span>
                         ))}
                     </div>
 
                     <div className="mb-6 border-b border-gray-100 pb-6">
-                        <h1 className="text-2xl md:text-3xl font-black text-[#2d2d2d] tracking-tight mb-2 leading-tight">{property.title}</h1>
-                        <p className="text-gray-400 font-medium text-sm flex items-center gap-1">📍 {property.location}</p>
+                        <h1 className="text-2xl md:text-3xl font-black text-[#2d2d2d] leading-tight mb-2">{property.title}</h1>
+                        <p className="text-gray-400 font-medium text-sm">📍 {property.location}</p>
                     </div>
 
-                    {/* 가격 정보 */}
-                    <div className="mb-8">
-                        <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {priceList.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-4 bg-[#fdfbf7] rounded-xl border border-orange-100">
-                                    <span className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-100">{item.type}</span>
-                                    <span className="text-lg font-black text-[#ff6f42] tracking-tight">{item.price}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 요약 지표 */}
+                    {/* 4대 지표 그리드 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-10">
                         {[
                             { icon: Users, label: "세대수", value: property.households, color: "text-blue-500", bg: "bg-blue-50" },
@@ -148,42 +167,102 @@ export default function PropertyDetailPage() {
                             { icon: Calendar, label: "입주예정", value: property.moveIn, color: "text-emerald-500", bg: "bg-emerald-50" },
                             { icon: Car, label: "주차대수", value: property.parking, color: "text-purple-500", bg: "bg-purple-50" },
                         ].map((item, idx) => (
-                            <div key={idx} className="bg-gray-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                            <div key={idx} className="bg-gray-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
                                 <div className={`w-8 h-8 ${item.bg} ${item.color} rounded-full flex items-center justify-center`}><item.icon size={16} /></div>
                                 <span className="text-[11px] text-gray-400 font-semibold">{item.label}</span>
-                                <span className="text-sm font-bold text-gray-800 text-center leading-tight">{item.value || "-"}</span>
+                                <span className="text-sm font-bold text-gray-800 text-center">{item.value || "-"}</span>
                             </div>
                         ))}
                     </div>
 
-                    {/* 설명글 */}
+                    {/* 분양가 정보 */}
+                    <div className="mb-10">
+                        <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {priceList.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-4 bg-[#fdfbf7] rounded-xl border border-orange-100">
+                                    <span className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-100">{item.type}</span>
+                                    <span className="text-lg font-black text-[#ff6f42]">{item.price}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 🚀 실거래가 비교 리포트 */}
+                    <div className="mb-10">
+                        <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
+                            <TrendingUp className="text-[#ff6f42] w-5 h-5" /> 주변 아파트 실거래가 <span className="text-xs text-gray-400 font-medium ml-1">최근 1개월</span>
+                        </h3>
+                        <div className="bg-[#fdfbf7] border border-[#efeadd] rounded-2xl p-4 md:p-6">
+                            {isApiLoading ? (
+                                <div className="text-center py-5 text-gray-400 text-sm animate-pulse">데이터를 수집 중입니다...</div>
+                            ) : trades.length > 0 ? (
+                                <div className="space-y-4">
+                                    {trades.map((trade, idx) => (
+                                        <div key={idx} className="flex justify-between items-center pb-3 border-b border-gray-200/60 last:border-0 last:pb-0">
+                                            <div>
+                                                <div className="font-bold text-[#4A403A]">{trade.aptName}</div>
+                                                <div className="text-[11px] text-gray-400 mt-0.5">전용 {trade.area}㎡ · {trade.dealDay}일 거래</div>
+                                            </div>
+                                            <div className="font-black text-[#ff6f42]">{trade.price}<span className="text-sm font-bold">만원</span></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-5 text-gray-400 text-sm">해당 지역의 실거래 데이터가 없습니다.</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 🚀 관련 호재 뉴스 */}
+                    <div className="mb-10">
+                        <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
+                            <Newspaper className="text-[#ff6f42] w-5 h-5" /> 관련 호재 뉴스
+                        </h3>
+                        {isApiLoading ? (
+                            <div className="text-center py-5 text-gray-400 text-sm animate-pulse">뉴스를 가져오는 중...</div>
+                        ) : news.length > 0 ? (
+                            <div className="grid gap-3">
+                                {news.map((item, idx) => (
+                                    <a key={idx} href={item.link} target="_blank" rel="noreferrer" className="block bg-white p-4 rounded-xl border border-gray-100 hover:border-[#ff6f42] transition-all group">
+                                        <h4 className="font-bold text-[#2d2d2d] text-sm mb-1 group-hover:text-[#ff6f42] line-clamp-1" dangerouslySetInnerHTML={{ __html: item.title }} />
+                                        <p className="text-xs text-gray-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: item.description }} />
+                                    </a>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-5 text-gray-400 text-sm">관련 뉴스가 없습니다.</div>
+                        )}
+                    </div>
+
+                    {/* 프리미엄 포인트 */}
                     <div className="prose prose-lg max-w-none">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
-                        <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#fdfbf7] p-6 rounded-2xl border border-[#efeadd]">
+                        <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
                             {property.description}
                         </div>
                     </div>
                 </div>
 
-                {/* 버튼 영역 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 mb-10">
-                    <Link href={property.link || "#"} target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-[#2d2d2d] text-[#2d2d2d] rounded-2xl font-bold hover:bg-[#2d2d2d] hover:text-white transition-all active:scale-95 text-lg shadow-sm">
+                {/* 하단 버튼 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <Link href={property.link || "#"} target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-[#2d2d2d] text-[#2d2d2d] rounded-2xl font-bold hover:bg-[#2d2d2d] hover:text-white transition-all text-lg shadow-sm">
                         <Globe size={20} />홈페이지 방문
                     </Link>
-                    <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-[#FEE500] text-[#3c1e1e] rounded-2xl font-bold hover:bg-[#fdd835] transition-all active:scale-95 shadow-md text-lg">
-                        <MessageCircle size={20} fill="currentColor" className="opacity-80" />관심고객 등록 / 상담
+                    <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-[#FEE500] text-[#3c1e1e] rounded-2xl font-bold hover:bg-[#fdd835] transition-all text-lg shadow-md">
+                        <MessageCircle size={20} fill="currentColor" />관심고객 등록 / 상담
                     </Link>
                 </div>
             </div>
 
-            {/* 모바일 상담바 */}
+            {/* 모바일 하단 플로팅 바 */}
             <div className="md:hidden fixed bottom-6 left-4 right-4 z-40">
-                <div className="bg-[#2d2d2d] text-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] p-1.5 flex items-center justify-between pl-6 pr-2 backdrop-blur-md bg-opacity-95">
+                <div className="bg-[#2d2d2d] text-white rounded-full shadow-2xl p-1.5 flex items-center justify-between pl-6 pr-2 backdrop-blur-md bg-opacity-95">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-gray-400 font-medium">상담 문의하기</span>
                         <span className="text-sm font-bold">전문 상담사와 연결</span>
                     </div>
-                    <a href="tel:010-0000-0000" className="bg-[#ff6f42] hover:bg-[#ff5a28] text-white rounded-full p-3 transition-colors">
+                    <a href="tel:010-0000-0000" className="bg-[#ff6f42] rounded-full p-3 transition-colors">
                         <Phone size={20} fill="currentColor" />
                     </a>
                 </div>
