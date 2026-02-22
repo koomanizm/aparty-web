@@ -77,7 +77,6 @@ export default function ChatBot() {
             case "분양가 확인": responseText = `${prop.title}의 분양가는 [${prop.price}]입니다! 예산에 잘 맞으시는지 확인해 보세요.`; break;
             case "위치 정보": responseText = `${prop.title}는 [${prop.location}]에 위치해 있어요. 지도로 보시면 더 정확하답니다!`; break;
             case "세대수/규모": responseText = `${prop.title}는 총 [${prop.households}] 규모로 지어지며, 면적은 [${prop.size}]입니다. 쾌적한 단지네요!`; break;
-            // 🚀 엑셀(시트)의 내용을 자르지 않고 전체 그대로 출력하도록 수정했습니다!
             case "현장 상세분석": responseText = `아파티 전문가들이 분석한 이 현장의 핵심 포인트입니다!\n\n${prop.description}`; break;
         }
 
@@ -117,7 +116,8 @@ export default function ChatBot() {
     };
 
     return (
-        <div className="fixed bottom-10 right-10 z-[100]">
+        /* 🚀 수정 포인트 1: 모바일에서는 화면 끝에서 살짝만 띄우고, PC(md)에서는 넉넉하게 띄움 */
+        <div className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100]">
             {!isOpen && (
                 <button onClick={() => setIsOpen(true)} className="w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-[0_15px_30px_-10px_rgba(255,140,66,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white">
                     <MessageCircle size={26} fill="white" />
@@ -125,20 +125,21 @@ export default function ChatBot() {
             )}
 
             {isOpen && (
-                <div className="w-[360px] h-[550px] bg-white rounded-[32px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
+                /* 🚀 수정 포인트 2: 모바일 폭(w-[calc(100vw-2rem)])과 높이(h-[75dvh])를 동적으로 계산 */
+                <div className="w-[calc(100vw-2rem)] md:w-[360px] h-[75dvh] max-h-[600px] md:h-[550px] bg-white rounded-[24px] md:rounded-[32px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
                     {/* Header */}
-                    <div className="bg-[#4A403A] p-6 text-white flex justify-between items-center">
+                    <div className="bg-[#4A403A] p-5 md:p-6 text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-[#FF8C42] rounded-xl flex items-center justify-center shadow-inner"><Bot size={20} strokeWidth={2.5} /></div>
-                            <h3 className="text-[15px] font-black tracking-tighter">아파티 AI 상담사</h3>
+                            <div className="w-8 h-8 md:w-9 md:h-9 bg-[#FF8C42] rounded-xl flex items-center justify-center shadow-inner"><Bot size={18} strokeWidth={2.5} /></div>
+                            <h3 className="text-[14px] md:text-[15px] font-black tracking-tighter">아파티 AI 상담사</h3>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white transition-colors"><ChevronDown size={24} /></button>
+                        <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white transition-colors p-1"><ChevronDown size={24} /></button>
                     </div>
 
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 bg-[#fdfbf7] space-y-4">
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-5 bg-[#fdfbf7] space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-[14px] leading-relaxed font-bold shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#FF8C42] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"
+                                <div className={`max-w-[90%] md:max-w-[85%] p-3.5 md:p-4 rounded-2xl text-[13px] md:text-[14px] leading-relaxed font-bold shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#FF8C42] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"
                                     }`}>
                                     {msg.text}
                                 </div>
@@ -146,8 +147,8 @@ export default function ChatBot() {
                                 {msg.propertyOptions && (
                                     <div className="flex flex-wrap gap-2 mt-3 justify-start">
                                         {msg.propertyOptions.map((p, idx) => (
-                                            <button key={idx} onClick={() => selectProperty(p)} className="px-4 py-2.5 bg-white border border-orange-200 text-[#FF8C42] rounded-full text-[13px] font-black hover:bg-orange-50 transition-all flex items-center gap-1.5 shadow-sm">
-                                                <Building2 size={13} /> {p.title}
+                                            <button key={idx} onClick={() => selectProperty(p)} className="px-3.5 py-2 md:px-4 md:py-2.5 bg-white border border-orange-200 text-[#FF8C42] rounded-full text-[12px] md:text-[13px] font-black hover:bg-orange-50 transition-all flex items-center gap-1.5 shadow-sm">
+                                                <Building2 size={12} /> {p.title}
                                             </button>
                                         ))}
                                     </div>
@@ -159,7 +160,7 @@ export default function ChatBot() {
                                             <button
                                                 key={idx}
                                                 onClick={() => handleOptionClick(opt, msg.selectedProperty)}
-                                                className={`px-3 py-3 rounded-xl text-[12px] font-black transition-all shadow-sm ${opt === "처음으로" || opt === "다른 정보 더보기"
+                                                className={`px-2 py-2.5 md:px-3 md:py-3 rounded-xl text-[11px] md:text-[12px] font-black transition-all shadow-sm ${opt === "처음으로" || opt === "다른 정보 더보기"
                                                         ? "bg-white text-gray-400 border border-gray-200 hover:border-gray-400"
                                                         : "bg-[#4A403A] text-white hover:bg-black"
                                                     }`}
@@ -173,10 +174,17 @@ export default function ChatBot() {
                         ))}
                     </div>
 
-                    <div className="p-5 bg-white border-t border-gray-50">
-                        <div className="flex items-center gap-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-100">
-                            <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="단지명을 검색해 보세요..." className="flex-1 bg-transparent border-none outline-none px-3 text-[14px] font-bold" />
-                            <button onClick={handleSend} className="bg-[#4A403A] text-white p-2.5 rounded-xl hover:bg-black transition-colors"><Send size={14} /></button>
+                    <div className="p-4 md:p-5 bg-white border-t border-gray-50 shrink-0">
+                        <div className="flex items-center gap-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-100 focus-within:ring-2 focus-within:ring-orange-100 transition-all">
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                                placeholder="단지명을 검색해 보세요..."
+                                className="flex-1 bg-transparent border-none outline-none px-3 text-[13px] md:text-[14px] font-bold"
+                            />
+                            <button onClick={handleSend} className="bg-[#4A403A] text-white p-2.5 rounded-xl hover:bg-black transition-colors shrink-0"><Send size={14} /></button>
                         </div>
                     </div>
                 </div>
