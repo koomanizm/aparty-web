@@ -56,7 +56,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
 
-      {/* 🚀 1. 실시간 티커 (간격 2배 유지) */}
+      {/* 1. 실시간 티커 */}
       <div className="w-full bg-[#4A403A] text-white py-2.5 overflow-hidden whitespace-nowrap relative z-30 shadow-md">
         <div className="flex animate-marquee items-center gap-24 text-[13px] font-medium">
           {tickers.length > 0 ? (
@@ -124,7 +124,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 🏆 2. 인기 단지 랭킹 (사이즈 확대 유지) */}
+        {/* 2. 인기 단지 랭킹 */}
         {!isLoading && rankingList.length > 0 && (
           <div className="w-full max-w-2xl mx-auto bg-white rounded-[32px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-100 p-8 text-left mb-12">
             <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-5">
@@ -146,7 +146,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🚀 3. 슬림해진 도구 버튼 (높이 절반 축소 + 가로 배치) */}
+        {/* 3. 슬림해진 도구 버튼 */}
         <div className="flex flex-col items-center gap-8 w-full">
           <div className="flex flex-wrap justify-center gap-2.5">
             {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
@@ -163,7 +163,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* 가로형 슬림 레이아웃으로 변경 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl px-4 mb-16">
             <Link href="/tools/tax" className="flex items-center justify-center gap-3 py-3 px-5 bg-white border border-gray-100 rounded-[20px] shadow-sm hover:border-orange-200 transition-all group">
               <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -201,26 +200,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 배너 생략 (기존 동일) */}
+      {/* 🚀 배너 섹션 (모바일 최적화) */}
       <div className="w-full max-w-5xl mb-24 px-6">
-        <div className="relative w-full rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between p-10 md:p-14 group">
+        {/* 모바일에서 p-10을 p-8로 약간 줄임. flex-col 상태일 때 간격을 위해 gap-6 추가 */}
+        <div className="relative w-full rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between p-8 md:p-14 gap-6 md:gap-0 group">
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0" src="/vip-bg.mp4" />
           <div className="absolute inset-0 bg-black/40 z-0"></div>
+
           <div className="relative z-10 text-center md:text-left">
-            <h3 className="text-3xl md:text-4xl font-black text-white mb-3">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</h3>
-            <p className="text-base md:text-lg text-white/80">로얄동·로얄층 마감 전, 부산 정보를 가장 먼저 알려드립니다!</p>
+            {/* 제목: 모바일에서 text-2xl로 약간 줄이고, md 이상에서 원래 크기 유지 */}
+            <h3 className="text-2xl md:text-4xl font-black text-white mb-2 md:mb-3">
+              누구보다 빠른 <br className="md:hidden" /><span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔
+            </h3>
+            {/* 부제목: 모바일에서 text-sm으로 조절 */}
+            <p className="text-sm md:text-lg text-white/80">
+              로얄동·로얄층 마감 전, 부산 정보를 가장 먼저 알려드립니다!
+            </p>
           </div>
+
           <Link
             href="http://pf.kakao.com/_EbnAX"
             target="_blank"
-            className="relative z-10 bg-[#FF8C42] text-white font-black px-8 py-4 md:px-10 md:py-5 rounded-[20px] shadow-2xl hover:scale-105 transition-all flex items-center gap-3"
+            /* 버튼: 모바일에서 상하좌우 여백(px-6 py-3.5)과 텍스트 크기(text-base) 조절. 너무 커서 밀리지 않도록 너비 제한 */
+            className="relative z-10 w-full md:w-auto text-center justify-center bg-[#FF8C42] text-white font-black px-6 py-3.5 md:px-10 md:py-5 rounded-[16px] md:rounded-[20px] shadow-2xl hover:scale-105 transition-all flex items-center gap-2 md:gap-3"
           >
-            {/* ✅ 카카오톡 공식 SVG 로고 (흰색) */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* SVG 로고 크기도 모바일용으로 살짝 줄임 */}
+            <svg className="w-[18px] h-[18px] md:w-[24px] md:h-[24px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 3C6.47715 3 2 6.35786 2 10.5C2 13.2664 3.76357 15.7143 6.46429 17.0714L5.35714 21L9.64286 18.1429C10.4046 18.3025 11.1917 18.3857 12 18.3857C17.5228 18.3857 22 15.0279 22 10.8857C22 6.74357 17.5228 3.38571 12 3V3Z" fill="white" />
             </svg>
-            {/* ✅ 문구 변경 */}
-            <span className="text-lg">아파티 채널추가 하기</span>
+            <span className="text-base md:text-lg">아파티 채널추가 하기</span>
           </Link>
         </div>
       </div>
