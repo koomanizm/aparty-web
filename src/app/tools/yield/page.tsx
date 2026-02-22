@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { BarChart3, ArrowLeft, Home, Coins, Building, Wallet, Percent, TrendingUp, Info, CheckCircle2 } from 'lucide-react';
 
 export default function YieldCalculator() {
     const router = useRouter();
 
-    // 기본값 세팅 (예: 5억 분양, 보증금 3천, 월세 150, 대출 3억, 금리 4.5%)
     const [price, setPrice] = useState<number>(500000000);
     const [deposit, setDeposit] = useState<number>(30000000);
     const [monthlyRent, setMonthlyRent] = useState<number>(1500000);
@@ -19,44 +19,32 @@ export default function YieldCalculator() {
         annualInterest: 0,
         netIncome: 0,
         yieldRate: 0,
-        noLoanYieldRate: 0 // 대출 없을 때의 수익률 (비교용)
+        noLoanYieldRate: 0
     });
 
-    // 금액 입력용 콤마 변환 핸들러
     const handleNumberInput = (setter: any) => (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/,/g, '');
         if (rawValue === '') { setter(0); return; }
         if (!isNaN(Number(rawValue))) setter(Number(rawValue));
     };
 
-    // 이자율 입력용 핸들러 (소수점 허용)
     const handleFloatInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         if (val === '') { setInterestRate(0); return; }
         if (!isNaN(Number(val))) setInterestRate(Number(val));
     };
 
-    // 수익률 계산 로직
     useEffect(() => {
-        // 1. 실투자금 = 분양가 - 보증금 - 대출금
         const actualInvestment = price - deposit - loanAmount;
-
-        // 2. 연 임대수익 = 월세 * 12
         const annualRent = monthlyRent * 12;
-
-        // 3. 연 대출이자 = 대출금 * (이자율 / 100)
         const annualInterest = loanAmount * (interestRate / 100);
-
-        // 4. 순수익 = 연 임대수익 - 연 대출이자
         const netIncome = annualRent - annualInterest;
 
-        // 5. 대출 포함 수익률 (레버리지 수익률)
         let yieldRate = 0;
         if (actualInvestment > 0) {
             yieldRate = (netIncome / actualInvestment) * 100;
         }
 
-        // 6. 대출 미포함 수익률 (전액 현금 투자 시)
         const noLoanInvestment = price - deposit;
         let noLoanYieldRate = 0;
         if (noLoanInvestment > 0) {
@@ -74,101 +62,128 @@ export default function YieldCalculator() {
     }, [price, deposit, monthlyRent, loanAmount, interestRate]);
 
     return (
-        <div className="min-h-screen bg-[#FFF8F0] p-5 pb-20">
-            <div className="max-w-3xl mx-auto">
-                {/* 헤더 */}
-                <div className="flex items-center gap-3 mb-8">
-                    {/* 🏠 공통 '홈으로' 버튼 */}
-                    <button
-                        onClick={() => router.push('/')}
-                        className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-[#4A403A]/10 text-[#4A403A] text-sm font-bold shadow-sm hover:bg-[#FF8C42] hover:border-[#FF8C42] hover:text-white transition-all group"
-                    >
-                        <span className="group-hover:-translate-y-1 transition-transform duration-300">🏠</span>
-                        홈으로
+        <div className="min-h-screen bg-[#fdfbf7] p-6 pb-20">
+            <div className="max-w-5xl mx-auto">
+
+                {/* 상단 네비게이션 */}
+                <div className="flex items-center justify-between mb-10">
+                    <button onClick={() => router.push('/')} className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 transition-all">
+                        <ArrowLeft size={20} strokeWidth={3} />
                     </button>
-                    <h1 className="text-2xl font-bold text-[#4A403A]">임대수익률 계산기</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-orange-50 p-2 rounded-lg text-orange-500">
+                            <BarChart3 size={18} strokeWidth={3} />
+                        </div>
+                        <h1 className="text-lg font-black text-[#4A403A] tracking-tighter">임대수익률 계산기</h1>
+                    </div>
+                    <button onClick={() => router.push('/')} className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 transition-all">
+                        <Home size={20} />
+                    </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    {/* 왼쪽: 정보 입력창 (3칸 차지) */}
-                    <div className="lg:col-span-3 bg-white rounded-3xl p-6 shadow-sm border border-[#4A403A]/5 space-y-5">
-                        <h2 className="text-lg font-bold text-[#4A403A] mb-2 flex items-center gap-2">
-                            <span>📝</span> 투자 조건 입력
-                        </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+                    {/* 왼쪽: 입력 섹션 */}
+                    <div className="lg:col-span-3 bg-white rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-50 space-y-8">
+                        <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle2 size={18} className="text-orange-500" />
+                            <h2 className="text-[16px] font-black text-[#4A403A]">상세 투자 조건 입력</h2>
+                        </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-[#4A403A] mb-2">분양가 (매매가)</label>
-                            <input type="text" value={price === 0 ? '' : price.toLocaleString()} onChange={handleNumberInput(setPrice)} placeholder="0" className="w-full bg-[#FFF8F0] rounded-xl p-3 text-lg font-black text-[#FF8C42] text-right focus:ring-2 focus:ring-[#FF8C42] outline-none" />
+                            <div className="flex items-center gap-2 mb-3">
+                                <Building size={16} className="text-gray-400" />
+                                <label className="text-sm font-bold text-[#4A403A]">분양가 (매매가)</label>
+                            </div>
+                            <input type="text" value={price === 0 ? '' : price.toLocaleString()} onChange={handleNumberInput(setPrice)} className="w-full bg-[#fdfbf7] rounded-2xl p-4 text-xl font-black text-[#4A403A] text-right focus:ring-4 focus:ring-orange-100 outline-none transition-all" />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-[#4A403A] mb-2">임대 보증금</label>
-                                <input type="text" value={deposit === 0 ? '' : deposit.toLocaleString()} onChange={handleNumberInput(setDeposit)} placeholder="0" className="w-full bg-[#FFF8F0] rounded-xl p-3 text-lg font-black text-[#FF8C42] text-right focus:ring-2 focus:ring-[#FF8C42] outline-none" />
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Wallet size={16} className="text-gray-400" />
+                                    <label className="text-sm font-bold text-[#4A403A]">임대 보증금</label>
+                                </div>
+                                <input type="text" value={deposit === 0 ? '' : deposit.toLocaleString()} onChange={handleNumberInput(setDeposit)} className="w-full bg-[#fdfbf7] rounded-2xl p-4 text-xl font-black text-[#4A403A] text-right focus:ring-4 focus:ring-orange-100 outline-none transition-all" />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-[#4A403A] mb-2">월 임대료</label>
-                                <input type="text" value={monthlyRent === 0 ? '' : monthlyRent.toLocaleString()} onChange={handleNumberInput(setMonthlyRent)} placeholder="0" className="w-full bg-[#FFF8F0] rounded-xl p-3 text-lg font-black text-[#FF8C42] text-right focus:ring-2 focus:ring-[#FF8C42] outline-none" />
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Coins size={16} className="text-orange-500" />
+                                    <label className="text-sm font-bold text-[#4A403A]">월 임대료</label>
+                                </div>
+                                <input type="text" value={monthlyRent === 0 ? '' : monthlyRent.toLocaleString()} onChange={handleNumberInput(setMonthlyRent)} className="w-full bg-[#fdfbf7] rounded-2xl p-4 text-xl font-black text-orange-500 text-right focus:ring-4 focus:ring-orange-100 outline-none transition-all" />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
                             <div>
-                                <label className="block text-sm font-bold text-[#4A403A] mb-2">대출 금액</label>
-                                <input type="text" value={loanAmount === 0 ? '' : loanAmount.toLocaleString()} onChange={handleNumberInput(setLoanAmount)} placeholder="0" className="w-full bg-[#FFF8F0] rounded-xl p-3 text-lg font-black text-[#FF8C42] text-right focus:ring-2 focus:ring-[#FF8C42] outline-none" />
+                                <div className="flex items-center gap-2 mb-3">
+                                    <TrendingUp size={16} className="text-blue-500" />
+                                    <label className="text-sm font-bold text-[#4A403A]">대출금액</label>
+                                </div>
+                                <input type="text" value={loanAmount === 0 ? '' : loanAmount.toLocaleString()} onChange={handleNumberInput(setLoanAmount)} className="w-full bg-[#fdfbf7] rounded-2xl p-4 text-xl font-black text-[#4A403A] text-right focus:ring-4 focus:ring-blue-100 outline-none transition-all" />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-[#4A403A] mb-2">연 이자율 (%)</label>
-                                <input type="number" step="0.1" value={interestRate === 0 ? '' : interestRate} onChange={handleFloatInput} placeholder="0.0" className="w-full bg-[#FFF8F0] rounded-xl p-3 text-lg font-black text-[#FF8C42] text-right focus:ring-2 focus:ring-[#FF8C42] outline-none" />
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Percent size={16} className="text-blue-500" />
+                                    <label className="text-sm font-bold text-[#4A403A]">대출 금리 (%)</label>
+                                </div>
+                                <input type="number" step="0.1" value={interestRate === 0 ? '' : interestRate} onChange={handleFloatInput} className="w-full bg-[#fdfbf7] rounded-2xl p-4 text-xl font-black text-[#4A403A] text-right focus:ring-4 focus:ring-blue-100 outline-none transition-all" />
                             </div>
                         </div>
                     </div>
 
-                    {/* 오른쪽: 결과 카드 (2칸 차지) */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* 핵심: 대출 레버리지 수익률 */}
-                        <div className="bg-[#4A403A] rounded-3xl p-6 text-white shadow-xl animate-float">
-                            <span className="inline-block bg-[#FF8C42] text-white text-[10px] font-bold px-2 py-1 rounded-full mb-3">대출 활용 시 (레버리지)</span>
-                            <p className="text-[#FFF8F0]/70 text-sm mb-1 font-medium">예상 연 수익률</p>
-                            <h2 className="text-5xl font-black text-[#FF8C42] mb-6 tracking-tight">
-                                {result.yieldRate > 0 ? result.yieldRate : 0}<span className="text-2xl font-bold text-white/80">%</span>
-                            </h2>
+                    {/* 🚀 오른쪽: 결과 리포트 (밸런스 조정됨) */}
+                    <div className="lg:col-span-2 space-y-6">
 
-                            <div className="space-y-2.5 text-sm border-t border-white/10 pt-5">
-                                <div className="flex justify-between items-center">
-                                    <span className="opacity-70">실제 투자금</span>
-                                    <span className="font-bold">{result.actualInvestment > 0 ? result.actualInvestment.toLocaleString() : 0} 원</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[#FF8C42]">
-                                    <span className="opacity-90">연 임대수익</span>
-                                    <span className="font-bold">+{result.annualRent.toLocaleString()} 원</span>
-                                </div>
-                                <div className="flex justify-between items-center text-red-300">
-                                    <span className="opacity-90">연 은행이자</span>
-                                    <span className="font-bold">-{Math.floor(result.annualInterest).toLocaleString()} 원</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-white/10">
-                                    <span className="opacity-70">월 순수익</span>
-                                    <span className="font-bold text-lg">{Math.floor(result.netIncome / 12).toLocaleString()} 원</span>
+                        <div className="bg-[#4A403A] rounded-[32px] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+
+                            <div className="relative z-10">
+                                {/* 라벨 삭제 후 텍스트 여백 최적화 */}
+                                <p className="text-white/50 text-xs font-bold mb-2 tracking-tight">대출 활용 시 예상 수익률</p>
+                                <h2 className="text-6xl md:text-7xl font-black text-orange-400 mb-10 tracking-tighter">
+                                    {result.yieldRate > 0 ? result.yieldRate : 0}<span className="text-2xl font-bold text-white/40 ml-1">%</span>
+                                </h2>
+
+                                <div className="space-y-4 border-t border-white/10 pt-8">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-white/50 font-medium">실제 투자 현금</span>
+                                        <span className="font-bold text-white">{result.actualInvestment > 0 ? result.actualInvestment.toLocaleString() : 0} 원</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-white/50 font-medium">연간 순수익</span>
+                                        <span className="font-bold text-orange-400">+{result.netIncome.toLocaleString()} 원</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-4 mt-2 border-t border-white/5">
+                                        <span className="text-[14px] font-bold text-white/70">월 평균 순수익</span>
+                                        <span className="text-2xl font-black text-white">{Math.floor(result.netIncome / 12).toLocaleString()} 원</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* 비교용: 대출 없을 때 수익률 */}
-                        <div className="bg-white rounded-3xl p-5 border-2 border-gray-100 shadow-sm flex justify-between items-center">
-                            <div>
-                                <p className="text-xs text-gray-500 font-bold mb-1">대출 없이 전액 현금 투자 시</p>
-                                <p className="text-sm text-[#4A403A]">단순 수익률</p>
+                        {/* 하단 비교 카드: 텍스트 강조 유지 */}
+                        <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gray-50 p-2 rounded-lg">
+                                    <Info size={16} className="text-gray-400" />
+                                </div>
+                                <p className="text-sm font-black text-[#4A403A]">전액 현금 투자 수익률</p>
                             </div>
-                            <div className="text-right">
-                                <p className="text-2xl font-black text-gray-400">{result.noLoanYieldRate > 0 ? result.noLoanYieldRate : 0}%</p>
-                            </div>
+                            <p className="text-2xl font-black text-[#4A403A]">{result.noLoanYieldRate > 0 ? result.noLoanYieldRate : 0}%</p>
                         </div>
+
+                        <button className="w-full bg-orange-500 text-white p-5 rounded-[24px] font-black text-sm shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 group active:scale-95">
+                            수익률 극대화 전략 상담받기
+                            <TrendingUp size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
                     </div>
                 </div>
 
-                <p className="mt-8 text-center text-[11px] text-[#4A403A]/40 leading-relaxed font-medium">
-                    본 계산 결과는 취득세, 재산세, 중개보수 등 부대비용을 제외한 단순 가이드라인입니다.<br />정확한 투자 분석은 현장 상담을 통해 확인하시기 바랍니다.
+                <p className="mt-12 text-center text-[11px] text-[#4A403A]/30 leading-relaxed font-bold px-10">
+                    * 위 계산 결과는 각종 세금 및 부대비용을 제외한 단순 가이드입니다. <br />
+                    상세한 투자 분석은 전문 상담을 통해 확인하시기 바랍니다.
                 </p>
             </div>
         </div>

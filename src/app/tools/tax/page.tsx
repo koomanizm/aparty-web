@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-// ✅ 1. 페이지 이동을 위한 useRouter를 반드시 불러와야 합니다!
 import { useRouter } from 'next/navigation';
+import { Calculator, ArrowLeft, Home, Info, CheckCircle2 } from 'lucide-react';
 
 export default function TaxCalculator() {
-    // ✅ 2. router 기능을 사용할 준비를 합니다.
     const router = useRouter();
 
-    const [price, setPrice] = useState<number>(500000000); // 기본값 5억
-    const [isOver85, setIsOver85] = useState<boolean>(false); // 85㎡ 초과 여부
-    const [houseCount, setHouseCount] = useState<number>(1); // 주택 수
-    const [isRegulated, setIsRegulated] = useState<boolean>(false); // 조정대상지역 여부
+    const [price, setPrice] = useState<number>(500000000);
+    const [isOver85, setIsOver85] = useState<boolean>(false);
+    const [houseCount, setHouseCount] = useState<number>(1);
+    const [isRegulated, setIsRegulated] = useState<boolean>(false);
 
     const [result, setResult] = useState({
         taxRate: 0,
@@ -23,15 +22,8 @@ export default function TaxCalculator() {
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/,/g, '');
-
-        if (rawValue === '') {
-            setPrice(0);
-            return;
-        }
-
-        if (!isNaN(Number(rawValue))) {
-            setPrice(Number(rawValue));
-        }
+        if (rawValue === '') { setPrice(0); return; }
+        if (!isNaN(Number(rawValue))) { setPrice(Number(rawValue)); }
     };
 
     useEffect(() => {
@@ -62,60 +54,79 @@ export default function TaxCalculator() {
     }, [price, isOver85, houseCount, isRegulated]);
 
     return (
-        <div className="min-h-screen bg-[#FFF8F0] p-5 pb-20">
-            <div className="max-w-md mx-auto">
-                {/* 헤더 */}
-                <div className="flex items-center gap-3 mb-8">
-                    {/* ✅ 3. 디자인이 통일된 새 '홈으로' 버튼 */}
+        <div className="min-h-screen bg-[#fdfbf7] p-6 pb-20">
+            <div className="max-w-xl mx-auto">
+
+                {/* 상단 네비게이션 */}
+                <div className="flex items-center justify-between mb-10">
                     <button
                         onClick={() => router.push('/')}
-                        className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-[#4A403A]/10 text-[#4A403A] text-sm font-bold shadow-sm hover:bg-[#FF8C42] hover:border-[#FF8C42] hover:text-white transition-all group"
+                        className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 transition-all"
                     >
-                        <span className="group-hover:-translate-y-1 transition-transform duration-300">🏠</span>
-                        홈으로
+                        <ArrowLeft size={20} strokeWidth={3} />
                     </button>
-                    <h1 className="text-2xl font-bold text-[#4A403A]">취득세 계산기</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-blue-50 p-2 rounded-lg text-blue-500">
+                            <Calculator size={18} strokeWidth={3} />
+                        </div>
+                        <h1 className="text-lg font-black text-[#4A403A] tracking-tighter">취득세 계산기</h1>
+                    </div>
+                    <button
+                        onClick={() => router.push('/')}
+                        className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 transition-all"
+                    >
+                        <Home size={20} />
+                    </button>
                 </div>
 
-                {/* 입력 카드 */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#4A403A]/5 space-y-6">
+                {/* 입력 섹션 */}
+                <div className="bg-white rounded-[32px] p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-50 space-y-10">
                     <div>
-                        <label className="block text-sm font-bold text-[#4A403A] mb-3">매매가액 (원)</label>
-                        <input
-                            type="text"
-                            value={price === 0 ? '' : price.toLocaleString()}
-                            onChange={handlePriceChange}
-                            placeholder="0"
-                            className="w-full bg-[#FFF8F0] border-none rounded-xl p-4 text-2xl font-black text-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42] text-right outline-none transition-shadow"
-                        />
-                        <p className="text-right mt-2 text-[#4A403A]/60 text-sm font-medium">
-                            {(price / 100000000).toFixed(1).replace('.0', '')} 억 원
+                        <div className="flex items-center gap-2 mb-4">
+                            <CheckCircle2 size={16} className="text-orange-500" />
+                            <label className="text-[15px] font-black text-[#4A403A]">매매가액 입력</label>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={price === 0 ? '' : price.toLocaleString()}
+                                onChange={handlePriceChange}
+                                placeholder="0"
+                                className="w-full bg-[#fdfbf7] border-none rounded-[20px] p-6 text-3xl font-black text-orange-500 focus:ring-4 focus:ring-orange-100 text-right outline-none transition-all"
+                            />
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[#4A403A]/30 font-bold">₩</span>
+                        </div>
+                        <p className="text-right mt-3 text-[#4A403A]/50 text-sm font-bold">
+                            약 {(price / 100000000).toFixed(1).replace('.0', '')}억 원
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <button
-                            onClick={() => setIsOver85(false)}
-                            className={`py-3.5 rounded-xl font-bold transition-all shadow-sm ${!isOver85 ? 'bg-[#FF8C42] text-white ring-2 ring-[#FF8C42] ring-offset-2' : 'bg-[#FFF8F0] text-[#4A403A]/40 hover:bg-[#ffe8d6]'}`}
-                        >
-                            85㎡ 이하
-                        </button>
-                        <button
-                            onClick={() => setIsOver85(true)}
-                            className={`py-3.5 rounded-xl font-bold transition-all shadow-sm ${isOver85 ? 'bg-[#FF8C42] text-white ring-2 ring-[#FF8C42] ring-offset-2' : 'bg-[#FFF8F0] text-[#4A403A]/40 hover:bg-[#ffe8d6]'}`}
-                        >
-                            85㎡ 초과
-                        </button>
+                    <div>
+                        <label className="block text-[14px] font-black text-[#4A403A] mb-4">전용 면적 선택</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setIsOver85(false)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all ${!isOver85 ? 'bg-[#4A403A] text-white shadow-lg' : 'bg-[#fdfbf7] text-[#4A403A]/40 border border-gray-100'}`}
+                            >
+                                85㎡ 이하 (국평)
+                            </button>
+                            <button
+                                onClick={() => setIsOver85(true)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all ${isOver85 ? 'bg-[#4A403A] text-white shadow-lg' : 'bg-[#fdfbf7] text-[#4A403A]/40 border border-gray-100'}`}
+                            >
+                                85㎡ 초과
+                            </button>
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-[#4A403A] mb-3">보유 주택 수 (취득 후 기준)</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <label className="block text-[14px] font-black text-[#4A403A] mb-4">취득 후 주택 수</label>
+                        <div className="grid grid-cols-3 gap-3">
                             {[1, 2, 3].map((num) => (
                                 <button
                                     key={num}
                                     onClick={() => setHouseCount(num)}
-                                    className={`py-3.5 rounded-xl font-bold transition-all shadow-sm ${houseCount === num ? 'bg-[#4A403A] text-white ring-2 ring-[#4A403A] ring-offset-2' : 'bg-[#FFF8F0] text-[#4A403A]/40 hover:bg-[#ffe8d6]'}`}
+                                    className={`py-4 rounded-2xl font-black text-sm transition-all ${houseCount === num ? 'bg-orange-500 text-white shadow-lg' : 'bg-[#fdfbf7] text-[#4A403A]/40 border border-gray-100'}`}
                                 >
                                     {num === 3 ? '3주택 이상' : `${num}주택`}
                                 </button>
@@ -124,35 +135,44 @@ export default function TaxCalculator() {
                     </div>
                 </div>
 
-                {/* 결과 카드 */}
-                <div className="mt-6 bg-[#4A403A] rounded-3xl p-8 text-white shadow-xl animate-float">
-                    <p className="text-[#FFF8F0]/70 text-sm mb-1 font-medium">총 납부 예상액</p>
-                    <h2 className="text-4xl font-black text-[#FF8C42] mb-6 tracking-tight">
-                        {result.total.toLocaleString()} <span className="text-2xl font-bold text-white/80">원</span>
-                    </h2>
+                {/* 결과 리포트 */}
+                <div className="mt-8 bg-[#4A403A] rounded-[32px] p-10 text-white shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
 
-                    <div className="space-y-3.5 text-sm border-t border-white/10 pt-6">
-                        <div className="flex justify-between items-center">
-                            <span className="opacity-70 font-medium">적용 세율</span>
-                            <span className="font-bold text-lg bg-white/10 px-2.5 py-1 rounded-lg">{result.taxRate}%</span>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2 opacity-70">
+                            <Info size={14} />
+                            {/* 🚀 한글로 수정 완료! */}
+                            <p className="text-xs font-bold tracking-tight">총 납부 예상 세액</p>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="opacity-70">취득세</span>
-                            <span className="font-medium">{result.acquisitionTax.toLocaleString()} 원</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="opacity-70">지방교육세</span>
-                            <span className="font-medium">{result.educationTax.toLocaleString()} 원</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="opacity-70">농어촌특별세</span>
-                            <span className="font-medium">{result.agriTax.toLocaleString()} 원</span>
+                        <h2 className="text-4xl md:text-5xl font-black text-orange-400 mb-8 tracking-tighter">
+                            {result.total.toLocaleString()} <span className="text-xl font-bold text-white/50 ml-1">원</span>
+                        </h2>
+
+                        <div className="space-y-4 border-t border-white/10 pt-8">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-white/60">적용 세율</span>
+                                <span className="text-xl font-black text-white bg-white/10 px-4 py-1.5 rounded-xl">{result.taxRate}%</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-white/60">기본 취득세</span>
+                                <span className="font-bold">{result.acquisitionTax.toLocaleString()} 원</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-white/60">지방교육세</span>
+                                <span className="font-bold">{result.educationTax.toLocaleString()} 원</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-white/60">농어촌특별세</span>
+                                <span className="font-bold">{result.agriTax.toLocaleString()} 원</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <p className="mt-8 text-center text-[11px] text-[#4A403A]/40 leading-relaxed font-medium">
-                    본 계산기는 참고용이며, 실제 세액은 개별 상황(감면 혜택, 정확한 지역 등)에 따라 다를 수 있습니다.<br />정확한 세금은 세무사 등 전문가에게 확인하시기 바랍니다.
+                <p className="mt-10 text-center text-[11px] text-[#4A403A]/30 leading-relaxed font-bold px-6">
+                    본 계산 결과는 지방세법 개정 사항을 바탕으로 한 참고용 수치입니다.<br />
+                    실제 세액은 취득 일자 및 감면 조건에 따라 다를 수 있으니 전문 세무사와 상담하세요.
                 </p>
             </div>
         </div>
