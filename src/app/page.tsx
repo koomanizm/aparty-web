@@ -110,17 +110,19 @@ export default function Home() {
           <span className="text-orange-500">선착순 분양단지</span>는?
         </h1>
 
-        {/* 검색창 */}
+        {/* 🚀 검색창 (모바일 텍스트 및 여백 최적화) */}
         <div className="relative w-full max-w-xl mx-auto mb-12 group mt-8">
           <input
             type="text"
             placeholder="어떤 지역, 어떤 아파트를 찾으세요?"
-            className="w-full px-6 py-4 pr-16 rounded-[24px] border-none shadow-[0_15px_50px_-15px_rgba(0,0,0,0.12)] focus:ring-4 focus:ring-orange-100 text-base outline-none bg-white transition-all"
+            /* 모바일: 폰트 13px, 패딩 축소 / PC: 폰트 base(16px), 패딩 원상복구 */
+            className="w-full px-4 py-3.5 md:px-6 md:py-4 pr-14 md:pr-16 rounded-[20px] md:rounded-[24px] border-none shadow-[0_15px_50px_-15px_rgba(0,0,0,0.12)] focus:ring-4 focus:ring-orange-100 text-[13px] md:text-base font-bold outline-none bg-white transition-all placeholder:text-gray-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button className="absolute right-3 top-3 bottom-3 w-12 bg-[#4A403A] text-white rounded-2xl flex items-center justify-center shadow-md">
-            <Search size={22} strokeWidth={3} />
+          {/* 모바일: 버튼 크기와 아이콘 크기도 살짝 줄여서 공간 확보 */}
+          <button className="absolute right-2 top-2 bottom-2 md:right-3 md:top-3 md:bottom-3 w-10 md:w-12 bg-[#4A403A] text-white rounded-[14px] md:rounded-2xl flex items-center justify-center shadow-md hover:bg-black transition-colors">
+            <Search strokeWidth={3} className="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
           </button>
         </div>
 
@@ -200,19 +202,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🚀 배너 섹션 (모바일 최적화) */}
+      {/* 배너 섹션 */}
       <div className="w-full max-w-5xl mb-24 px-6">
-        {/* 모바일에서 p-10을 p-8로 약간 줄임. flex-col 상태일 때 간격을 위해 gap-6 추가 */}
         <div className="relative w-full rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between p-8 md:p-14 gap-6 md:gap-0 group">
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0" src="/vip-bg.mp4" />
           <div className="absolute inset-0 bg-black/40 z-0"></div>
 
           <div className="relative z-10 text-center md:text-left">
-            {/* 제목: 모바일에서 text-2xl로 약간 줄이고, md 이상에서 원래 크기 유지 */}
             <h3 className="text-2xl md:text-4xl font-black text-white mb-2 md:mb-3">
               누구보다 빠른 <br className="md:hidden" /><span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔
             </h3>
-            {/* 부제목: 모바일에서 text-sm으로 조절 */}
             <p className="text-sm md:text-lg text-white/80">
               로얄동·로얄층 마감 전, 부산 정보를 가장 먼저 알려드립니다!
             </p>
@@ -221,10 +220,8 @@ export default function Home() {
           <Link
             href="http://pf.kakao.com/_EbnAX"
             target="_blank"
-            /* 버튼: 모바일에서 상하좌우 여백(px-6 py-3.5)과 텍스트 크기(text-base) 조절. 너무 커서 밀리지 않도록 너비 제한 */
             className="relative z-10 w-full md:w-auto text-center justify-center bg-[#FF8C42] text-white font-black px-6 py-3.5 md:px-10 md:py-5 rounded-[16px] md:rounded-[20px] shadow-2xl hover:scale-105 transition-all flex items-center gap-2 md:gap-3"
           >
-            {/* SVG 로고 크기도 모바일용으로 살짝 줄임 */}
             <svg className="w-[18px] h-[18px] md:w-[24px] md:h-[24px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 3C6.47715 3 2 6.35786 2 10.5C2 13.2664 3.76357 15.7143 6.46429 17.0714L5.35714 21L9.64286 18.1429C10.4046 18.3025 11.1917 18.3857 12 18.3857C17.5228 18.3857 22 15.0279 22 10.8857C22 6.74357 17.5228 3.38571 12 3V3Z" fill="white" />
             </svg>
