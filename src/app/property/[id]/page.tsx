@@ -13,12 +13,10 @@ export default function PropertyDetailPage() {
     const [property, setProperty] = useState<Property | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // API 데이터를 담을 상태
     const [news, setNews] = useState<any[]>([]);
     const [trades, setTrades] = useState<any[]>([]);
     const [isApiLoading, setIsApiLoading] = useState(true);
 
-    // 1. 매물 기본 정보 불러오기
     useEffect(() => {
         async function loadProperty() {
             try {
@@ -34,20 +32,17 @@ export default function PropertyDetailPage() {
         loadProperty();
     }, [params.id]);
 
-    // 2. 외부 데이터(시세, 뉴스) 호출
     useEffect(() => {
         if (!property) return;
-
         async function fetchExternalData() {
             setIsApiLoading(true);
             try {
                 const p = property as any;
                 const lawdCd = p.lawdCd || "26440";
                 const compareApt = p.compareApt || "";
-                const searchKeyword = p.searchKeyword || `${property?.location} 아파트 호재`;
+                const searchKeyword = p.searchKeyword || `${property?.title} 호재`;
                 const dealYmd = "202601";
 
-                // 네이버 뉴스 및 국토부 실거래가 동시 호출
                 const [newsRes, tradeRes] = await Promise.all([
                     fetch(`/api/naver?query=${encodeURIComponent(searchKeyword)}`),
                     fetch(`/api/molit?lawdCd=${lawdCd}&dealYmd=${dealYmd}`)
@@ -83,7 +78,6 @@ export default function PropertyDetailPage() {
                     filteredTrades = tradeList.filter(t => t.aptName.includes(compareApt));
                 }
                 setTrades(filteredTrades.slice(0, 5));
-
             } catch (error) {
                 console.error("API 연동 에러:", error);
             } finally {
@@ -93,10 +87,9 @@ export default function PropertyDetailPage() {
         fetchExternalData();
     }, [property]);
 
-    // --- 헬퍼 함수 ---
     const getStatusStyle = (index: number) => {
         const base = "relative overflow-hidden px-4 py-1.5 rounded-lg text-[11px] font-bold shadow-sm border-b-2 transition-all duration-300 flex items-center gap-1.5";
-        const palette = ["bg-[#fecaca] text-[#b91c1c] border-[#fca5a5]", "bg-[#bfdbfe] text-[#1d4ed8] border-[#93c5fd]", "bg-[#fef3c7] text-[#92400e] border-[#fde68a]", "bg-[#bbf7d0] text-[#15803d] border-[#86efac]", "bg-[#ddd6fe] text-[#6d28d9] border-[#c4b5fd]", "bg-[#fed7aa] text-[#c2410c] border-[#fdba74]"];
+        const palette = ["bg-[#fecaca] text-[#b91c1c] border-[#fca5a5]", "bg-[#bfdbfe] text-[#1d4ed8] border-[#93c5fd]", "bg-[#fef3c7] text-[#92400e] border-[#fde68a]"];
         return `${base} ${palette[index % palette.length]} ${index < 3 ? "shimmer-effect" : ""}`;
     };
 
@@ -109,7 +102,6 @@ export default function PropertyDetailPage() {
         });
     };
 
-    // 🛡️ 중요: 데이터 로딩 중이거나 매물이 없을 때 렌더링 방지 (Null Check)
     if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">정보를 불러오고 있습니다...</div>;
     if (!property) return <div className="min-h-screen flex items-center justify-center">매물을 찾을 수 없습니다.</div>;
 
@@ -117,26 +109,14 @@ export default function PropertyDetailPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
-            <style dangerouslySetInnerHTML={{
-                __html: `
-        @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }
-        .shimmer-effect::after {
-          content: ""; position: absolute; top: 0; width: 50px; height: 100%;
-          background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
-          transform: skewX(-20deg); animation: sweep 3s infinite;
-        }
-      `}} />
+            <style dangerouslySetInnerHTML={{ __html: `.shimmer-effect::after { content: ""; position: absolute; top: 0; width: 50px; height: 100%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent); transform: skewX(-20deg); animation: sweep 3s infinite; } @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }` }} />
 
-            {/* 네비게이션 */}
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/70 backdrop-blur-md border-b border-white/20">
-                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700 hover:scale-110 transition-all">
-                    <ArrowLeft size={20} />
-                </button>
+                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700"><ArrowLeft size={20} /></button>
                 <span className="text-sm font-bold text-gray-800 opacity-80 truncate max-w-[200px]">{property.title}</span>
                 <div className="w-10"></div>
             </nav>
 
-            {/* 이미지 섹션 */}
             <div className="relative w-full h-[45vh] md:h-[50vh]">
                 <Image src={property.image || "/house1.jpg"} alt={property.title} fill className="object-cover" priority />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30"></div>
@@ -144,8 +124,6 @@ export default function PropertyDetailPage() {
 
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10 border border-gray-50">
-
-                    {/* 뱃지 영역 */}
                     <div className="flex flex-wrap gap-2.5 mb-5">
                         {property.status.map((tag, i) => (
                             <span key={i} className={getStatusStyle(i)}>
@@ -159,7 +137,6 @@ export default function PropertyDetailPage() {
                         <p className="text-gray-400 font-medium text-sm">📍 {property.location}</p>
                     </div>
 
-                    {/* 4대 지표 그리드 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-10">
                         {[
                             { icon: Users, label: "세대수", value: property.households, color: "text-blue-500", bg: "bg-blue-50" },
@@ -175,7 +152,7 @@ export default function PropertyDetailPage() {
                         ))}
                     </div>
 
-                    {/* 분양가 정보 */}
+                    {/* 1. 분양가 정보 */}
                     <div className="mb-10">
                         <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -188,7 +165,15 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🚀 실거래가 비교 리포트 */}
+                    {/* 🚀 [변경위치] 2. 프리미엄 포인트 (분양가 바로 아래로 이동) */}
+                    <div className="mb-12">
+                        <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
+                        <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
+                            {property.description}
+                        </div>
+                    </div>
+
+                    {/* 3. 실거래가 비교 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
                             <TrendingUp className="text-[#ff6f42] w-5 h-5" /> 주변 아파트 실거래가 <span className="text-xs text-gray-400 font-medium ml-1">최근 1개월</span>
@@ -209,15 +194,15 @@ export default function PropertyDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-5 text-gray-400 text-sm">해당 지역의 실거래 데이터가 없습니다.</div>
+                                <div className="text-center py-5 text-gray-400 text-sm">데이터가 없습니다.</div>
                             )}
                         </div>
                     </div>
 
-                    {/* 🚀 관련 호재 뉴스 */}
+                    {/* 4. 관련 뉴스 (문구 수정) */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
-                            <Newspaper className="text-[#ff6f42] w-5 h-5" /> 관련 호재 뉴스
+                            <Newspaper className="text-[#ff6f42] w-5 h-5" /> 이 현장 관련 뉴스
                         </h3>
                         {isApiLoading ? (
                             <div className="text-center py-5 text-gray-400 text-sm animate-pulse">뉴스를 가져오는 중...</div>
@@ -231,16 +216,8 @@ export default function PropertyDetailPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-5 text-gray-400 text-sm">관련 뉴스가 없습니다.</div>
+                            <div className="text-center py-5 text-gray-400 text-sm">뉴스가 없습니다.</div>
                         )}
-                    </div>
-
-                    {/* 프리미엄 포인트 */}
-                    <div className="prose prose-lg max-w-none">
-                        <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
-                        <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
-                            {property.description}
-                        </div>
                     </div>
                 </div>
 
@@ -255,7 +232,7 @@ export default function PropertyDetailPage() {
                 </div>
             </div>
 
-            {/* 모바일 하단 플로팅 바 */}
+            {/* 플로팅 바 */}
             <div className="md:hidden fixed bottom-6 left-4 right-4 z-40">
                 <div className="bg-[#2d2d2d] text-white rounded-full shadow-2xl p-1.5 flex items-center justify-between pl-6 pr-2 backdrop-blur-md bg-opacity-95">
                     <div className="flex flex-col">
