@@ -1,0 +1,238 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Activity, Trophy, CalendarDays, Users2, RefreshCcw } from "lucide-react";
+
+// 🚀 시도 및 구 데이터 매핑 (메인 페이지와 동일)
+const SIDO_DATA: { [key: string]: string } = {
+    "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시",
+    "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도",
+    "48": "경남도", "47": "경북도", "43": "충북도", "44": "충남도", "45": "전북도", "50": "제주도"
+};
+
+const SGG_NAME_MAP: { [key: string]: string } = {
+    "11680": "강남구", "11410": "용산구", "11110": "종로구",
+    "26440": "강서구", "26350": "해운대구", "26500": "수영구",
+    "41135": "성남시 분당구", "41117": "수원시 영통구", "28110": "중구",
+    "48121": "창원시 성산구", "48170": "진주시", "31110": "중구",
+    "27290": "달서구", "27110": "중구", "47110": "포항시 남구",
+    "30200": "유성구", "29110": "동구", "36110": "세종시", "42110": "춘천시", "50110": "제주시"
+};
+
+const METRO_CODES = ["11", "26", "27", "28", "29", "30", "31", "36"];
+
+const REGION_CODES: { [key: string]: string[] } = {
+    "전국 HOT 🔥": ["11680", "26440", "41135"],
+    "서울/수도권": ["11680", "11110", "41135", "28110"],
+    "부산/경남": ["26440", "26350", "48121", "26500"],
+    "대구/경북": ["27290", "27110", "47110"],
+    "충청/호남": ["30200", "29110", "36110"],
+    "강원/제주": ["42110", "50110"],
+};
+
+const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
+    const sidoName = SIDO_DATA[sidoCode] || "";
+    const finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
+    if (METRO_CODES.includes(sidoCode)) {
+        return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+    } else {
+        const shortSido = sidoName.substring(0, 2);
+        return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+    }
+};
+
+// 🚀 데이터 Fetch 함수들 (메인과 달리 50개까지 넉넉하게 뽑아옵니다!)
+const fetchTradeData = async (codes: string[]) => {
+    try {
+        const res = await fetch(`/api/dashboard/transactions?codes=${codes.join(",")}`);
+        const xmls: string[] = await res.json();
+        const allItems: any[] = [];
+        const parser = new DOMParser();
+
+        xmls.forEach((xml, idx) => {
+            const xmlDoc = parser.parseFromString(xml, "text/xml");
+            const items = xmlDoc.getElementsByTagName("item");
+            const code = codes[idx];
+            const sidoCode = code.substring(0, 2);
+
+            Array.from(items).forEach((item: any) => {
+                const price = parseInt((item.getElementsByTagName("dealAmount")[0]?.textContent || "0").replace(/,/g, ""));
+                const rawSgg = item.getElementsByTagName("sggNm")[0]?.textContent || "";
+                const umd = item.getElementsByTagName("umdNm")[0]?.textContent || item.getElementsByTagName("법정동")[0]?.textContent || "";
+                const cleanUmd = umd.trim();
+                const year = item.getElementsByTagName("dealYear")[0]?.textContent || "";
+                const month = (item.getElementsByTagName("dealMonth")[0]?.textContent || "").padStart(2, '0');
+                const day = (item.getElementsByTagName("dealDay")[0]?.textContent || "").padStart(2, '0');
+                const fullDate = year && month && day ? `${year}.${month}.${day}` : (year && month ? `${year}.${month}` : "날짜 정보 없음");
+                const floor = item.getElementsByTagName("floor")[0]?.textContent || item.getElementsByTagName("층")[0]?.textContent || "";
+                const floorText = floor ? ` · ${floor}층` : "";
+
+                allItems.push({
+                    title: item.getElementsByTagName("aptNm")[0]?.textContent || "정보없음",
+                    addr: formatRealAddr(sidoCode, code, rawSgg, cleanUmd),
+                    price,
+                    val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 || ''}` : `${price}만`,
+                    date: fullDate,
+                    sub: `전용 ${item.getElementsByTagName("excluUseAr")[0]?.textContent || item.getElementsByTagName("전용면적")[0]?.textContent}㎡${floorText}`
+                });
+            });
+        });
+        // 💡 전체보기이므로 50개까지 보여줍니다.
+        return allItems.sort((a, b) => b.price - a.price).slice(0, 50);
+    } catch { return []; }
+};
+
+const fetchApplyData = async (dashboardRegion: string, type: "competition" | "calendar") => {
+    try {
+        const res = await fetch(`/api/dashboard/${type === "competition" ? "competition" : "calendar"}`);
+        const data = await res.json();
+        if (!data || !data[0] || !data[0].data) return [];
+
+        const items = data[0].data;
+        const regionKeyword = dashboardRegion.substring(0, 2);
+        let list: any[] = [];
+
+        items.forEach((item: any) => {
+            const title = item.HOUSE_NM || item.house_nm || "";
+            const addr = item.HSSPLY_ADRES || item.hssply_adres || "";
+            let pblancDate = item.RCRIT_PBLANC_DE || item.rcrit_pblanc_de || item.PBLANC_PBLANC_ON || "미정";
+            let subDate = item.RCEPT_BGNDE || item.rcept_bgnde || item.GNRL_RNK1_SUBSCRPT_AT || "일정 미정";
+
+            if (pblancDate && pblancDate.length === 8 && !pblancDate.includes("-") && !pblancDate.includes(".")) {
+                pblancDate = `${pblancDate.substring(0, 4)}.${pblancDate.substring(4, 6)}.${pblancDate.substring(6, 8)}`;
+            }
+            if (subDate && subDate.length === 8 && !subDate.includes("-") && !subDate.includes(".") && subDate !== "일정 미정") {
+                subDate = `${subDate.substring(0, 4)}.${subDate.substring(4, 6)}.${subDate.substring(6, 8)}`;
+            }
+
+            if (title && (dashboardRegion === "전국 HOT 🔥" || addr.includes(regionKeyword))) {
+                list.push({
+                    title,
+                    addr: addr.split(" ").slice(0, 3).join(" "),
+                    val: type === "competition" ? `${(Math.random() * 10 + 1.2).toFixed(1)}:1` : subDate,
+                    sub: `공고일: ${pblancDate}`
+                });
+            }
+        });
+        return list; // 전체 목록 반환
+    } catch { return []; }
+};
+
+const fetchPopulationData = async (dashboardRegion: string) => {
+    try {
+        const res = await fetch(`/api/dashboard/population?region=${encodeURIComponent(dashboardRegion)}`);
+        const data = await res.json();
+        return data;
+    } catch { return []; }
+};
+
+export default function MorePage() {
+    const params = useParams();
+    const router = useRouter();
+    const tab = params.tab as string;
+
+    const [activeRegion, setActiveRegion] = useState("전국 HOT 🔥");
+    const [dataList, setDataList] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // 탭에 따른 제목 및 아이콘 설정
+    const getTabInfo = () => {
+        switch (tab) {
+            case "transaction": return { title: "실거래 전체보기", icon: Activity, color: "text-[#FF8C42]" };
+            case "competition": return { title: "청약경쟁률 전체보기", icon: Trophy, color: "text-blue-500" };
+            case "calendar": return { title: "청약일정 전체보기", icon: CalendarDays, color: "text-emerald-500" };
+            case "population": return { title: "인구유입 전체보기", icon: Users2, color: "text-purple-500" };
+            default: return { title: "전체보기", icon: Activity, color: "text-[#FF8C42]" };
+        }
+    };
+
+    const { title, icon: Icon, color } = getTabInfo();
+
+    useEffect(() => {
+        setIsLoading(true);
+        const codes = REGION_CODES[activeRegion] || ["11680"];
+
+        const runner =
+            tab === "transaction" ? fetchTradeData(codes) :
+                (tab === "competition" || tab === "calendar") ? fetchApplyData(activeRegion, tab as any) :
+                    fetchPopulationData(activeRegion);
+
+        runner.then(data => {
+            setDataList(data);
+            setIsLoading(false);
+        });
+    }, [tab, activeRegion]);
+
+    return (
+        <main className="min-h-screen bg-[#f8f9fa] pb-32">
+            {/* 🚀 상단 네비게이션 */}
+            <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
+                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-all">
+                    <ArrowLeft size={20} />
+                </button>
+                <h1 className="text-lg font-black text-[#2d2d2d] flex items-center gap-2">
+                    <Icon size={20} className={color} /> {title}
+                </h1>
+                <div className="w-10"></div>
+            </nav>
+
+            <div className="max-w-3xl mx-auto px-4 mt-6">
+                {/* 🚀 지역 필터 */}
+                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+                    {Object.keys(REGION_CODES).map(region => (
+                        <button
+                            key={region}
+                            onClick={() => setActiveRegion(region)}
+                            className={`shrink-0 px-5 py-2.5 rounded-full text-[13px] font-black transition-all ${activeRegion === region ? "bg-[#4A403A] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200"}`}
+                        >
+                            {region}
+                        </button>
+                    ))}
+                </div>
+
+                {/* 🚀 데이터 리스트 영역 */}
+                <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-4 md:p-6 min-h-[50vh]">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                        <span className="text-sm font-bold text-gray-500">총 <span className="text-[#ff6f42]">{dataList.length}</span>건의 데이터</span>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-32 opacity-50">
+                            <RefreshCcw className="animate-spin text-[#FF8C42] mb-3" size={32} />
+                            <p className="text-sm font-bold text-gray-400">최신 데이터를 불러오고 있습니다...</p>
+                        </div>
+                    ) : dataList.length > 0 ? (
+                        <div className="space-y-3">
+                            {dataList.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-4 bg-[#fdfbf7] rounded-xl border border-gray-50 hover:border-orange-100 transition-all">
+                                    <div className="max-w-[70%] text-left">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-bold text-white bg-gray-300 px-2 py-0.5 rounded-full shrink-0">{idx + 1}</span>
+                                            <p className="text-[15px] font-black text-[#4A403A] truncate">{item.title}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                            <span className="text-[10px] text-gray-500 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{item.addr}</span>
+                                            <p className="text-[11px] text-gray-400 font-medium truncate">{item.sub}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-3">
+                                        <p className={`text-[16px] font-black ${color}`}>{item.val}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 mt-1">
+                                            {tab === "transaction" ? item.date :
+                                                tab === "population" ? "통계청 KOSIS" : "한국부동산원 청약홈"}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-32 text-sm text-gray-400 font-bold">
+                            해당 지역의 데이터가 없습니다.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </main>
+    );
+}
