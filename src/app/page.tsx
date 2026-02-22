@@ -56,7 +56,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
 
-      {/* 1. 실시간 티커 */}
+      {/* 실시간 티커 */}
       <div className="w-full bg-[#4A403A] text-white py-2.5 overflow-hidden whitespace-nowrap relative z-30 shadow-md">
         <div className="flex animate-marquee items-center gap-24 text-[13px] font-medium">
           {tickers.length > 0 ? (
@@ -104,98 +104,105 @@ export default function Home() {
       </header>
 
       {/* 환영 섹션 */}
-      <div className="w-full max-w-4xl px-6 text-center mb-12">
+      <div className="w-full max-w-5xl px-6 text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-black text-[#4a403a] leading-tight mb-4">
           지금 가장 핫한 <br className="md:hidden" />
           <span className="text-orange-500">선착순 분양단지</span>는?
         </h1>
 
-        {/* 🚀 검색창 (모바일 텍스트 및 여백 최적화) */}
+        {/* 검색창 */}
         <div className="relative w-full max-w-xl mx-auto mb-12 group mt-8">
           <input
             type="text"
             placeholder="어떤 지역, 어떤 아파트를 찾으세요?"
-            /* 모바일: 폰트 13px, 패딩 축소 / PC: 폰트 base(16px), 패딩 원상복구 */
             className="w-full px-4 py-3.5 md:px-6 md:py-4 pr-14 md:pr-16 rounded-[20px] md:rounded-[24px] border-none shadow-[0_15px_50px_-15px_rgba(0,0,0,0.12)] focus:ring-4 focus:ring-orange-100 text-[13px] md:text-base font-bold outline-none bg-white transition-all placeholder:text-gray-400"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {/* 모바일: 버튼 크기와 아이콘 크기도 살짝 줄여서 공간 확보 */}
           <button className="absolute right-2 top-2 bottom-2 md:right-3 md:top-3 md:bottom-3 w-10 md:w-12 bg-[#4A403A] text-white rounded-[14px] md:rounded-2xl flex items-center justify-center shadow-md hover:bg-black transition-colors">
             <Search strokeWidth={3} className="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
           </button>
         </div>
 
-        {/* 2. 인기 단지 랭킹 */}
-        {!isLoading && rankingList.length > 0 && (
-          <div className="w-full max-w-2xl mx-auto bg-white rounded-[32px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-100 p-8 text-left mb-12">
-            <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-5">
+        {/* 인기 랭킹(좌) + 자금 도우미(우) */}
+        <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 mb-8 text-left">
+
+          {/* 좌측: 인기 단지 랭킹 */}
+          <div className="flex-1 bg-white rounded-[24px] md:rounded-[32px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-100 p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-5 md:mb-6 border-b border-gray-50 pb-4 md:pb-5">
               <div className="bg-orange-50 p-2 rounded-lg">
                 <TrendingUp size={20} className="text-[#FF8C42]" strokeWidth={3} />
               </div>
-              <h3 className="text-[15px] font-black text-[#4A403A]">실시간 인기 단지 랭킹</h3>
-              <span className="text-[10px] text-gray-300 font-medium ml-auto">02.22 12:30 기준</span>
+              <h3 className="text-[14px] md:text-[15px] font-black text-[#4A403A]">실시간 인기 단지 랭킹</h3>
+              <span className="text-[10px] text-gray-300 font-medium ml-auto hidden sm:block">02.22 12:30 기준</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-              {rankingList.map((prop, idx) => (
-                <Link key={idx} href={`/property/${prop.id}`} className="flex items-center gap-4 py-1 group/item">
-                  <span className={`text-[16px] font-black w-5 ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>{idx + 1}</span>
-                  <span className="text-[14px] font-bold text-[#4A403A] truncate group-hover/item:text-[#FF8C42] transition-colors">{prop.title}</span>
-                  <ChevronRight size={14} className="text-gray-200 ml-auto" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* 3. 슬림해진 도구 버튼 */}
-        <div className="flex flex-col items-center gap-8 w-full">
-          <div className="flex flex-wrap justify-center gap-2.5">
-            {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-5 py-2.5 rounded-full font-bold text-[13px] transition-all ${activeFilter === filter
-                  ? "bg-[#4a403a] text-white shadow-xl"
-                  : "bg-white text-gray-400 border border-gray-100"
-                  }`}
-              >
-                {filter === "전체" ? "전체보기" : `#${filter}`}
-              </button>
-            ))}
+            {!isLoading && rankingList.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 md:gap-y-4">
+                {rankingList.map((prop, idx) => (
+                  <Link key={idx} href={`/property/${prop.id}`} className="flex items-center gap-3 py-1 group/item">
+                    <span className={`text-[15px] md:text-[16px] font-black w-5 ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>{idx + 1}</span>
+                    <span className="text-[13px] md:text-[14px] font-bold text-[#4A403A] truncate group-hover/item:text-[#FF8C42] transition-colors">{prop.title}</span>
+                    <ChevronRight size={14} className="text-gray-200 ml-auto opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-center text-sm font-bold text-gray-400">랭킹 데이터를 불러오는 중입니다...</div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl px-4 mb-16">
-            <Link href="/tools/tax" className="flex items-center justify-center gap-3 py-3 px-5 bg-white border border-gray-100 rounded-[20px] shadow-sm hover:border-orange-200 transition-all group">
-              <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Calculator size={20} />
+          {/* 🚀 우측(PC) / 하단(모바일): 자금 계획 도우미 (가운데 정렬 완벽 적용) */}
+          <div className="grid grid-cols-3 md:grid-cols-1 gap-3 md:gap-4 w-full md:w-[240px] shrink-0">
+            <Link href="/tools/tax" className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 p-4 md:p-5 bg-white border border-gray-100 rounded-[24px] shadow-sm hover:border-orange-200 hover:shadow-md transition-all group h-full">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <Calculator size={20} className="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
               </div>
-              <span className="text-[13px] font-black text-[#4A403A]">취득세 계산</span>
+              <span className="text-[12px] md:text-[14px] font-black text-[#4A403A] text-center leading-tight">취득세<br className="block md:hidden" /> 계산</span>
             </Link>
-            <Link href="/tools/loan" className="flex items-center justify-center gap-3 py-3 px-5 bg-white border border-gray-100 rounded-[20px] shadow-sm hover:border-orange-200 transition-all group">
-              <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Landmark size={20} />
+            <Link href="/tools/loan" className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 p-4 md:p-5 bg-white border border-gray-100 rounded-[24px] shadow-sm hover:border-orange-200 hover:shadow-md transition-all group h-full">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 text-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <Landmark size={20} className="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
               </div>
-              <span className="text-[13px] font-black text-[#4A403A]">대출 비교</span>
+              <span className="text-[12px] md:text-[14px] font-black text-[#4A403A] text-center leading-tight">대출<br className="block md:hidden" /> 비교</span>
             </Link>
-            <Link href="/tools/yield" className="flex items-center justify-center gap-3 py-3 px-5 bg-white border border-gray-100 rounded-[20px] shadow-sm hover:border-orange-200 transition-all group">
-              <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <BarChart3 size={20} />
+            <Link href="/tools/yield" className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 p-4 md:p-5 bg-white border border-gray-100 rounded-[24px] shadow-sm hover:border-orange-200 hover:shadow-md transition-all group h-full">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 text-orange-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <BarChart3 size={20} className="w-[18px] h-[18px] md:w-[22px] md:h-[22px]" />
               </div>
-              <span className="text-[13px] font-black text-[#4A403A]">수익률 계산</span>
+              <span className="text-[12px] md:text-[14px] font-black text-[#4A403A] text-center leading-tight">수익률<br className="block md:hidden" /> 계산</span>
             </Link>
           </div>
+
         </div>
       </div>
 
       {/* 리스트 섹션 */}
       <section className="w-full max-w-6xl mb-24 px-6">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-2xl font-black text-[#4a403a] flex items-center gap-2">
+
+        {/* 해시태그 필터 */}
+        <div className="flex flex-wrap justify-center gap-2.5 mb-10">
+          {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`px-5 py-2.5 rounded-full font-bold text-[13px] transition-all ${activeFilter === filter
+                ? "bg-[#4a403a] text-white shadow-xl"
+                : "bg-white text-gray-400 border border-gray-100 hover:bg-gray-50"
+                }`}
+            >
+              {filter === "전체" ? "전체보기" : `#${filter}`}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl md:text-2xl font-black text-[#4a403a] flex items-center gap-2">
             <Sparkles className="text-orange-500" size={24} /> {activeFilter === "전체" ? "아파티 큐레이션" : `${activeFilter} 추천 단지`}
           </h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           {filteredProperties.map((property) => (
             <PropertyCard key={property.id} {...property} />
           ))}
