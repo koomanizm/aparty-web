@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-// ✅ Calculator, Landmark, BarChart3 아이콘 추가
 import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3 } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 
@@ -183,7 +182,7 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* ✅ 자금 계획 도우미 (계산기 3종) 추가 */}
+                    {/* ✅ 자금 계획 도우미 (계산기 3종) 이름 수정 적용 */}
                     <div className="mb-10 bg-[#f8f9fa] rounded-2xl p-4 md:p-5 border border-gray-100">
                         <div className="flex items-center justify-between mb-3 px-1">
                             <h3 className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
@@ -193,20 +192,20 @@ export default function PropertyDetailPage() {
                         <div className="grid grid-cols-3 gap-2 md:gap-3">
                             <Link href="/tools/tax" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
                                 <div className="text-blue-500"><Calculator size={18} /></div>
-                                <span className="text-[11px] font-bold text-gray-600">취득세 계산</span>
+                                <span className="text-[11px] font-bold text-gray-600">취득세 계산기</span>
                             </Link>
                             <Link href="/tools/loan" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
                                 <div className="text-emerald-500"><Landmark size={18} /></div>
-                                <span className="text-[11px] font-bold text-gray-600">대출 한도</span>
+                                <span className="text-[11px] font-bold text-gray-600">대출이자 계산기</span>
                             </Link>
                             <Link href="/tools/yield" className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white rounded-xl shadow-sm hover:border-[#ff6f42] border border-transparent transition-all">
                                 <div className="text-orange-500"><BarChart3 size={18} /></div>
-                                <span className="text-[11px] font-bold text-gray-600">수익률 계산</span>
+                                <span className="text-[11px] font-bold text-gray-600">수익률 계산기</span>
                             </Link>
                         </div>
                     </div>
 
-                    {/* 프리미엄 포인트 (위치 조정됨) */}
+                    {/* 프리미엄 포인트 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
                         <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
