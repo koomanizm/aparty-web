@@ -34,6 +34,7 @@ export default function PropertyDetailPage() {
 
     useEffect(() => {
         if (!property) return;
+
         async function fetchExternalData() {
             setIsApiLoading(true);
             try {
@@ -78,6 +79,7 @@ export default function PropertyDetailPage() {
                     filteredTrades = tradeList.filter(t => t.aptName.includes(compareApt));
                 }
                 setTrades(filteredTrades.slice(0, 5));
+
             } catch (error) {
                 console.error("API 연동 에러:", error);
             } finally {
@@ -109,14 +111,26 @@ export default function PropertyDetailPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
-            <style dangerouslySetInnerHTML={{ __html: `.shimmer-effect::after { content: ""; position: absolute; top: 0; width: 50px; height: 100%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent); transform: skewX(-20deg); animation: sweep 3s infinite; } @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }` }} />
+            <style dangerouslySetInnerHTML={{
+                __html: `
+        @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }
+        .shimmer-effect::after {
+          content: ""; position: absolute; top: 0; width: 50px; height: 100%;
+          background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
+          transform: skewX(-20deg); animation: sweep 3s infinite;
+        }
+      `}} />
 
+            {/* 네비게이션 */}
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/70 backdrop-blur-md border-b border-white/20">
-                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700"><ArrowLeft size={20} /></button>
+                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700 hover:scale-110 transition-all">
+                    <ArrowLeft size={20} />
+                </button>
                 <span className="text-sm font-bold text-gray-800 opacity-80 truncate max-w-[200px]">{property.title}</span>
                 <div className="w-10"></div>
             </nav>
 
+            {/* 이미지 섹션 */}
             <div className="relative w-full h-[45vh] md:h-[50vh]">
                 <Image src={property.image || "/house1.jpg"} alt={property.title} fill className="object-cover" priority />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30"></div>
@@ -124,6 +138,8 @@ export default function PropertyDetailPage() {
 
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10 border border-gray-50">
+
+                    {/* 뱃지 영역 */}
                     <div className="flex flex-wrap gap-2.5 mb-5">
                         {property.status.map((tag, i) => (
                             <span key={i} className={getStatusStyle(i)}>
@@ -137,12 +153,13 @@ export default function PropertyDetailPage() {
                         <p className="text-gray-400 font-medium text-sm">📍 {property.location}</p>
                     </div>
 
+                    {/* 4대 지표 그리드 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-10">
                         {[
                             { icon: Users, label: "세대수", value: property.households, color: "text-blue-500", bg: "bg-blue-50" },
                             { icon: Maximize, label: "평형정보", value: property.size, color: "text-orange-500", bg: "bg-orange-50" },
                             { icon: Calendar, label: "입주예정", value: property.moveIn, color: "text-emerald-500", bg: "bg-emerald-50" },
-                            { icon: Car, label: "주차대수", value: property.parking, color: "text-purple-500", bg: "bg-purple-50" },
+                            { icon: Calendar, label: "주차대수", value: property.parking, color: "text-purple-500", bg: "bg-purple-50" },
                         ].map((item, idx) => (
                             <div key={idx} className="bg-gray-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
                                 <div className={`w-8 h-8 ${item.bg} ${item.color} rounded-full flex items-center justify-center`}><item.icon size={16} /></div>
@@ -152,7 +169,7 @@ export default function PropertyDetailPage() {
                         ))}
                     </div>
 
-                    {/* 1. 분양가 정보 */}
+                    {/* 분양가 정보 */}
                     <div className="mb-10">
                         <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -165,15 +182,15 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🚀 [변경위치] 2. 프리미엄 포인트 (분양가 바로 아래로 이동) */}
-                    <div className="mb-12">
+                    {/* 프리미엄 포인트 (위치 조정됨) */}
+                    <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
                         <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
                             {property.description}
                         </div>
                     </div>
 
-                    {/* 3. 실거래가 비교 */}
+                    {/* 실거래가 비교 리포트 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
                             <TrendingUp className="text-[#ff6f42] w-5 h-5" /> 주변 아파트 실거래가 <span className="text-xs text-gray-400 font-medium ml-1">최근 1개월</span>
@@ -194,12 +211,12 @@ export default function PropertyDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-5 text-gray-400 text-sm">데이터가 없습니다.</div>
+                                <div className="text-center py-5 text-gray-400 text-sm">해당 지역의 실거래 데이터가 없습니다.</div>
                             )}
                         </div>
                     </div>
 
-                    {/* 4. 관련 뉴스 (문구 수정) */}
+                    {/* 이 현장 관련 뉴스 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
                             <Newspaper className="text-[#ff6f42] w-5 h-5" /> 이 현장 관련 뉴스
@@ -216,7 +233,7 @@ export default function PropertyDetailPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-5 text-gray-400 text-sm">뉴스가 없습니다.</div>
+                            <div className="text-center py-5 text-gray-400 text-sm">관련 뉴스가 없습니다.</div>
                         )}
                     </div>
                 </div>
@@ -229,19 +246,6 @@ export default function PropertyDetailPage() {
                     <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-[#FEE500] text-[#3c1e1e] rounded-2xl font-bold hover:bg-[#fdd835] transition-all text-lg shadow-md">
                         <MessageCircle size={20} fill="currentColor" />관심고객 등록 / 상담
                     </Link>
-                </div>
-            </div>
-
-            {/* 플로팅 바 */}
-            <div className="md:hidden fixed bottom-6 left-4 right-4 z-40">
-                <div className="bg-[#2d2d2d] text-white rounded-full shadow-2xl p-1.5 flex items-center justify-between pl-6 pr-2 backdrop-blur-md bg-opacity-95">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-400 font-medium">상담 문의하기</span>
-                        <span className="text-sm font-bold">전문 상담사와 연결</span>
-                    </div>
-                    <a href="tel:010-0000-0000" className="bg-[#ff6f42] rounded-full p-3 transition-colors">
-                        <Phone size={20} fill="currentColor" />
-                    </a>
                 </div>
             </div>
         </main>
