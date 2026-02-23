@@ -40,15 +40,14 @@ export default function NewsSection() {
 
     return (
         <section className="w-full max-w-6xl mb-24 px-4">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
-                <div>
-                    {/* 타이틀 크기 유지 */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <div className="text-left">
                     <h2 className="text-xl md:text-2xl font-bold text-[#4a403a] flex items-center gap-2 mb-1 tracking-tight">
                         <Newspaper className="text-orange-500 w-6 h-6" strokeWidth={2.5} />
                         부동산 인사이트
                     </h2>
-                    <p className="text-gray-400 text-xs md:text-sm font-medium ml-1">
-                        실시간으로 업데이트되는 시장의 흐름을 놓치지 마세요.
+                    <p className="text-gray-400 text-xs md:text-sm font-semibold ml-1">
+                        실시간으로 업데이트되는 시장의 흐름을 확인하세요.
                     </p>
                 </div>
 
@@ -57,8 +56,8 @@ export default function NewsSection() {
                         <button
                             key={cat.label}
                             onClick={() => setActiveTab(cat.query)}
-                            className={`px-3 py-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === cat.query
-                                ? "bg-[#4a403a] text-white shadow-lg scale-105"
+                            className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === cat.query
+                                ? "bg-[#4a403a] text-white shadow-md scale-105"
                                 : "bg-white text-gray-400 border border-gray-100 hover:text-orange-500 hover:border-orange-200 hover:bg-orange-50"
                                 }`}
                         >
@@ -88,33 +87,32 @@ export default function NewsSection() {
                             href={item.link}
                             key={idx}
                             target="_blank"
-                            className="bg-white p-6 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 
-                         hover:shadow-[0_12px_24px_rgba(255,111,66,0.15)] hover:border-orange-100 
-                         hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between h-52 relative overflow-hidden"
+                            className="bg-white p-7 rounded-[28px] shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-gray-100 
+                                 hover:shadow-[0_16px_32px_rgba(255,111,66,0.12)] hover:border-orange-100 
+                                 hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between h-56 relative overflow-hidden"
                         >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 to-orange-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-                            <div>
-                                {/* 🚀 유일하게 변경된 곳: 모바일에서는 text-[15px](또는 text-base), PC에서는 text-lg 로 반응형 글자 크기 적용 */}
-                                <h3 className="font-bold text-gray-800 text-[15px] md:text-lg leading-snug tracking-tight line-clamp-2 group-hover:text-orange-600 transition-colors">
+                            <div className="text-left">
+                                <h3 className="font-bold text-gray-800 text-[16px] md:text-[18px] leading-[1.45] tracking-tight line-clamp-3 group-hover:text-orange-600 transition-colors">
                                     {item.title}
                                 </h3>
                             </div>
 
                             <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-50 group-hover:border-orange-50 transition-colors">
-                                <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg group-hover:bg-orange-50 group-hover:text-orange-500 transition-colors">
+                                <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg group-hover:bg-orange-50 group-hover:text-orange-500 transition-colors">
                                     {item.pubDate}
                                 </span>
 
-                                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-orange-500 transition-all duration-300">
-                                    <ArrowRight size={16} className="text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+                                <div className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-orange-500 transition-all duration-300 shadow-sm">
+                                    <ArrowRight size={18} className="text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
                                 </div>
                             </div>
                         </Link>
                     ))
                 ) : (
-                    <div className="col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <p className="text-gray-400 font-medium">관련된 뉴스를 찾을 수 없습니다.</p>
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200">
+                        <p className="text-gray-400 font-semibold">뉴스를 불러올 수 없습니다.</p>
                     </div>
                 )}
             </div>
