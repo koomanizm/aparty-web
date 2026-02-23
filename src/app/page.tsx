@@ -32,25 +32,36 @@ const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: n
 
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
   const sidoName = SIDO_DATA[sidoCode] || "";
-  const finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
-  if (METRO_CODES.includes(sidoCode)) return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+  let finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
+
+  // 🚀 시도 이름의 앞 2글자 (예: '대구시' -> '대구')
   const shortSido = sidoName.substring(0, 2);
+
+  // 🚀 중복 제거: finalSgg(시군구)가 '대구', '대전' 등으로 시작하면 앞부분을 잘라내어 중복 방지
+  if (finalSgg.startsWith(shortSido)) {
+    finalSgg = finalSgg.replace(shortSido, "").trim();
+  }
+
+  if (METRO_CODES.includes(sidoCode)) return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
   return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
 };
 
 const METRO_CODES = ["11", "26", "27", "28", "29", "30", "31", "36"];
 
+// 🚀 상세 정보(모달용)가 완벽하게 추가된 실거래가 불러오기 함수
 const fetchTradeData = async (codes: string[]) => {
   try {
     const res = await fetch(`/api/dashboard/transactions?codes=${codes.join(",")}`);
     const xmls: string[] = await res.json();
     const allItems: any[] = [];
     const parser = new DOMParser();
+
     xmls.forEach((xml, idx) => {
       const xmlDoc = parser.parseFromString(xml, "text/xml");
       const items = xmlDoc.getElementsByTagName("item");
       const code = codes[idx];
       const sidoCode = code.substring(0, 2);
+
       Array.from(items).forEach((item: any) => {
         const price = parseInt((item.getElementsByTagName("dealAmount")[0]?.textContent || "0").replace(/,/g, ""));
         const year = item.getElementsByTagName("dealYear")[0]?.textContent || "";
@@ -58,7 +69,26 @@ const fetchTradeData = async (codes: string[]) => {
         const day = (item.getElementsByTagName("dealDay")[0]?.textContent || "").padStart(2, '0');
         const floor = item.getElementsByTagName("floor")[0]?.textContent || "";
         const area = item.getElementsByTagName("excluUseAr")[0]?.textContent || "-";
-        allItems.push({ type: "transaction", title: item.getElementsByTagName("aptNm")[0]?.textContent || "정보없음", addr: formatRealAddr(sidoCode, code, item.getElementsByTagName("sggNm")[0]?.textContent || "", (item.getElementsByTagName("umdNm")[0]?.textContent || "").trim()), price, val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 || ''}` : `${price}만`, date: `${year}.${month}.${day}`, sub: `전용 ${area}㎡ · ${floor}층`, details: { totHshld: "-", fullAddr: "", contact: "" } });
+
+        // 🚀 추가됨: 국토부 데이터에서 건축년도(buildYear) 추출
+        const buildYear = item.getElementsByTagName("buildYear")[0]?.textContent || "-";
+
+        allItems.push({
+          type: "transaction",
+          title: item.getElementsByTagName("aptNm")[0]?.textContent || "정보없음",
+          addr: formatRealAddr(sidoCode, code, item.getElementsByTagName("sggNm")[0]?.textContent || "", (item.getElementsByTagName("umdNm")[0]?.textContent || "").trim()),
+          price,
+          val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 === 0 ? '' : price % 10000}`.trim() : `${price}만`,
+          date: `${year}.${month}.${day}`,
+          sub: `전용 ${area}㎡ · ${floor}층`,
+          // 🚀 모달 팝업이 기다리던 바로 그 상세 데이터들 연결!
+          details: {
+            fullDate: `${year}년 ${month}월 ${day}일`,
+            buildYear: buildYear,
+            area: area,
+            floor: floor
+          }
+        });
       });
     });
     return allItems.sort((a, b) => b.price - a.price).slice(0, 6);
@@ -156,12 +186,41 @@ export default function Home() {
   const [activeFilter, setActiveFilter] = useState("전체");
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [needleRotation, setNeedleRotation] = useState(-90);
+  const [tickerIndex, setTickerIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(true); // 🚀 순간이동을 위한 애니메이션 스위치
+
+  useEffect(() => {
+    if (tickers.length === 0) return;
+    const interval = setInterval(() => {
+      setIsTransitioning(true); // 이동할 때는 애니메이션 켜기
+      setTickerIndex((prev) => prev + 1); // 무조건 +1씩 증가
+    }, 3000); // 🚀 머무는 시간 3초
+    return () => clearInterval(interval);
+  }, [tickers]);
+
+  // 🚀 무한 롤링 마술: 마지막(복제본)에 도달하면 몰래 0으로 되돌리기
+  useEffect(() => {
+    if (tickers.length === 0) return;
+    if (tickerIndex === tickers.length) {
+      const timeout = setTimeout(() => {
+        setIsTransitioning(false); // 애니메이션 끄기 (사용자 눈치채지 못하게!)
+        setTickerIndex(0); // 첫 번째 진짜 뉴스로 휙! 순간이동
+      }, 800); // 🚀 슬라이드 시간 0.8초와 똑같이 맞춤
+      return () => clearTimeout(timeout);
+    }
+  }, [tickerIndex, tickers.length]);
 
   useEffect(() => {
     async function loadData() {
       try {
         const [p, t] = await Promise.all([getPropertiesFromSheet(), getTickerMessages()]);
-        setProperties(p); setTickers(t); setFilteredProperties(p);
+        setProperties(p);
+
+        // 🚀 엑셀에 기사 내용(text)이 비어있는 줄은 아예 무시하도록 강력한 필터링 적용!
+        const validTickers = (t || []).filter((item) => item.text && item.text.trim() !== "");
+        setTickers(validTickers);
+
+        setFilteredProperties(p);
       } finally { setIsLoading(false); }
     }
     loadData();
@@ -204,11 +263,7 @@ export default function Home() {
   const sentiment = SENTIMENT_DATA[sentimentRegion] || SENTIMENT_DATA["전국 평균"];
 
   // 🚀 [해결] 선과 점이 따로 놀지 않도록 height를 90으로 완전히 일치시킴
-  const generateLinePath = (trend: number[]) => {
-    const width = 180; const height = 90;
-    const points = trend.map((v, i) => `${(i / (trend.length - 1)) * width},${height - (v / 150) * height}`);
-    return `M ${points.join(" L ")}`;
-  };
+
 
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
@@ -234,25 +289,57 @@ export default function Home() {
         </div>
       )}
 
-      {/* 티커 바 */}
-      <div className="w-full bg-[#4A403A] text-white py-3 overflow-hidden whitespace-nowrap relative z-30 shadow-md">
-        <div className="flex animate-marquee items-center gap-48 text-[13px] font-medium">{tickers.length > 0 ? ([...tickers, ...tickers, ...tickers, ...tickers].map((t, i) => (<span key={i} className="flex items-center gap-4"><span className="text-[#FF8C42] font-black px-2 py-0.5 bg-white/10 rounded text-[11px] tracking-tight">{t.type}</span><span className="tracking-tight">{t.text}</span></span>))) : (<span className="px-4 opacity-60">정보 동기화 중...</span>)}</div>
-      </div>
+
 
       <header className="w-full max-w-6xl flex justify-between items-center mt-8 mb-10 px-6">
         <a href="/" className="flex items-center gap-3 cursor-pointer group">
           <div className="relative w-10 h-10"><Image src="/logo.png" alt="아파티" fill className="object-contain group-hover:rotate-12 transition-transform duration-300" /></div>
           <h1 className="text-2xl font-extrabold text-[#4a403a] tracking-tighter">APARTY</h1>
         </a>
-        <Link href="https://pro.aparty.co.kr" target="_blank" className="hidden md:flex bg-[#ff6f42] text-white px-5 py-2.5 rounded-2xl shadow-lg text-sm font-black hover:bg-orange-600 transition-all">분양상담사 전용코너</Link>
+        {/* 🚀 분양상담사 전용코너 (반응형: PC는 텍스트, 모바일은 PRO 배지+아이콘) */}
+        <Link href="https://pro.aparty.co.kr" target="_blank" className="flex items-center justify-center bg-[#ff6f42] text-white px-3.5 py-2 md:px-5 md:py-2.5 rounded-[14px] md:rounded-2xl shadow-lg hover:bg-orange-600 transition-all group">
+          {/* 모바일 뷰 (md:hidden) */}
+          <span className="md:hidden flex items-center gap-1.5 text-[11px] font-black tracking-tight">
+            <Users2 size={14} className="group-hover:scale-110 transition-transform" /> PRO
+          </span>
+
+          {/* PC 뷰 (hidden md:block) */}
+          <span className="hidden md:block text-sm font-black">분양상담사 전용코너</span>
+        </Link>
       </header>
 
-      <div className="w-full max-w-6xl px-4 md:px-6 text-center mb-8">
+      <div className="w-full max-w-6xl px-4 md:px-6 text-center mt-12 md:mt-20 mb-8">
         <h1 className="text-4xl md:text-5xl font-semibold text-[#4a403a] leading-tight mb-4 tracking-tight">지금 가장 핫한 <span className="text-orange-500 font-bold">선착순 분양단지</span>는?</h1>
+        {/* 🚀 새로운 수직 롤링 뉴스 (무한 슬라이드 + 4초 대기 / 0.8초 이동) */}
+        {tickers.length > 0 && (
+          <div className="w-full max-w-xl mx-auto mb-10 relative flex flex-col items-center justify-start overflow-hidden h-[24px] cursor-pointer group z-20">
+            <div
+              className="flex flex-col w-full"
+              style={{
+                transform: `translateY(-${tickerIndex * 24}px)`,
+                // 🚀 isTransitioning 스위치에 따라 0.8초 애니메이션을 켰다 껐다 합니다
+                transition: isTransitioning ? 'transform 800ms ease-in-out' : 'none'
+              }}
+            >
+              {/* 🚀 원본 뉴스들 끝에 첫 번째 뉴스를 몰래 하나 더 붙입니다 [...tickers, tickers[0]] */}
+              {[...tickers, tickers[0]].map((ticker, index) => (
+                <div key={index} className="h-[24px] w-full flex items-center justify-center shrink-0 truncate text-[14px] font-bold text-gray-600 text-center group-hover:text-[#FF8C42] transition-colors">
+                  <span className="text-[#FF8C42] mr-2 text-[12px]"><Sparkles size={12} className="inline mb-0.5" />NEW</span>
+                  {ticker?.type && (
+                    <span className="mr-1.5 text-gray-400 font-medium">[{ticker.type}]</span>
+                  )}
+                  {ticker?.text}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="relative w-full max-w-xl mx-auto mb-10 group mt-8 z-20">
           <input type="text" placeholder="어떤 지역, 어떤 아파트를 찾으세요?" className="w-full px-5 py-4 pr-16 rounded-[24px] border border-gray-100 shadow-md focus:ring-4 focus:ring-orange-100 text-[15px] font-bold outline-none bg-white transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           {searchQuery ? (<button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 bottom-3 w-12 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center transition-all"><X size={20} /></button>) : (<button className="absolute right-3 top-3 bottom-3 w-12 bg-[#4A403A] text-white rounded-2xl flex items-center justify-center shadow-md"><Search size={22} /></button>)}
         </div>
+
+
 
         {/* 필터 버튼 */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
@@ -278,57 +365,189 @@ export default function Home() {
                   <div className="p-4 flex flex-col flex-1 gap-1 overflow-hidden relative justify-between">
                     <div className="animate-in fade-in slide-in-from-right-full duration-700 w-full text-center flex flex-col flex-1 justify-between" key={sentimentRegion}>
 
-                      <div className="relative w-40 h-18 mx-auto overflow-hidden mb-1">
-                        <div className="absolute w-40 h-40 border-[10px] border-gray-100 rounded-full"></div>
-                        <div className="absolute w-40 h-40 border-[10px] border-t-[#FF8C42]/20 border-r-[#FF8C42]/20 rounded-full rotate-45"></div>
-                        <div className="absolute bottom-0 left-1/2 h-14 origin-bottom -translate-x-1/2 transition-transform duration-1000 ease-out" style={{ transform: `translateX(-50%) rotate(${needleRotation}deg)` }}>
-                          <div className="w-0.5 h-full bg-[#1a1a1a] mx-auto rounded-t-full relative z-10"></div>
-                          <div className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1a1a1a] rounded-full z-0 shadow-sm"></div>
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#FF8C42] rounded-full border border-white shadow-md z-30"></div>
+                      {/* 🚀 지표 1: 세련된 다이얼 게이지 (온도계) */}
+                      <div className="relative w-48 h-24 mx-auto overflow-hidden mb-2 mt-2">
+                        <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
+                          {/* 게이지 배경 트랙 */}
+                          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F3F4F6" strokeWidth="10" strokeLinecap="round" />
+
+                          {/* 게이지 컬러 트랙 (점수에 따라 동적 채워짐) */}
+                          <defs>
+                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#3B82F6" />   {/* 파랑: 침체/관망 */}
+                              <stop offset="50%" stopColor="#10B981" />  {/* 초록: 보합/회복 */}
+                              <stop offset="100%" stopColor="#EF4444" /> {/* 빨강: 과열/매수우위 */}
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d="M 10 50 A 40 40 0 0 1 90 50"
+                            fill="none"
+                            stroke="url(#gaugeGradient)"
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            strokeDasharray="125.6"
+                            strokeDashoffset={125.6 - (125.6 * Math.min(sentiment.score, 150) / 150)}
+                            className="transition-all duration-1000 ease-out"
+                          />
+
+                          {/* 디테일한 눈금선(Tick) 추가 */}
+                          {[0, 25, 50, 75, 100, 125, 150].map((tick) => {
+                            const angle = (tick / 150) * 180 - 180;
+                            const rad = (angle * Math.PI) / 180;
+                            const x1 = 50 + 32 * Math.cos(rad);
+                            const y1 = 50 + 32 * Math.sin(rad);
+                            const x2 = 50 + 37 * Math.cos(rad);
+                            const y2 = 50 + 37 * Math.sin(rad);
+                            return <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#9CA3AF" strokeWidth="1" />;
+                          })}
+                        </svg>
+
+                        {/* 바늘 (Needle) */}
+                        <div
+                          className="absolute bottom-0 left-1/2 origin-bottom transition-transform duration-1000 ease-out flex flex-col items-center justify-end z-20"
+                          style={{ transform: `translateX(-50%) rotate(${needleRotation}deg)`, height: '70px', width: '20px' }}
+                        >
+                          {/* 바늘 몸통 */}
+                          <div className="w-1.5 h-[55px] bg-gradient-to-t from-[#4A403A] to-gray-400 rounded-t-full shadow-sm relative z-10"></div>
+                          {/* 중심축 포인트 */}
+                          <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-4 h-4 bg-[#4A403A] rounded-full border-[2.5px] border-white shadow-md z-20"></div>
                         </div>
                       </div>
                       <div className="mb-2"><span className="text-2xl font-black text-[#4A403A]">{sentiment.score}</span><p className={`text-[10px] font-black mt-0.5 ${sentiment.score > 100 ? 'text-red-500' : 'text-blue-500'}`}>{sentiment.status}</p></div>
                       <div className="bg-gray-50 py-1.5 rounded-xl mb-3"><p className="text-[13px] font-black text-[#4A403A]">{sentimentRegion}</p></div>
 
-                      {/* 🚀 지표 1: 투자심리 선형 그래프 (전문적인 디자인으로 보정) */}
+                      {/* 🚀 지표 1: 투자심리 선형 그래프 (모바일/디자인 최적화 버전) 시작 */}
                       <div className="w-full pt-1 flex-1 flex flex-col border-t border-gray-100">
-                        <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-2 mt-1"><span className="flex items-center gap-1"><Info size={11} /> 5주 투자심리 추이</span><span className="text-[11px] text-gray-400 font-bold">활황: 100</span></div>
-                        <div className="relative w-full flex-1 min-h-[90px] flex items-center justify-center mt-2">
-                          <svg width="100%" height="100%" viewBox="0 0 180 90" preserveAspectRatio="none" className="overflow-visible">
-                            <line x1="0" y1="30" x2="180" y2="30" stroke="#D1D5DB" strokeWidth="1" strokeDasharray="2,1" />
-                            {/* 🚀 선의 두께를 2로 줄여 날렵하고 전문적인 차트로 수정 */}
-                            <path d={generateLinePath(sentiment.trend)} fill="none" stroke="#FF8C42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-1000" />
-                            {sentiment.trend.map((v, i) => {
-                              const x = (i / 4) * 180;
-                              const y = 90 - (v / 150) * 90;
-                              return (
-                                <g key={i}>
-                                  {/* 🚀 데이터 점을 깔끔하게 흰색 바탕에 주황 테두리로 처리 */}
-                                  <circle cx={x} cy={y} r="2.5" fill={i === 4 ? "#FF8C42" : "white"} stroke={i === 4 ? "white" : "#FF8C42"} strokeWidth="1.5" className="transition-all duration-1000" />
-                                  {/* 🚀 하단 그래프와 동일한 폰트(text-[10px] font-bold fill-gray-500) & 점과 겹치지 않는 정확한 위치(-7) */}
-                                  <text x={x} y={y - 7} textAnchor="middle" className={`text-[10px] font-bold ${i === 4 ? 'fill-red-500' : 'fill-gray-500'} transition-all duration-1000`}>
-                                    {v}
-                                  </text>
-                                </g>
-                              );
-                            })}
-                          </svg>
+                        <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-1 mt-2">
+                          <span className="flex items-center gap-1"><Info size={11} /> 5주 투자심리 추이</span>
+                          {/* 🚀 수정 1: 복잡한 내부 텍스트 대신 깔끔하게 상단 라벨로 이동 */}
+                          <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded">기준: 100</span>
                         </div>
-                      </div>
+                        <div className="relative w-full flex-1 min-h-[100px] flex items-center justify-center mt-1">
+                          {(() => {
+                            const trendData = sentiment.trend;
+                            const PADDING_X = 15;
+                            const PADDING_Y_TOP = 25;
+                            const PADDING_Y_BOTTOM = 20;
+                            const W = 200;
+                            const H = 100;
+                            const innerW = W - PADDING_X * 2;
+                            const innerH = H - PADDING_Y_TOP - PADDING_Y_BOTTOM;
 
-                      {/* 지표 2: 미분양 추이 막대 그래프 */}
-                      <div className="w-full pt-3 mt-4 border-t border-gray-100 flex-1 flex flex-col">
-                        <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-2"><span className="flex items-center gap-1"><BarChart3 size={11} /> 월별 미분양 증가 지수</span><span className="text-[11px] text-gray-400 font-bold">단위: index</span></div>
-                        <div className="flex items-end justify-between flex-1 min-h-[90px] gap-1.5 px-1 mt-1">
-                          {sentiment.unsoldTrend.map((val, i) => (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-1 justify-end h-full">
-                              <span className={`text-[10px] font-bold ${i === 4 ? 'text-red-500' : 'text-gray-500'}`}>{val}</span>
-                              <div className={`w-full rounded-t-[3px] transition-all duration-700 ${i === 4 ? 'bg-red-400 shadow-sm' : 'bg-gray-200'}`} style={{ height: `${Math.max((val / 60) * 100, 15)}%` }}></div>
-                              <span className="text-[8px] font-bold text-gray-400 mt-1">{sentiment.labels[i]}</span>
-                            </div>
-                          ))}
+                            const getX = (i: number) => PADDING_X + (i / (trendData.length - 1)) * innerW;
+                            const getY = (val: number) => PADDING_Y_TOP + innerH - (val / 150) * innerH;
+                            const pathData = trendData.map((v, i) => `${getX(i)},${getY(v)}`).join(" L ");
+
+                            return (
+                              <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full overflow-visible">
+                                <defs>
+                                  <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#FF8C42" stopOpacity="0.3" />
+                                    <stop offset="100%" stopColor="#FF8C42" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+
+                                {/* 🚀 수정 2: 내부 텍스트(<text>)는 삭제하고 배경 기준선만 남김 */}
+                                <line x1={0} y1={getY(100)} x2={W} y2={getY(100)} stroke="#E5E7EB" strokeWidth="1" strokeDasharray="3,3" />
+
+                                <path d={`M ${pathData} L ${getX(trendData.length - 1)},${H - PADDING_Y_BOTTOM} L ${getX(0)},${H - PADDING_Y_BOTTOM} Z`} fill="url(#areaGradient)" />
+
+                                <path d={`M ${pathData}`} fill="none" stroke="#FF8C42" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-1000" />
+
+                                {trendData.map((v: number, i: number) => {
+                                  const x = getX(i);
+                                  const y = getY(v);
+                                  const isLast = i === trendData.length - 1;
+                                  return (
+                                    <g key={i}>
+                                      <circle cx={x} cy={y} r={isLast ? "3.5" : "2.5"} fill={isLast ? "#FF8C42" : "white"} stroke={isLast ? "white" : "#FF8C42"} strokeWidth="1.5" className="transition-all duration-1000 shadow-sm" />
+
+                                      {/* 🚀 수정 3: 글씨에 하얀 테두리(stroke="white" paintOrder="stroke")를 추가해 선과 겹쳐도 무조건 잘 보이게 처리 */}
+                                      <text x={x} y={y - 8} textAnchor="middle" fontSize={isLast ? "11" : "9"} fontWeight="bold" fill={isLast ? "#EF4444" : "#6B7280"} stroke="white" strokeWidth="2" paintOrder="stroke" className="transition-all duration-1000">
+                                        {v}
+                                      </text>
+
+                                      <text x={x} y={H - 5} textAnchor="middle" fontSize="8" fill="#9CA3AF" fontWeight="bold">
+                                        {sentiment.labels[i].replace("'", "")}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            );
+                          })()}
                         </div>
                       </div>
+                      {/* 🚀 지표 1: 투자심리 선형 그래프 끝 */}
+
+                      {/* 🚀 지표 2: 미분양 증가 지수 선형 그래프 (모바일 최적화/대비 색상 적용) 시작 */}
+                      <div className="w-full pt-3 mt-4 border-t border-gray-100 flex-1 flex flex-col">
+                        <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-1 mt-1">
+                          <span className="flex items-center gap-1"><BarChart3 size={11} /> 월별 미분양 증가 지수</span>
+                          <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-1.5 py-0.5 rounded">단위: Pt</span>
+                        </div>
+                        <div className="relative w-full flex-1 min-h-[100px] flex items-center justify-center mt-1">
+                          {(() => {
+                            const trendData = sentiment.unsoldTrend;
+                            const PADDING_X = 15;
+                            const PADDING_Y_TOP = 25;
+                            const PADDING_Y_BOTTOM = 20;
+                            const W = 200;
+                            const H = 100;
+                            const innerW = W - PADDING_X * 2;
+                            const innerH = H - PADDING_Y_TOP - PADDING_Y_BOTTOM;
+
+                            // 미분양 데이터의 최대값을 계산하여 동적으로 높이 조절 (여백 포함)
+                            const maxVal = Math.max(...trendData, 50) * 1.2;
+
+                            const getX = (i: number) => PADDING_X + (i / (trendData.length - 1)) * innerW;
+                            const getY = (val: number) => PADDING_Y_TOP + innerH - (val / maxVal) * innerH;
+                            const pathData = trendData.map((v: number, i: number) => `${getX(i)},${getY(v)}`).join(" L ");
+
+                            return (
+                              <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full overflow-visible">
+                                <defs>
+                                  {/* 오렌지와 대비되는 시원하고 전문적인 블루톤 그라데이션 */}
+                                  <linearGradient id="unsoldAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                                    <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+
+                                {/* 그라데이션 영역 채우기 */}
+                                <path d={`M ${pathData} L ${getX(trendData.length - 1)},${H - PADDING_Y_BOTTOM} L ${getX(0)},${H - PADDING_Y_BOTTOM} Z`} fill="url(#unsoldAreaGradient)" />
+
+                                {/* 메인 라인 (파란색) */}
+                                <path d={`M ${pathData}`} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-all duration-1000" />
+
+                                {/* 데이터 점 & 라벨 */}
+                                {trendData.map((v: number, i: number) => {
+                                  const x = getX(i);
+                                  const y = getY(v);
+                                  const isLast = i === trendData.length - 1;
+                                  return (
+                                    <g key={i}>
+                                      {/* 포인트 마커 */}
+                                      <circle cx={x} cy={y} r={isLast ? "3.5" : "2.5"} fill={isLast ? "#3B82F6" : "white"} stroke={isLast ? "white" : "#3B82F6"} strokeWidth="1.5" className="transition-all duration-1000 shadow-sm" />
+
+                                      {/* 점수 텍스트 (하얀 테두리로 시인성 강화, 마지막 값은 짙은 파란색 강조) */}
+                                      <text x={x} y={y - 8} textAnchor="middle" fontSize={isLast ? "11" : "9"} fontWeight="bold" fill={isLast ? "#1D4ED8" : "#6B7280"} stroke="white" strokeWidth="2" paintOrder="stroke" className="transition-all duration-1000">
+                                        {v}
+                                      </text>
+
+                                      {/* 하단 X축 시간 라벨 */}
+                                      <text x={x} y={H - 5} textAnchor="middle" fontSize="8" fill="#9CA3AF" fontWeight="bold">
+                                        {sentiment.labels[i].replace("'", "")}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      {/* 🚀 지표 2: 미분양 증가 지수 선형 그래프 끝 */}
 
                     </div>
                   </div>

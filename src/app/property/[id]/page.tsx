@@ -7,6 +7,8 @@ import Link from "next/link";
 import Script from "next/script";
 import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3, MapPin } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
+import ReviewSection from "../../../components/ReviewSection";
+
 
 declare global {
     interface Window {
@@ -325,6 +327,10 @@ export default function PropertyDetailPage() {
                         ) : (
                             <div className="text-center py-5 text-gray-400 text-sm">관련 뉴스가 없습니다.</div>
                         )}
+                    </div>
+                    {/* 🚀 뉴스 바로 아래, 리뷰 섹션 등판! */}
+                    <div className="mt-12">
+                        <ReviewSection />
                     </div>
                 </div>
 

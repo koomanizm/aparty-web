@@ -94,8 +94,8 @@ export async function getTickerMessages(): Promise<TickerMessage[]> {
       const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
       return {
         id: cols[0] || "",
-        text: cols[1] || "실시간 분양 정보를 확인하세요.",
-        type: cols[2] || "HOT",
+        text: cols[1] || "", // 🚀 빈칸이면 기본 텍스트 대신 아예 비워두도록 수정
+        type: cols[2] || "", // 🚀 빈칸이면 'HOT' 대신 아예 비워두도록 수정!
       };
     });
   } catch (error) {
