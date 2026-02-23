@@ -4,8 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Phone, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3 } from "lucide-react";
+import Script from "next/script";
+import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3, MapPin } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
+
+declare global {
+    interface Window {
+        kakao: any;
+    }
+}
+
+const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
 export default function PropertyDetailPage() {
     const params = useParams();
@@ -89,6 +98,56 @@ export default function PropertyDetailPage() {
         fetchExternalData();
     }, [property]);
 
+    // 🚀 [업데이트] 카카오맵 그리는 로직 (스나이퍼 좌표 모드 추가)
+    const initMap = () => {
+        if (!window.kakao || !window.kakao.maps || !property) return;
+
+        window.kakao.maps.load(() => {
+            const container = document.getElementById('kakao-map');
+            if (!container) return;
+
+            const prop = property as any;
+
+            // 🎯 1. 강제 좌표(coordinates)가 있으면 무조건 우선 실행!
+            if (prop.coordinates && prop.coordinates.includes(',')) {
+                const [lat, lng] = prop.coordinates.split(',').map((c: string) => parseFloat(c.trim()));
+                const coords = new window.kakao.maps.LatLng(lat, lng);
+                const options = { center: coords, level: 4 };
+                const map = new window.kakao.maps.Map(container, options);
+
+                const marker = new window.kakao.maps.Marker({ map: map, position: coords });
+                const infowindow = new window.kakao.maps.InfoWindow({
+                    content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#ff6f42;text-align:center;">${property.title}</div>`
+                });
+                infowindow.open(map, marker);
+                return; // 함수 여기서 끝!
+            }
+
+            // 🎯 2. 좌표가 없으면 주소(mapAddress 또는 location)로 검색
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            const targetAddress = prop.mapAddress ? prop.mapAddress : property.location;
+
+            geocoder.addressSearch(targetAddress, function (result: any, status: any) {
+                if (status === window.kakao.maps.services.Status.OK) {
+                    const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+                    const options = { center: coords, level: 4 };
+                    const map = new window.kakao.maps.Map(container, options);
+
+                    const marker = new window.kakao.maps.Marker({ map: map, position: coords });
+
+                    const infowindow = new window.kakao.maps.InfoWindow({
+                        content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#ff6f42;text-align:center;">${property.title}</div>`
+                    });
+                    infowindow.open(map, marker);
+                } else {
+                    // 아무것도 못 찾으면 부산시청으로 변경!
+                    const defaultCoords = new window.kakao.maps.LatLng(35.1795543, 129.0756416);
+                    new window.kakao.maps.Map(container, { center: defaultCoords, level: 3 });
+                }
+            });
+        });
+    };
+
     const getStatusStyle = (index: number) => {
         const base = "relative overflow-hidden px-4 py-1.5 rounded-lg text-[11px] font-bold shadow-sm border-b-2 transition-all duration-300 flex items-center gap-1.5";
         const palette = ["bg-[#fecaca] text-[#b91c1c] border-[#fca5a5]", "bg-[#bfdbfe] text-[#1d4ed8] border-[#93c5fd]", "bg-[#fef3c7] text-[#92400e] border-[#fde68a]"];
@@ -111,6 +170,13 @@ export default function PropertyDetailPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
+
+            <Script
+                strategy="afterInteractive"
+                src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`}
+                onLoad={initMap}
+            />
+
             <style dangerouslySetInnerHTML={{
                 __html: `
         @keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } }
@@ -121,7 +187,6 @@ export default function PropertyDetailPage() {
         }
       `}} />
 
-            {/* 네비게이션 */}
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/70 backdrop-blur-md border-b border-white/20">
                 <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700 hover:scale-110 transition-all">
                     <ArrowLeft size={20} />
@@ -130,7 +195,6 @@ export default function PropertyDetailPage() {
                 <div className="w-10"></div>
             </nav>
 
-            {/* 이미지 섹션 */}
             <div className="relative w-full h-[45vh] md:h-[50vh]">
                 <Image src={property.image || "/house1.jpg"} alt={property.title} fill className="object-cover" priority />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30"></div>
@@ -139,7 +203,6 @@ export default function PropertyDetailPage() {
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10 border border-gray-50">
 
-                    {/* 뱃지 영역 */}
                     <div className="flex flex-wrap gap-2.5 mb-5">
                         {property.status.map((tag, i) => (
                             <span key={i} className={getStatusStyle(i)}>
@@ -150,10 +213,9 @@ export default function PropertyDetailPage() {
 
                     <div className="mb-6 border-b border-gray-100 pb-6">
                         <h1 className="text-2xl md:text-3xl font-black text-[#2d2d2d] leading-tight mb-2">{property.title}</h1>
-                        <p className="text-gray-400 font-medium text-sm">📍 {property.location}</p>
+                        <p className="text-gray-400 font-medium text-sm flex items-center gap-1"><MapPin size={16} /> {property.location}</p>
                     </div>
 
-                    {/* 4대 지표 그리드 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-10">
                         {[
                             { icon: Users, label: "세대수", value: property.households, color: "text-blue-500", bg: "bg-blue-50" },
@@ -169,7 +231,6 @@ export default function PropertyDetailPage() {
                         ))}
                     </div>
 
-                    {/* 분양가 정보 */}
                     <div className="mb-6">
                         <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -182,7 +243,6 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* ✅ 자금 계획 도우미 (계산기 3종) 이름 수정 적용 */}
                     <div className="mb-10 bg-[#f8f9fa] rounded-2xl p-4 md:p-5 border border-gray-100">
                         <div className="flex items-center justify-between mb-3 px-1">
                             <h3 className="text-[13px] font-bold text-gray-600 flex items-center gap-1.5">
@@ -205,7 +265,6 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 프리미엄 포인트 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4"><Sparkles className="text-[#ff6f42] w-5 h-5" />Premium Point</h3>
                         <div className="text-gray-600 leading-8 whitespace-pre-wrap text-base font-medium bg-[#f1f5f9] p-6 rounded-2xl border border-[#e2e8f0]">
@@ -213,7 +272,16 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 실거래가 비교 리포트 */}
+                    <div className="mb-10">
+                        <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
+                            <MapPin className="text-[#ff6f42] w-5 h-5" /> 현장 위치 안내
+                        </h3>
+                        <div className="bg-gray-100 rounded-2xl overflow-hidden shadow-sm border border-gray-200 h-[300px] md:h-[400px] relative">
+                            <div id="kakao-map" className="w-full h-full"></div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2 font-medium ml-1">※ 현장 상황에 따라 실제 위치와 약간의 오차가 있을 수 있습니다.</p>
+                    </div>
+
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
                             <TrendingUp className="text-[#ff6f42] w-5 h-5" /> 주변 아파트 실거래가 <span className="text-xs text-gray-400 font-medium ml-1">최근 1개월</span>
@@ -239,7 +307,6 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 이 현장 관련 뉴스 */}
                     <div className="mb-10">
                         <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
                             <Newspaper className="text-[#ff6f42] w-5 h-5" /> 이 현장 관련 뉴스
@@ -261,7 +328,6 @@ export default function PropertyDetailPage() {
                     </div>
                 </div>
 
-                {/* 하단 버튼 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     <Link href={property.link || "#"} target="_blank" className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-[#2d2d2d] text-[#2d2d2d] rounded-2xl font-bold hover:bg-[#2d2d2d] hover:text-white transition-all text-lg shadow-sm">
                         <Globe size={20} />홈페이지 방문

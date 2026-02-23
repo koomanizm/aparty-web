@@ -14,9 +14,10 @@ export interface Property {
   lawdCd: string;
   compareApt: string;
   searchKeyword: string;
+  mapAddress?: string;
+  coordinates?: string; // 🚀 [추가됨] 강제 좌표 (Q열)
 }
 
-// 🚀 [추가됨] 티커 메시지 인터페이스
 export interface TickerMessage {
   id: string;
   text: string;
@@ -25,7 +26,6 @@ export interface TickerMessage {
 
 const SHEET_ID = '123zREvn17nXffpXx56KXyeMjdoOy0JJHwGw_4wDFuXE';
 
-// 📍 [자동화] 지역명 매핑 테이블
 const LAWD_CD_MAP: { [key: string]: string } = {
   "강서구": "26440", "부산진구": "26230", "진구": "26230", "해운대": "26350",
   "수영구": "26500", "동래구": "26260", "남구": "26290", "연제구": "26470",
@@ -41,7 +41,6 @@ function autoFindLawdCd(location: string): string {
   return "26440";
 }
 
-// 1️⃣ 기존 매물 데이터 가져오기
 export async function getPropertiesFromSheet(): Promise<Property[]> {
   try {
     const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`);
@@ -73,6 +72,8 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
         lawdCd,
         compareApt: cols[13] || "",
         searchKeyword,
+        mapAddress: cols[15] || "",
+        coordinates: cols[16] || "", // 🚀 [추가됨] Q열(17번째)의 위도,경도를 읽어옵니다.
       };
     });
   } catch (error) {
@@ -81,10 +82,8 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
   }
 }
 
-// 2️⃣ [이게 없어서 에러가 났던 겁니다!] 티커 데이터 가져오기
 export async function getTickerMessages(): Promise<TickerMessage[]> {
   try {
-    // 💡 sheet=Ticker 파라미터를 통해 구글 시트의 'Ticker' 탭을 콕 집어서 가져옵니다.
     const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Ticker`);
     if (!response.ok) throw new Error('티커 데이터를 가져오지 못했습니다.');
 
