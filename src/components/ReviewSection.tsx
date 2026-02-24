@@ -13,28 +13,31 @@ const ReviewItem = ({ review }: { review: Review }) => {
     const isLongText = displayText.length > 45 || displayText.includes('\n');
 
     return (
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
+        // 🚀 모바일에서는 패딩(p)을 살짝 줄였습니다. (p-4, PC는 p-5)
+        <div className="bg-white p-4 md:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1.5 md:gap-2">
             <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <span className="font-black text-[#4A403A] text-[15px]">{review.name}</span>
+                <div className="flex items-center gap-2 md:gap-3">
+                    {/* 🚀 작성자 이름 크기 축소 */}
+                    <span className="font-black text-[#4A403A] text-[13px] md:text-[15px]">{review.name}</span>
                     <div className="flex gap-0.5">
                         {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={14} className={i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"} />
+                            // 🚀 별 크기도 모바일에서 살짝 작게
+                            <Star key={i} className={`w-3 h-3 md:w-3.5 md:h-3.5 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
                         ))}
                     </div>
                 </div>
-                <span className="text-[12px] font-bold text-gray-400">{review.date}</span>
+                <span className="text-[10px] md:text-[12px] font-bold text-gray-400">{review.date}</span>
             </div>
             <div>
-                <p className={`text-[14px] text-gray-600 leading-relaxed mt-1 whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-1" : ""}`}>
+                {/* 🚀 본문 텍스트 크기 축소 (text-13px, PC는 text-14px) */}
+                <p className={`text-[13px] md:text-[14px] text-gray-600 leading-relaxed mt-1 whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-1" : ""}`}>
                     {displayText}
                 </p>
                 {isLongText && (
-                    // 🚀 1. more 버튼을 우측으로 보내기 위해 text-right 추가!
                     <div className="text-right mt-1.5">
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="text-[12px] font-bold text-[#ff6f42] hover:underline"
+                            className="text-[11px] md:text-[12px] font-bold text-[#ff6f42] hover:underline"
                         >
                             {isExpanded ? "접기" : "more"}
                         </button>
@@ -111,32 +114,33 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
         }
     };
 
-    // 🚀 2. 리뷰가 있을 때만 평균 별점 계산! (소수점 1자리까지 표시)
     const averageRating = reviews.length > 0
         ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
         : "0.0";
 
     return (
-        <div className="w-full mt-16 pt-10 border-t border-gray-100 text-left">
-            <h3 className="text-lg font-bold text-[#2d2d2d] flex items-center gap-2 mb-4">
-                <MessageSquare className="text-[#ff6f42] w-5 h-5" />
+        <div className="w-full mt-12 md:mt-16 pt-8 md:pt-10 border-t border-gray-100 text-left">
+            <h3 className="text-base md:text-lg font-bold text-[#2d2d2d] flex items-center gap-1.5 md:gap-2 mb-4">
+                <MessageSquare className="text-[#ff6f42] w-4 h-4 md:w-5 md:h-5" />
                 현장 방문자 리뷰
-                <span className="text-xs text-[#ff6f42] bg-orange-50 px-2 py-0.5 rounded-full font-black ml-1">
+                <span className="text-[10px] md:text-xs text-[#ff6f42] bg-orange-50 px-2 py-0.5 rounded-full font-black ml-1">
                     {reviews.length}건
                 </span>
-                {/* 🚀 3. 제목 옆에 영롱하게 빛나는 평균 별점 표시! */}
                 {reviews.length > 0 && (
-                    <span className="text-sm font-bold text-gray-500 ml-1 flex items-center gap-1">
-                        <Star size={16} className="text-yellow-400 fill-yellow-400" />
+                    <span className="text-[12px] md:text-sm font-bold text-gray-500 ml-1 flex items-center gap-1">
+                        <Star className="text-yellow-400 fill-yellow-400 w-3.5 h-3.5 md:w-4 md:h-4" />
                         {averageRating}
                     </span>
                 )}
             </h3>
 
-            <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-[24px] mb-8 shadow-inner border border-gray-100/50">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-bold text-gray-500">작성자</span>
+            {/* 🚀 모바일 폼 패딩 축소 */}
+            <form onSubmit={handleSubmit} className="bg-gray-50 p-4 md:p-6 rounded-[20px] md:rounded-[24px] mb-8 shadow-inner border border-gray-100/50">
+
+                {/* 🚀 모바일에서도 위아래 2줄이 아닌 한 줄로 꽉 차게 변경! */}
+                <div className="flex flex-row items-center justify-between sm:justify-start sm:gap-4 mb-3 md:mb-4">
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-[11px] md:text-[13px] font-bold text-gray-500 whitespace-nowrap">작성자</span>
                         <input
                             type="text"
                             value={authorName}
@@ -144,16 +148,15 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                             placeholder="방문객 (선택)"
                             maxLength={10}
                             disabled={isSubmitting}
-                            // 🚀 4. bg-white 를 추가해서 배경을 하얗게, 테두리를 아주 살짝 연하게 변경!
-                            className="w-28 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm focus:border-[#FF8C42] focus:ring-1 focus:ring-orange-100 outline-none transition-all shadow-sm"
+                            className="w-20 md:w-28 px-2 md:px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] md:text-sm focus:border-[#FF8C42] focus:ring-1 focus:ring-orange-100 outline-none transition-all shadow-sm"
                         />
                     </div>
 
                     <div className="hidden sm:block w-px h-4 bg-gray-200"></div>
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-bold text-gray-500">별점</span>
-                        <div className="flex gap-1" onMouseLeave={() => setHoveredStar(0)}>
+                    <div className="flex items-center gap-1 md:gap-2">
+                        <span className="hidden sm:inline text-[13px] font-bold text-gray-500">별점</span>
+                        <div className="flex gap-0.5 md:gap-1" onMouseLeave={() => setHoveredStar(0)}>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     key={star}
@@ -162,7 +165,8 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                                     onMouseEnter={() => setHoveredStar(star)}
                                     className="transition-transform hover:scale-110 focus:outline-none"
                                 >
-                                    <Star size={20} className={`${(hoveredStar || rating) >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} transition-colors`} />
+                                    {/* 🚀 모바일 별 크기 18px로 조절 */}
+                                    <Star className={`w-[18px] h-[18px] md:w-[20px] md:h-[20px] ${(hoveredStar || rating) >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} transition-colors`} />
                                 </button>
                             ))}
                         </div>
@@ -173,23 +177,25 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                     <textarea
                         value={newText}
                         onChange={(e) => setNewText(e.target.value)}
-                        placeholder="현장 방문 후기나 궁금한 점을 자유롭게 남겨주세요!"
-                        className="w-full px-5 py-3.5 min-h-[80px] rounded-2xl border border-gray-200 focus:border-[#FF8C42] focus:ring-2 focus:ring-orange-100 outline-none resize-none text-[14px] transition-all bg-white shadow-sm"
+                        placeholder="현장 방문 후기를 남겨주세요!"
+                        // 🚀 모바일 패딩 및 높이 축소 (버튼과 글씨가 안 겹치도록 pb-12 여백 추가)
+                        className="w-full px-4 md:px-5 py-3 md:py-3.5 pb-12 md:pb-12 min-h-[80px] md:min-h-[80px] rounded-[16px] md:rounded-2xl border border-gray-200 focus:border-[#FF8C42] focus:ring-2 focus:ring-orange-100 outline-none resize-none text-[13px] md:text-[14px] transition-all bg-white shadow-sm"
                         disabled={isSubmitting}
                     />
                     <button
                         type="submit"
                         disabled={!newText.trim() || isSubmitting}
-                        className="absolute bottom-4 right-4 bg-[#4A403A] text-white px-5 py-2 rounded-xl font-black text-[13px] hover:bg-[#FF8C42] transition-colors disabled:opacity-50 flex items-center gap-2"
+                        // 🚀 모바일 버튼 패딩과 글씨 크기(text-[12px]) 앙증맞게 축소
+                        className="absolute bottom-2.5 md:bottom-3 right-2.5 md:right-3 bg-[#4A403A] text-white px-4 md:px-5 py-1.5 md:py-2 rounded-xl font-black text-[12px] md:text-[13px] hover:bg-[#FF8C42] transition-colors disabled:opacity-50 flex items-center gap-1.5 md:gap-2"
                     >
-                        {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> 전송 중</> : "등록하기"}
+                        {isSubmitting ? <><Loader2 size={12} className="animate-spin" /> 전송 중</> : "등록하기"}
                     </button>
                 </div>
             </form>
 
-            <div className="space-y-3 min-h-[100px] max-h-[480px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+            <div className="space-y-3 min-h-[100px] max-h-[480px] overflow-y-auto pr-1 md:pr-2" style={{ scrollbarWidth: 'thin' }}>
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-10 text-gray-400 text-sm font-bold animate-pulse">
+                    <div className="flex items-center justify-center py-8 md:py-10 text-gray-400 text-[13px] md:text-sm font-bold animate-pulse">
                         리뷰를 불러오는 중입니다...
                     </div>
                 ) : reviews.length > 0 ? (
@@ -197,8 +203,8 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                         <ReviewItem key={review.id} review={review} />
                     ))
                 ) : (
-                    <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
-                        <p className="text-sm font-bold text-gray-400">아직 작성된 리뷰가 없습니다.<br />첫 번째 리뷰를 남겨주세요!</p>
+                    <div className="text-center py-8 md:py-10 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                        <p className="text-[12px] md:text-sm font-bold text-gray-400">아직 작성된 리뷰가 없습니다.<br />첫 번째 리뷰를 남겨주세요!</p>
                     </div>
                 )}
             </div>
