@@ -330,7 +330,7 @@ export default function PropertyDetailPage() {
                     </div>
                     {/* 🚀 뉴스 바로 아래, 리뷰 섹션 등판! */}
                     <div className="mt-12">
-                        <ReviewSection />
+                        <ReviewSection propertyId={String(property.id)} />
                     </div>
                 </div>
 
