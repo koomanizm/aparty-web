@@ -1,10 +1,7 @@
 import NextAuth from "next-auth";
 import KakaoProvider from "next-auth/providers/kakao";
 
-// 🚨 범인 잡는 덫: 서버가 카카오 키를 제대로 읽고 있는지 터미널에 출력해봅니다!
-console.log("🔑 내 카카오 키:", process.env.KAKAO_CLIENT_ID);
-
-// 🚀 any 타입으로 감싸서 최신 버전(v5)의 엄격한 검사를 부드럽게 통과시킵니다.
+// 🚀 v4 표준 설정
 const handler = NextAuth({
   providers: [
     KakaoProvider({
@@ -12,20 +9,35 @@ const handler = NextAuth({
       clientSecret: process.env.KAKAO_CLIENT_SECRET || "",
     }),
   ],
+  // 🔑 [해결 1] NO_SECRET 에러 방지
   secret: process.env.NEXTAUTH_SECRET,
-  // 🚀 보안 쿠키 설정을 추가하면 실서버 배포 시 안정성이 확 올라갑니다!
+
+  // 🛡️ [해결 2] 실서버(HTTPS) 환경에서 쿠키 보안 설정 강화
   cookies: {
-    pkceCodeVerifier: {
-      name: 'next-auth.pkce.code_verifier',
+    sessionToken: {
+      name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: 'lax',
         path: '/',
-        secure: true,
+        secure: true, // 실서버 https 환경에서는 true가 필수입니다!
       },
+    },
+  },
+
+  // 🎨 로그인 페이지 및 에러 페이지 설정 (커스텀 필요 시)
+  pages: {
+    signIn: '/auth/signin', // 나중에 커스텀 로그인 페이지를 만드신다면 사용하세요.
+    error: '/api/auth/error',
+  },
+
+  // 🧐 로그 확인을 위한 콜백
+  callbacks: {
+    async session({ session, token }) {
+      return session;
     },
   },
 });
 
-// 🚀 깔끔한 내보내기 방식
+// 🚀 App Router 방식 내보내기 (v4 표준)
 export { handler as GET, handler as POST };
