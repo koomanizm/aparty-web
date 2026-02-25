@@ -54,7 +54,7 @@ export default function LoginButton() {
     // 3. 🟡 로그아웃 상태 (모바일: 아이콘만 / PC: 슬림한 버튼)
     return (
         <button
-            onClick={() => signIn("kakao")}
+            onClick={() => signIn("kakao", { callbackUrl: "https://www.aparty.co.kr" })}
             // 🚀 핵심: 모바일은 p-2(아이콘만 감쌈), PC는 px-4 py-2(슬림한 알약 모양)
             className="bg-[#FEE500] hover:bg-[#FDD800] text-[#391B1B] rounded-full font-bold text-[13px] md:text-[14px] transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 p-2 md:px-4 md:py-2"
             aria-label="카카오 로그인"
