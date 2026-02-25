@@ -49,7 +49,7 @@ export default function NoticePage() {
                 <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
                         <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="font-bold text-xs tracking-tight">돌아가기</span>
+                        <span className="font-bold text-xs tracking-tight">홈으로</span>
                     </Link>
                     <span className="text-[10px] font-black tracking-[0.2em] text-gray-300 uppercase font-sans">Aparty Official</span>
                 </div>

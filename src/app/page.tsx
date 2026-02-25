@@ -120,6 +120,7 @@ const fetchApplyData = async (dashboardRegion: string, type: "competition" | "ca
 
         const compRate = type === "competition" ? parseFloat((Math.random() * 20 + 1.2).toFixed(1)) : 0;
 
+        // 🚀 에러 수정: 모달창에 필요한 디테일 데이터를 전부 추가했습니다!
         list.push({
           type: "apply",
           title,
@@ -129,7 +130,14 @@ const fetchApplyData = async (dashboardRegion: string, type: "competition" | "ca
           date: "",
           rawCompRate: compRate,
           rawSubDate: cleanSubDate,
-          details: { totHshld: item.TOT_SUPLY_HSHLDCO || "정보 없음", fullAddr: addr, contact: item.MDHS_TELNO || "정보 없음" }
+          details: {
+            totHshld: item.TOT_SUPLY_HSHLDCO || "정보 없음",
+            fullAddr: addr,
+            contact: item.MDHS_TELNO || "정보 없음",
+            rcritPblancDe: pblancDisplay,
+            rceptBgnde: subDisplay,
+            przwnerPresnatnDe: item.PRZWNER_PRESNATN_DE || item.przwner_presnatn_de || "-"
+          }
         });
       }
     });
@@ -172,6 +180,33 @@ export default function Home() {
   const [needleRotation, setNeedleRotation] = useState(-90);
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
+
+
+  // 🚀 [여기에 추가!] 푸터에 닿으면 버튼을 위로 밀어올리는 계산기
+  const [bottomOffset, setBottomOffset] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // 맨 밑바닥까지 남은 거리 계산
+      const scrollBottom = documentHeight - (scrollY + windowHeight);
+
+      // 푸터 영역 대략 200px로 잡고, 200px 이내로 들어오면 그만큼 버튼을 위로(-Y) 들어올림
+      const footerHeight = 200;
+      if (scrollBottom < footerHeight) {
+        setBottomOffset(footerHeight - scrollBottom);
+      } else {
+        setBottomOffset(0);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (notices.length === 0) return;
@@ -244,12 +279,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
 
+      {/* 🚀 수정됨: 숨지 않고 푸터 위에서 딱 멈추는 마법! */}
       <Link
         href="https://pro.aparty.co.kr"
         target="_blank"
-        className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] group flex items-center justify-end"
+        className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] group flex items-center justify-end transition-transform duration-75 ease-out"
+        style={{ transform: `translateY(-${bottomOffset}px)` }}
       >
-        <div className="mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-xl">
+        <div className="hidden md:block mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-xl">
           분양상담사 전용 <ChevronRight size={12} className="inline ml-1" />
         </div>
 
@@ -310,19 +347,21 @@ export default function Home() {
           </div>
         )}
 
-        <div className="relative w-full max-w-xl mx-auto mb-10 group mt-8 z-20">
+        {/* 🚀 수정됨 1: mb-10을 mb-4로 줄여서 검색창과 필터 버튼 사이를 찰싹 붙였습니다! */}
+        <div className="relative w-full max-w-xl mx-auto mb-4 group mt-8 z-20">
           <input type="text" placeholder="어떤 지역, 어떤 아파트를 찾으세요?" className="w-full px-5 py-4 pr-16 rounded-[24px] border border-gray-100 shadow-md focus:ring-4 focus:ring-orange-100 text-[15px] font-bold outline-none bg-white transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           {searchQuery ? (<button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 bottom-3 w-12 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center transition-all"><X size={20} /></button>) : (<button className="absolute right-3 top-3 bottom-3 w-12 bg-[#4A403A] text-white rounded-2xl flex items-center justify-center shadow-md"><Search size={22} /></button>)}
         </div>
 
-        <div className="flex overflow-x-auto scrollbar-hide justify-start md:justify-center gap-2 md:gap-3 mb-10 px-4">
+        {/* 🚀 수정됨 2: 간격(gap) 축소, 버튼 사이즈(px, py, text) 극한의 다이어트! */}
+        <div className="flex overflow-x-auto scrollbar-hide justify-start md:justify-center gap-1.5 md:gap-2 mb-10 px-4 py-2 w-full">
           {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`shrink-0 px-4 md:px-6 py-2 rounded-full font-bold text-[12px] md:text-[13px] transition-all whitespace-nowrap ${activeFilter === filter
-                ? "bg-[#4a403a] text-white shadow-xl scale-105"
-                : "bg-white text-gray-400 border border-gray-100 hover:text-[#FF8C42] hover:bg-orange-50"
+              className={`shrink-0 px-3.5 py-1.5 md:px-5 md:py-2 rounded-full font-bold tracking-tight text-[11px] md:text-[12px] transition-all whitespace-nowrap ${activeFilter === filter
+                ? "bg-[#4a403a] text-white shadow-md scale-105 ring-1 ring-[#4a403a]/20"
+                : "bg-white text-gray-400 border border-gray-100 hover:border-[#FF8C42] hover:text-[#FF8C42] hover:bg-orange-50 hover:shadow-sm hover:-translate-y-0.5"
                 }`}
             >
               {filter === "전체" ? "전체보기" : `#${filter}`}
@@ -508,13 +547,11 @@ export default function Home() {
                   <button onClick={() => setDashboardTab("population")} className={`w-full md:flex-1 py-2.5 rounded-lg text-[12px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "population" ? "bg-white text-purple-500 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}><Users2 className="w-4 h-4" /> 인구유입</button>
                 </div>
 
-                {/* 🚀 수정된 코드 - 굵기 한 단계 다운(font-extrabold) + 자간 살짝 완화! */}
                 <div className="flex flex-nowrap overflow-x-auto scrollbar-hide gap-1.5 md:gap-2 mb-6 pb-1 w-full">
                   {Object.keys(REGION_CODES).map(region => (
                     <button
                       key={region}
                       onClick={() => setDashboardRegion(region)}
-                      // 💡 여기서 font-black -> font-extrabold 로, tracking-tighter -> tracking-tight 로 변경되었습니다.
                       className={`shrink-0 whitespace-nowrap px-2.5 md:px-3 py-1.5 rounded-full text-[10px] md:text-[11px] tracking-tight font-extrabold transition-all ${dashboardRegion === region
                         ? "bg-[#4A403A] text-white shadow-md"
                         : "bg-white text-gray-400 border border-gray-100 hover:border-gray-300"
@@ -580,35 +617,35 @@ export default function Home() {
               <Link href="/tools/checklist" className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><CalendarDays size={20} /></div><span className="text-[12px] font-black text-[#4A403A]">입주 체크리스트</span></Link>
             </div>
 
-            {/* 🚀 [이동됨] 공지사항 & 커뮤니티 입구: 메인 흐름을 방해하지 않고 부드럽게 이어지는 위치! */}
-            <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-6xl px-4 mb-16">
+            {/* 🚀 수정됨: 글자/아이콘 크기를 더 줄이고, 여백을 타이트하게 잡아 절대 깨지지 않게 방어! */}
+            <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-16">
               {/* 1. 공지사항 카드 */}
-              <Link href="/notice" className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
-                <div className="flex items-center gap-3 md:gap-4 z-10">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                    <Megaphone size={18} className="md:w-6 md:h-6" />
+              <Link href="/notice" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-2 md:gap-4 z-10 min-w-0">
+                  <div className="w-8 h-8 md:w-12 md:h-12 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                    <Megaphone size={14} className="md:w-6 md:h-6" />
                   </div>
-                  <div className="text-left">
-                    <h3 className="text-[14px] md:text-[16px] font-black text-[#4A403A] mb-0.5">아파티 소식</h3>
-                    <p className="text-[11px] md:text-[13px] text-gray-400 font-medium">새로운 공지 확인하기</p>
+                  <div className="text-left min-w-0">
+                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">아파티 소식</h3>
+                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">새로운 공지 확인</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors z-10 shrink-0" size={20} />
+                <ChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={16} />
                 <div className="absolute right-0 bottom-0 w-24 h-24 bg-gray-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-gray-100 transition-colors"></div>
               </Link>
 
               {/* 2. 커뮤니티(라운지) 카드 */}
-              <Link href="/community" className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
-                <div className="flex items-center gap-3 md:gap-4 z-10">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                    <MessageSquare size={18} className="md:w-6 md:h-6" />
+              <Link href="/community" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-2 md:gap-4 z-10 min-w-0">
+                  <div className="w-8 h-8 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                    <MessageSquare size={14} className="md:w-6 md:h-6" />
                   </div>
-                  <div className="text-left">
-                    <h3 className="text-[14px] md:text-[16px] font-black text-[#4A403A] mb-0.5">아파티 라운지</h3>
-                    <p className="text-[11px] md:text-[13px] text-gray-400 font-medium">자유롭게 소통하는 공간</p>
+                  <div className="text-left min-w-0">
+                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">아파티 라운지</h3>
+                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">자유로운 소통 공간</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0" size={20} />
+                <ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={16} />
                 <div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-orange-100 transition-colors"></div>
               </Link>
             </div>
@@ -645,6 +682,82 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* 🚀 [디자인 동기화] 전체보기와 100% 동일한 고급 모달창 */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedItem(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+
+            {/* 다크 브라운 헤더 */}
+            <div className="bg-[#4A403A] p-5 flex justify-between items-center text-white">
+              <h3 className="font-black text-lg truncate pr-4">
+                {selectedItem.type === "transaction" ? "실거래 상세 정보" : "청약 공급 상세 내역"}
+              </h3>
+              <button onClick={() => setSelectedItem(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <h4 className="text-xl font-black text-[#2d2d2d] mb-1">{selectedItem.title}</h4>
+              <p className="text-sm font-bold text-[#FF8C42] mb-6">{selectedItem.details?.fullAddr || selectedItem.addr}</p>
+
+              <div className="space-y-4">
+                {selectedItem.type === "transaction" ? (
+                  <>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><Activity size={16} /> 거래금액</span>
+                      <span className="font-black text-lg text-[#2d2d2d]">{selectedItem.val}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 거래일자</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.fullDate || selectedItem.date || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><Building size={16} /> 건축년도 (연식)</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.buildYear && selectedItem.details.buildYear !== "-" ? `${selectedItem.details.buildYear}년` : "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><MapPin size={16} /> 전용면적 / 층</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.area || "-"}㎡ / {selectedItem.details?.floor || "-"}층</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><Trophy size={16} /> 일정/비율</span>
+                      <span className="font-black text-blue-500">{selectedItem.val}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 모집공고일</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.rcritPblancDe || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 청약접수일</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.rceptBgnde || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 당첨자발표</span>
+                      <span className="font-bold text-red-500">{selectedItem.details?.przwnerPresnatnDe || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><Users2 size={16} /> 총 공급세대수</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.totHshld && selectedItem.details.totHshld !== "정보 없음" ? `${selectedItem.details.totHshld} 세대` : "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-500 font-bold flex items-center gap-2"><Phone size={16} /> 문의처</span>
+                      <span className="font-bold text-[#2d2d2d]">{selectedItem.details?.contact || "-"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="w-full mt-8 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-xl transition-colors">
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ChatBot />
     </main>
   );

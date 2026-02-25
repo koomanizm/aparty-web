@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageSquare, Pencil, Loader2, User, Heart, Sparkles, ChevronRight } from "lucide-react";
+import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPostsFromSheet, Post } from "../../lib/sheet";
 
 export default function CommunityPage() {
@@ -27,60 +27,50 @@ export default function CommunityPage() {
         : posts.filter(post => post.category.includes(activeTab));
 
     return (
-        <div className="min-h-screen bg-[#fdfbf7] pb-32">
+        <main className="min-h-screen bg-[#f8f9fa] selection:bg-orange-100 pb-32">
 
-            {/* 🚀 1. 칙칙함 0%! 화사하고 밝은 크림/오렌지 배너로 교체! */}
-            <div className="relative bg-gradient-to-br from-[#FFF5F0] to-[#FFFFFF] border-b border-orange-100 text-[#4A403A] pt-28 pb-16 px-5 md:px-10 overflow-hidden shadow-sm">
+            {/* 🚀 1. 소식 페이지와 동일한 모던 네비게이션 바 */}
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+                <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
+                    <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
+                        <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+                        <span className="font-bold text-xs tracking-tight">홈으로</span>
+                    </Link>
+                    <span className="text-[10px] font-black tracking-[0.2em] text-gray-300 uppercase font-sans">Aparty Lounge</span>
+                </div>
+            </nav>
 
-                {/* 배경 꾸밈 요소 (햇살처럼 은은한 오렌지 빛) */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FF8C42] opacity-[0.04] rounded-full blur-3xl -translate-y-1/4 translate-x-1/4 pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FF5A00] opacity-[0.03] rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
+            <div className="max-w-4xl mx-auto px-5 pt-10 relative z-20">
 
-                <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:justify-between md:items-end relative z-10 gap-6">
+                {/* 🚀 2. 소식 페이지와 동일한 깔끔한 헤더 + 새 글 쓰기 버튼 */}
+                <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-5">
                     <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            {/* 상단 뱃지도 귀엽고 화사하게 */}
-                            <span className="bg-orange-100 text-[#FF5A00] text-[11px] font-black px-3 py-1.5 rounded-full tracking-wider">
-                                APARTY LOUNGE
-                            </span>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="bg-[#FF5A00] p-1.5 rounded-lg">
+                                <MessageSquare size={16} className="text-white" />
+                            </div>
+                            <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter">
+                                아파티 라운지
+                            </h1>
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-3 flex items-center gap-2 leading-tight text-[#4A403A]">
-                            아파티 라운지 <Sparkles className="text-[#FF5A00]" size={28} />
-                        </h1>
-                        <p className="text-gray-500 text-[14px] md:text-[15px] font-medium">
-                            분양, 청약, 부동산 인사이트를 자유롭게 나누는 프리미엄 공간
-                        </p>
+                        <p className="text-[12px] font-medium text-gray-400">분양, 청약, 부동산 인사이트를 자유롭게 나누는 공간</p>
                     </div>
 
-                    {/* PC용 새 글 쓰기 버튼 (그림자를 더 화사하게 줘서 둥둥 떠 있는 느낌!) */}
                     <Link
                         href="/community/write"
-                        className="hidden md:flex bg-[#FF5A00] hover:bg-[#E04D00] text-white px-7 py-3.5 rounded-2xl font-black text-[15px] items-center gap-2 transition-all shadow-[0_8px_20px_rgba(255,90,0,0.25)] hover:shadow-[0_10px_25px_rgba(255,90,0,0.35)] hover:-translate-y-1"
-                    >
-                        <Pencil size={18} /> 새 글 쓰기
-                    </Link>
-                </div>
-            </div>
-
-            <div className="max-w-4xl mx-auto px-4 md:px-0 mt-8 relative z-20">
-
-                {/* 모바일용 새 글 쓰기 버튼 */}
-                <div className="flex justify-end mb-4 md:hidden">
-                    <Link
-                        href="/community/write"
-                        className="bg-[#FF5A00] hover:bg-[#E04D00] text-white px-5 py-2.5 rounded-xl font-black text-[13px] flex items-center gap-1.5 shadow-[0_6px_15px_rgba(255,90,0,0.25)] hover:shadow-lg transition-all"
+                        className="bg-[#FF5A00] hover:bg-[#E04D00] text-white px-6 py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center justify-center gap-1.5 shadow-[0_6px_15px_rgba(255,90,0,0.2)] hover:shadow-lg transition-all shrink-0"
                     >
                         <Pencil size={14} /> 새 글 쓰기
                     </Link>
-                </div>
+                </header>
 
-                {/* 2. 고급스러운 카테고리 탭 */}
-                <div className="flex gap-2 overflow-x-auto pb-6 scrollbar-hide">
+                {/* 3. 🚀 수정됨: 사이즈 축소 & 모바일 최적화된 카테고리 탭 */}
+                <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide w-full">
                     {categories.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => setActiveTab(cat)}
-                            className={`whitespace-nowrap px-5 py-2.5 rounded-full text-[13px] md:text-[14px] font-black transition-all border ${activeTab === cat
+                            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] md:text-[13px] font-black tracking-tight transition-all border ${activeTab === cat
                                 ? "bg-[#4A403A] text-white border-[#4A403A] shadow-md"
                                 : "bg-white text-gray-500 border-gray-200 hover:border-[#FF5A00] hover:text-[#FF5A00] shadow-sm"
                                 }`}
@@ -90,10 +80,10 @@ export default function CommunityPage() {
                     ))}
                 </div>
 
-                {/* 3. 게시글 카드 리스트 */}
+                {/* 4. 게시글 카드 리스트 (기존 유지) */}
                 <div className="space-y-4 md:space-y-5">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[32px] border border-gray-100 shadow-sm gap-4">
+                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[24px] border border-gray-100 shadow-sm gap-4">
                             <Loader2 className="animate-spin text-[#FF5A00]" size={36} />
                             <p className="text-[14px] font-bold text-gray-400">라운지 소식을 불러오는 중입니다...</p>
                         </div>
@@ -105,17 +95,17 @@ export default function CommunityPage() {
                                 className="block bg-white p-5 md:p-7 rounded-[24px] shadow-sm border border-gray-100 hover:border-orange-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all group"
                             >
                                 <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2.5 mb-2.5">
-                                            <span className="text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100/50">
+                                            <span className="text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100/50 shrink-0">
                                                 {post.category}
                                             </span>
-                                            <h2 className="text-[16px] md:text-[18px] font-black text-[#4A403A] group-hover:text-[#FF5A00] transition-colors line-clamp-1">
+                                            <h2 className="text-[16px] md:text-[18px] font-black text-[#4A403A] group-hover:text-[#FF5A00] transition-colors truncate">
                                                 {post.title}
                                             </h2>
                                         </div>
 
-                                        <p className="text-[14px] md:text-[15px] text-gray-500 line-clamp-2 leading-relaxed mb-5 font-medium">
+                                        <p className="text-[14px] md:text-[15px] text-gray-500 line-clamp-2 leading-relaxed mb-5 font-medium break-keep">
                                             {post.content.replace(/<br>/g, " ")}
                                         </p>
 
@@ -149,9 +139,9 @@ export default function CommunityPage() {
                             </Link>
                         ))
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[32px] border border-gray-100 shadow-sm">
+                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[24px] border border-gray-100 shadow-sm">
                             <div className="text-5xl mb-4">📭</div>
-                            <p className="text-gray-400 font-bold text-[15px] mb-6">아직 작성된 라운지 소식이 없습니다.</p>
+                            <p className="text-gray-400 font-bold text-[15px] mb-6">해당 카테고리의 소식이 없습니다.</p>
                             <Link href="/community/write" className="bg-[#4A403A] text-white px-6 py-2.5 rounded-full font-bold text-[13px] hover:bg-black transition-colors">
                                 첫 번째 글 남기기
                             </Link>
@@ -159,6 +149,10 @@ export default function CommunityPage() {
                     )}
                 </div>
             </div>
-        </div>
+
+            <footer className="text-center pt-24 pb-12 opacity-30">
+                <p className="text-[9px] font-black tracking-[0.3em] uppercase text-gray-400 font-sans">© Aparty Lounge</p>
+            </footer>
+        </main>
     );
 }

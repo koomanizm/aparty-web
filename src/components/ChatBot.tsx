@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Send, MessageCircle, ChevronDown, Bot, Building2 } from "lucide-react";
+// 🚀 ChevronRight 아이콘이 추가되었습니다!
+import { X, Send, MessageCircle, ChevronDown, Bot, Building2, ChevronRight } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
 
 interface Message {
@@ -24,6 +25,29 @@ export default function ChatBot() {
     const [messages, setMessages] = useState<Message[]>([initialMessage]);
     const [inputValue, setInputValue] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    const [bottomOffset, setBottomOffset] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollY = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+
+            const scrollBottom = documentHeight - (scrollY + windowHeight);
+
+            const footerHeight = 200;
+            if (scrollBottom < footerHeight) {
+                setBottomOffset(footerHeight - scrollBottom);
+            } else {
+                setBottomOffset(0);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        handleScroll();
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     useEffect(() => {
         async function loadData() {
@@ -116,16 +140,23 @@ export default function ChatBot() {
     };
 
     return (
-        /* 🚀 수정 포인트 1: 모바일에서는 화면 끝에서 살짝만 띄우고, PC(md)에서는 넉넉하게 띄움 */
-        <div className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100]">
+        <div
+            className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100] transition-transform duration-75 ease-out"
+            style={{ transform: `translateY(-${bottomOffset}px)` }}
+        >
+            {/* 🚀 수정됨: 둥둥이 버튼을 group으로 묶고 PRO 버튼과 동일한 말풍선을 달아주었습니다! */}
             {!isOpen && (
-                <button onClick={() => setIsOpen(true)} className="w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-[0_15px_30px_-10px_rgba(255,140,66,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white">
-                    <MessageCircle size={26} fill="white" />
-                </button>
+                <div className="group flex items-center justify-end">
+                    <div className="hidden md:block mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-xl">
+                        AI 상담사 연결 <ChevronRight size={12} className="inline ml-1" />
+                    </div>
+                    <button onClick={() => setIsOpen(true)} className="relative w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-[0_15px_30px_-10px_rgba(255,140,66,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white z-10">
+                        <MessageCircle size={26} fill="white" />
+                    </button>
+                </div>
             )}
 
             {isOpen && (
-                /* 🚀 수정 포인트 2: 모바일 폭(w-[calc(100vw-2rem)])과 높이(h-[75dvh])를 동적으로 계산 */
                 <div className="w-[calc(100vw-2rem)] md:w-[360px] h-[75dvh] max-h-[600px] md:h-[550px] bg-white rounded-[24px] md:rounded-[32px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
                     {/* Header */}
                     <div className="bg-[#4A403A] p-5 md:p-6 text-white flex justify-between items-center shrink-0">
@@ -161,8 +192,8 @@ export default function ChatBot() {
                                                 key={idx}
                                                 onClick={() => handleOptionClick(opt, msg.selectedProperty)}
                                                 className={`px-2 py-2.5 md:px-3 md:py-3 rounded-xl text-[11px] md:text-[12px] font-black transition-all shadow-sm ${opt === "처음으로" || opt === "다른 정보 더보기"
-                                                        ? "bg-white text-gray-400 border border-gray-200 hover:border-gray-400"
-                                                        : "bg-[#4A403A] text-white hover:bg-black"
+                                                    ? "bg-white text-gray-400 border border-gray-200 hover:border-gray-400"
+                                                    : "bg-[#4A403A] text-white hover:bg-black"
                                                     }`}
                                             >
                                                 {opt}
