@@ -4,6 +4,8 @@ import "./globals.css";
 
 import Footer from "../components/Footer";
 import ChatBot from "../components/ChatBot";
+// 🚀 1. 방금 만든 AuthContext를 불러옵니다.
+import AuthContext from "../components/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,7 +47,6 @@ export const metadata: Metadata = {
       "naver-site-verification": "71e60c6b3d047257aedff9df4c40d50e3d0338fd",
     },
   },
-
 };
 
 export default function RootLayout({
@@ -58,15 +59,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <div className="flex-grow">
-          {children}
-        </div>
+        {/* 🚀 2. 전체 사이트를 AuthContext로 감싸서 로그인 정보를 공유합니다. */}
+        <AuthContext>
+          <div className="flex-grow">
+            {children}
+          </div>
 
-        {/* 하단 푸터 */}
-        <Footer />
+          {/* 하단 푸터 */}
+          <Footer />
 
-        {/* 챗봇 (모든 페이지에 둥둥 떠있음) */}
-        <ChatBot />
+          {/* 챗봇 (모든 페이지에 둥둥 떠있음) */}
+          <ChatBot />
+        </AuthContext>
       </body>
     </html>
   );

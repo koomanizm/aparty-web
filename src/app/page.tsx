@@ -3,17 +3,16 @@
 import { useState, useEffect } from "react";
 import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
-// 🚀 getTickerMessages를 빼고 getNoticesFromSheet와 Notice 타입을 가져옵니다.
 import { getPropertiesFromSheet, getNoticesFromSheet, Property, Notice } from "../lib/sheet";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Search, Sparkles, TrendingUp, Calculator, Landmark,
-  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, X, Building, MapPin, Phone, Info, Megaphone
+  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
+import LoginButton from "../components/LoginButton";
 
-// 🚀 시도 데이터 매핑
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남", "47": "경북", "43": "충북", "44": "충남", "45": "전북", "46": "전남", "50": "제주도" };
 const SGG_NAME_MAP: { [key: string]: string } = { "11680": "강남구", "11410": "용산구", "11110": "종로구", "11710": "송파구", "26440": "강서구", "26350": "해운대구", "26500": "수영구", "26230": "부산진구", "41135": "성남시 분당구", "41117": "수원시 영통구", "41590": "화성시", "28110": "인천 중구", "28260": "인천 서구", "48121": "창원시 성산구", "48170": "진주시", "48250": "김해시", "27290": "대구 달서구", "27110": "대구 중구", "27260": "대구 수성구", "47110": "포항시 남구", "47190": "구미시", "30200": "대전 유성구", "30170": "대전 서구", "29110": "광주 동구", "29200": "광주 광산구", "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시" };
 
@@ -21,7 +20,6 @@ const REGION_CODES: { [key: string]: string[] } = { "전국 HOT 🔥": ["11680",
 
 const SENTIMENT_REGIONS = ["전국 평균", "서울/수도권", "부산/경남", "대구/경북", "충청/호남", "강원/제주"];
 
-// 🚀 통합 투자심리 & 미분양 데이터
 const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: number[], unsoldTrend: number[], labels: string[] } } = {
   "전국 평균": { score: 82, status: "회복 조짐", trend: [75, 78, 80, 79, 82], unsoldTrend: [10, 12, 11, 8, 7], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
   "서울/수도권": { score: 112, status: "매수 우위", trend: [102, 108, 110, 112, 112], unsoldTrend: [3, 2, 2, 3, 2], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
@@ -34,15 +32,10 @@ const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: n
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
   const sidoName = SIDO_DATA[sidoCode] || "";
   let finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
-
-  // 🚀 시도 이름의 앞 2글자 (예: '대구시' -> '대구')
   const shortSido = sidoName.substring(0, 2);
-
-  // 🚀 중복 제거: finalSgg(시군구)가 '대구', '대전' 등으로 시작하면 앞부분을 잘라내어 중복 방지
   if (finalSgg.startsWith(shortSido)) {
     finalSgg = finalSgg.replace(shortSido, "").trim();
   }
-
   if (METRO_CODES.includes(sidoCode)) return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
   return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
 };
@@ -79,12 +72,7 @@ const fetchTradeData = async (codes: string[]) => {
           val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 === 0 ? '' : price % 10000}`.trim() : `${price}만`,
           date: `${year}.${month}.${day}`,
           sub: `전용 ${area}㎡ · ${floor}층`,
-          details: {
-            fullDate: `${year}년 ${month}월 ${day}일`,
-            buildYear: buildYear,
-            area: area,
-            floor: floor
-          }
+          details: { fullDate: `${year}년 ${month}월 ${day}일`, buildYear, area, floor }
         });
       });
     });
@@ -123,7 +111,6 @@ const fetchApplyData = async (dashboardRegion: string, type: "competition" | "ca
         let subDate = item.RCEPT_BGNDE || item.rcept_bgnde || item.GNRL_RNK1_SUBSCRPT_AT || "일정 미정";
 
         const cleanSubDate = subDate.replace(/[^0-9]/g, "");
-
         if (type === "calendar") {
           if (cleanSubDate !== "일정 미정" && cleanSubDate !== "" && cleanSubDate < todayStr) return;
         }
@@ -170,7 +157,6 @@ const fetchPopulationData = async (dashboardRegion: string) => {
 
 export default function Home() {
   const [properties, setProperties] = useState<Property[]>([]);
-  // 🚀 TickerMessage 대신 Notice 타입을 사용합니다.
   const [notices, setNotices] = useState<Notice[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [dashboardTab, setDashboardTab] = useState<"transaction" | "competition" | "calendar" | "population">("transaction");
@@ -187,7 +173,6 @@ export default function Home() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // 롤링 타이머 (notices 기반으로 동작)
   useEffect(() => {
     if (notices.length === 0) return;
     const interval = setInterval(() => {
@@ -211,10 +196,9 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       try {
-        // 🚀 getNoticesFromSheet를 호출하여 공지사항 데이터를 가져옵니다.
         const [p, n] = await Promise.all([getPropertiesFromSheet(), getNoticesFromSheet()]);
         setProperties(p);
-        setNotices(n); // Notice 시트 데이터 저장
+        setNotices(n);
         setFilteredProperties(p);
       } finally { setIsLoading(false); }
     }
@@ -260,26 +244,28 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
 
-      {/* 상세 정보 모달 */}
-      {selectedItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedItem(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#4A403A] p-5 flex justify-between items-center text-white"><h3 className="font-black text-lg truncate pr-4">{selectedItem.type === "transaction" ? "실거래 상세 정보" : "청약 공급 상세 내역"}</h3><button onClick={() => setSelectedItem(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
-            <div className="p-6">
-              <h4 className="text-xl font-black text-[#2d2d2d] mb-1">{selectedItem.title}</h4>
-              <p className="text-sm font-bold text-[#FF8C42] mb-6">{selectedItem.addr}</p>
-              <div className="space-y-4">
-                {selectedItem.type === "transaction" ? (
-                  <><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><Activity size={16} /> 거래금액</span><span className="font-black text-lg text-[#2d2d2d]">{selectedItem.val}</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 거래일자</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.fullDate}</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><Building size={16} /> 건축년도</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.buildYear}년</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><MapPin size={16} /> 전용면적 / 층</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.area}㎡ / {selectedItem.details.floor}층</span></div></>
-                ) : (
-                  <><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><Trophy size={16} /> 일정/비율</span><span className="font-black text-blue-500">{selectedItem.val}</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><Users2 size={16} /> 공급세대수</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.totHshld} 세대</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><MapPin size={16} /> 공급 위치</span><span className="font-bold text-[#2d2d2d] text-right max-w-[60%]">{selectedItem.details.fullAddr}</span></div><div className="flex justify-between items-center py-3 border-b border-gray-100"><span className="text-gray-500 font-bold flex items-center gap-2"><Phone size={16} /> 문의처</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.contact}</span></div></>
-                )}
-              </div>
-              <button onClick={() => setSelectedItem(null)} className="w-full mt-8 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-xl">닫기</button>
-            </div>
+      <Link
+        href="https://pro.aparty.co.kr"
+        target="_blank"
+        className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] group flex items-center justify-end"
+      >
+        <div className="mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-xl">
+          분양상담사 전용 <ChevronRight size={12} className="inline ml-1" />
+        </div>
+
+        <div className="relative w-14 h-14 bg-white rounded-full shadow-lg border border-orange-100 flex items-center justify-center hover:scale-110 hover:border-[#FF8C42] transition-all duration-300">
+          <Image
+            src="/agent-icon.png"
+            alt="분양상담사 전용"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+          <div className="absolute -top-1 -right-1 bg-[#FF8C42] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border-[1.5px] border-white shadow-sm">
+            PRO
           </div>
         </div>
-      )}
+      </Link>
 
       <header className="w-full max-w-6xl flex justify-between items-center mt-8 mb-10 px-6">
         <a href="/" className="flex items-center gap-3 cursor-pointer group">
@@ -289,31 +275,9 @@ export default function Home() {
           <h1 className="text-2xl font-extrabold text-[#4a403a] tracking-tighter">APARTY</h1>
         </a>
 
-        {/* 🚀 분양상담사 전용코너 (세련된 아웃라인 프리미엄 스타일) */}
-        <Link href="https://pro.aparty.co.kr" target="_blank" className="group flex items-center justify-center transition-all duration-300">
-
-          {/* 📱 모바일 뷰: 대표님의 agent-icon.png (그대로 유지) */}
-          <div className="md:hidden relative w-10 h-10 hover:scale-110 active:scale-95 transition-transform">
-            <Image
-              src="/agent-icon.png"
-              alt="분양상담사 전용"
-              fill
-              className="object-contain"
-            />
-          </div>
-
-          {/* 💻 PC 뷰: 칙칙함을 뺀 화이트 & 오렌지 아웃라인 스타일 */}
-          <div className="hidden md:flex items-center gap-2.5 bg-white border-2 border-orange-100 px-5 py-2 rounded-2xl shadow-sm group-hover:border-[#FF8C42] group-hover:shadow-md group-hover:-translate-y-0.5 transition-all">
-            <div className="bg-[#FF8C42] text-white text-[10px] font-black px-1.5 py-0.5 rounded-md tracking-wider">
-              PRO
-            </div>
-            <span className="text-[14px] font-bold tracking-tight text-[#4A403A] group-hover:text-orange-600 transition-colors">
-              분양상담사 코너
-            </span>
-            <ChevronRight size={14} className="text-gray-300 group-hover:text-[#FF8C42] transition-colors" />
-          </div>
-
-        </Link>
+        <div className="flex items-center gap-4">
+          <LoginButton />
+        </div>
       </header>
 
       <div className="w-full max-w-6xl px-4 md:px-6 text-center mt-12 md:mt-20 mb-8">
@@ -322,7 +286,6 @@ export default function Home() {
           <span className="text-orange-500 font-bold">선착순 분양단지</span>는?
         </h1>
 
-        {/* 🚀 롤링 공지사항: Notice 시트의 제목을 직접 사용 */}
         {notices.length > 0 && (
           <div className="w-full max-w-xl mx-auto mb-10 relative flex flex-col items-center justify-start overflow-hidden h-[24px] cursor-pointer group z-20">
             <div
@@ -352,7 +315,6 @@ export default function Home() {
           {searchQuery ? (<button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 bottom-3 w-12 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center transition-all"><X size={20} /></button>) : (<button className="absolute right-3 top-3 bottom-3 w-12 bg-[#4A403A] text-white rounded-2xl flex items-center justify-center shadow-md"><Search size={22} /></button>)}
         </div>
 
-        {/* 🚀 필터 버튼 (모바일 한 줄 최적화: 줄바꿈 금지 및 자동 압축) */}
         <div className="flex overflow-x-auto scrollbar-hide justify-start md:justify-center gap-2 md:gap-3 mb-10 px-4">
           {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
             <button
@@ -376,16 +338,14 @@ export default function Home() {
         ) : (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
 
+            {/* 메인 대시보드 */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 w-full max-w-7xl text-left mb-10 px-4 items-stretch">
-
-              {/* 1. 투자심리 & 미분양 복합 보드 (3/12) */}
               <div className="md:col-span-3">
                 <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
                   <div className="p-5 md:p-6 border-b border-gray-50 flex items-center gap-2 shrink-0"><TrendingUp size={16} className="text-[#FF8C42]" strokeWidth={2.5} /><h3 className="text-[13px] font-black text-[#4A403A]">부동산 종합 지표</h3></div>
                   <div className="p-4 flex flex-col flex-1 gap-1 overflow-hidden relative justify-between">
                     <div className="animate-in fade-in slide-in-from-right-full duration-700 w-full text-center flex flex-col flex-1 justify-between" key={sentimentRegion}>
 
-                      {/* 지표 1: 세련된 다이얼 게이지 (온도계) - 모바일 사이즈 최적화 */}
                       <div className="relative w-40 h-20 md:w-48 md:h-24 mx-auto overflow-hidden mb-2 mt-2">
                         <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
                           <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#F3F4F6" strokeWidth="10" strokeLinecap="round" />
@@ -426,11 +386,9 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* 숫자 크기 모바일 제어 */}
                       <div className="mb-2"><span className="text-xl md:text-2xl font-black text-[#4A403A]">{sentiment.score}</span><p className={`text-[10px] font-black mt-0.5 ${sentiment.score > 100 ? 'text-red-500' : 'text-blue-500'}`}>{sentiment.status}</p></div>
                       <div className="bg-gray-50 py-1.5 mx-8 md:mx-4 rounded-xl mb-3"><p className="text-[12px] md:text-[13px] font-black text-[#4A403A]">{sentimentRegion}</p></div>
 
-                      {/* 🚀 지표 1: 투자심리 선형 그래프 (가로 폭발 방지 max-w 설정) */}
                       <div className="w-full pt-1 flex-1 flex flex-col border-t border-gray-100">
                         <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-1 mt-2">
                           <span className="flex items-center gap-1"><Info size={11} /> 5주 투자심리 추이</span>
@@ -484,7 +442,6 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* 🚀 지표 2: 미분양 증가 지수 선형 그래프 (가로 폭발 방지) */}
                       <div className="w-full pt-3 mt-4 border-t border-gray-100 flex-1 flex flex-col">
                         <div className="flex items-center justify-between text-[11px] font-black text-gray-600 px-1 mb-1 mt-1">
                           <span className="flex items-center gap-1"><BarChart3 size={11} /> 월별 미분양 증가 지수</span>
@@ -543,10 +500,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 2. 대시보드 (7/12) */}
               <div className="md:col-span-7 bg-white rounded-[32px] shadow-sm border border-gray-100 p-5 md:p-8 flex flex-col h-full overflow-hidden">
-
-                {/* 🚀 탭 버튼 모바일 최적화 (가로 스크롤 삭제 -> 모바일에서 2줄짜리 바둑판 배치) */}
                 <div className="grid grid-cols-2 md:flex bg-gray-50 rounded-xl p-1 mb-5 shrink-0 gap-1 md:gap-0">
                   <button onClick={() => setDashboardTab("transaction")} className={`w-full md:flex-1 py-2.5 rounded-lg text-[12px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "transaction" ? "bg-white text-[#FF8C42] shadow-sm" : "text-gray-400 hover:text-gray-600"}`}><Activity className="w-4 h-4" /> 실거래가</button>
                   <button onClick={() => setDashboardTab("competition")} className={`w-full md:flex-1 py-2.5 rounded-lg text-[12px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "competition" ? "bg-white text-blue-500 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}><Trophy className="w-4 h-4" /> 청약경쟁률</button>
@@ -554,10 +508,20 @@ export default function Home() {
                   <button onClick={() => setDashboardTab("population")} className={`w-full md:flex-1 py-2.5 rounded-lg text-[12px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "population" ? "bg-white text-purple-500 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}><Users2 className="w-4 h-4" /> 인구유입</button>
                 </div>
 
-                {/* 🚀 지역 필터 모바일 최적화 (가로 스크롤 삭제 -> 자유롭게 줄바꿈 flex-wrap) */}
-                <div className="flex flex-wrap gap-2 mb-6 pb-1">
+                {/* 🚀 수정된 코드 - 굵기 한 단계 다운(font-extrabold) + 자간 살짝 완화! */}
+                <div className="flex flex-nowrap overflow-x-auto scrollbar-hide gap-1.5 md:gap-2 mb-6 pb-1 w-full">
                   {Object.keys(REGION_CODES).map(region => (
-                    <button key={region} onClick={() => setDashboardRegion(region)} className={`shrink-0 px-3 md:px-4 py-1.5 rounded-full text-[11px] md:text-[12px] font-black transition-all ${dashboardRegion === region ? "bg-[#4A403A] text-white shadow-md" : "bg-white text-gray-400 border border-gray-100 hover:border-gray-300"}`}>{region}</button>
+                    <button
+                      key={region}
+                      onClick={() => setDashboardRegion(region)}
+                      // 💡 여기서 font-black -> font-extrabold 로, tracking-tighter -> tracking-tight 로 변경되었습니다.
+                      className={`shrink-0 whitespace-nowrap px-2.5 md:px-3 py-1.5 rounded-full text-[10px] md:text-[11px] tracking-tight font-extrabold transition-all ${dashboardRegion === region
+                        ? "bg-[#4A403A] text-white shadow-md"
+                        : "bg-white text-gray-400 border border-gray-100 hover:border-gray-300"
+                        }`}
+                    >
+                      {region}
+                    </button>
                   ))}
                 </div>
 
@@ -575,14 +539,12 @@ export default function Home() {
                           </div>
                           <div className="text-right shrink-0 ml-3">
                             <p className={`text-[15px] md:text-[16px] font-black tracking-tight ${dashboardTab === "transaction" ? "text-[#FF8C42]" : dashboardTab === "competition" ? "text-blue-500" : dashboardTab === "calendar" ? "text-emerald-500" : "text-purple-500"}`}>{item.val}</p>
-                            {/* 🚀 반복되던 국토부/부동산원 텍스트 대청소 (삭제 완료) */}
                           </div>
                         </div>
                       )) : <p className="text-center py-20 text-xs text-gray-400 font-bold">데이터를 불러오지 못했습니다.</p>}
                     </div>
                   )}
 
-                  {/* 🚀 출처 텍스트를 하단으로 통합 배치 */}
                   {apiData.length > 0 && (
                     <div className="mt-4 pt-4 flex items-center justify-between border-t border-gray-50">
                       <span className="text-[10px] md:text-[11px] font-bold text-gray-300">
@@ -600,7 +562,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 3. 인기랭킹 (2/12) */}
               <div className="md:col-span-2">
                 <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-5 flex flex-col h-full">
                   <h3 className="text-[13px] font-black text-[#4A403A] mb-4 flex items-center gap-2 border-b border-gray-50 pb-3 shrink-0"><Trophy size={16} className="text-[#FF8C42]" /> 인기랭킹</h3>
@@ -619,30 +580,58 @@ export default function Home() {
               <Link href="/tools/checklist" className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><CalendarDays size={20} /></div><span className="text-[12px] font-black text-[#4A403A]">입주 체크리스트</span></Link>
             </div>
 
+            {/* 🚀 [이동됨] 공지사항 & 커뮤니티 입구: 메인 흐름을 방해하지 않고 부드럽게 이어지는 위치! */}
+            <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-6xl px-4 mb-16">
+              {/* 1. 공지사항 카드 */}
+              <Link href="/notice" className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-3 md:gap-4 z-10">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                    <Megaphone size={18} className="md:w-6 md:h-6" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[14px] md:text-[16px] font-black text-[#4A403A] mb-0.5">아파티 소식</h3>
+                    <p className="text-[11px] md:text-[13px] text-gray-400 font-medium">새로운 공지 확인하기</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors z-10 shrink-0" size={20} />
+                <div className="absolute right-0 bottom-0 w-24 h-24 bg-gray-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-gray-100 transition-colors"></div>
+              </Link>
+
+              {/* 2. 커뮤니티(라운지) 카드 */}
+              <Link href="/community" className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-3 md:gap-4 z-10">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                    <MessageSquare size={18} className="md:w-6 md:h-6" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[14px] md:text-[16px] font-black text-[#4A403A] mb-0.5">아파티 라운지</h3>
+                    <p className="text-[11px] md:text-[13px] text-gray-400 font-medium">자유롭게 소통하는 공간</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0" size={20} />
+                <div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-orange-100 transition-colors"></div>
+              </Link>
+            </div>
+
             <section className="w-full max-w-6xl mb-24 px-6 text-left">
               <div className="flex items-center justify-between mb-8"><h2 className="text-xl font-black text-[#4a403a] flex items-center gap-2.5"><Sparkles className="text-orange-500" size={24} /> 오늘의 추천 단지</h2></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">{filteredProperties.map((p) => (<PropertyCard key={p.id} {...p} />))}</div>
             </section>
 
-            {/* VIP 배너 (모바일 슬림 비즈보드 스타일 - 텍스트 짤림 해결) */}
             <div className="w-full max-w-5xl mb-16 md:mb-24 px-4 md:px-6">
               <div className="relative w-full rounded-2xl md:rounded-[40px] overflow-hidden shadow-lg md:shadow-2xl flex flex-row items-center justify-between p-4 md:p-16 group text-left bg-black">
-                {/* 배경 비디오 */}
                 <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-70 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
                 <div className="absolute inset-0 bg-black/50 md:bg-black/40 z-0"></div>
 
-                {/* 텍스트 영역 (짤림 방지 및 단어 단위 줄바꿈 적용) */}
                 <div className="relative z-10 flex-1 pr-2 md:pr-4">
                   <h3 className="text-[12px] sm:text-[14px] md:text-3xl lg:text-4xl font-black text-white mb-0.5 md:mb-3 leading-tight tracking-tight truncate">
                     누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔
                   </h3>
-                  {/* 🚀 truncate 삭제, break-keep 및 leading-tight 추가로 슬림하게 전체 텍스트 표시 */}
                   <p className="text-[10px] sm:text-[11px] md:text-lg text-white/80 leading-tight break-keep">
                     로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.
                   </p>
                 </div>
 
-                {/* 카카오톡 버튼 */}
                 <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-3.5 py-2 md:px-10 md:py-5 rounded-xl md:rounded-[20px] shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 md:gap-2.5 shrink-0">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 md:w-7 md:h-7"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg>
                   <span className="text-[11px] md:text-[16px]">
