@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft } from "lucide-react";
 
-// 🚨 여기에 앱스 스크립트 웹 앱 URL을 꼭 넣어주세요!
-const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/여기에_복사한_주소를_붙여넣으세요/exec";
+// 🚀 대표님이 주신 최신 주소로 제가 직접 넣어드렸습니다!
+const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlck9eWmXjvDuSge30z2K0m4eCeTDzdeNNW5kE_krDc15zitAQMmwYLg8NUh/exec";
 
 export default function WritePage() {
     const { data: session, status } = useSession();
@@ -50,7 +50,9 @@ export default function WritePage() {
         setIsSubmitting(true);
         localStorage.setItem("aparty_nickname", nickname.trim());
 
+        // 🚀 구글 앱스 스크립트와 규격을 딱 맞춘 데이터셋입니다.
         const newPost = {
+            action: "addPost", // 👈 명령어를 명시했습니다.
             id: Date.now().toString(),
             category,
             title,
@@ -67,7 +69,9 @@ export default function WritePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newPost),
             });
+            alert("글이 성공적으로 등록되었습니다! ✨");
             router.push("/community");
+            router.refresh();
         } catch (error) {
             alert("등록에 실패했습니다.");
         } finally {
@@ -156,12 +160,10 @@ export default function WritePage() {
                         />
                     </div>
 
-                    {/* 🚀 4. 작고 세련된 우측 정렬 (반투명 제거, 회색 -> 쨍한 오렌지 변신!) */}
                     <div className="flex justify-end mt-2">
                         <button
                             type="submit"
                             disabled={isSubmitting || !title.trim() || !content.trim()}
-                            // 💡 글 쓰기 전(disabled): 단단한 회색 / 글 쓴 후: 엄청 쨍한 퓨어 오렌지(#FF5A00)
                             className="px-8 py-2.5 md:py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center gap-1.5 transition-all shadow-sm
               disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none
               bg-[#FF5A00] hover:bg-[#E04D00] text-white hover:shadow-lg hover:-translate-y-0.5"

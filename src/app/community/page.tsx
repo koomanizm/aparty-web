@@ -1,152 +1,162 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { ChevronLeft, Send, Loader2, UserCircle } from "lucide-react";
+import Link from "next/link";
+import { MessageSquare, Pencil, Loader2, User, Heart, Sparkles, ChevronRight } from "lucide-react";
+import { getPostsFromSheet, Post } from "../../lib/sheet";
 
-// 🚀 대표님이 주신 최신 구글 앱스 스크립트 주소입니다!
-const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlck9eWmXjvDuSge30z2K0m4eCeTDzdeNNW5kE_krDc15zitAQMmwYLg8NUh/exec";
+export default function CommunityPage() {
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState("전체");
 
-export default function WritePage() {
-    const router = useRouter();
-    const { data: session, status } = useSession();
+    const categories = ["전체", "자유게시판", "가입인사", "분양질문", "임장후기"];
 
-    const [category, setCategory] = useState("자유게시판");
-    const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
-    const [nickname, setNickname] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // 💾 브라우저에 저장된 닉네임 불러오기
     useEffect(() => {
-        const savedNickname = localStorage.getItem("aparty_nickname");
-        if (savedNickname) setNickname(savedNickname);
+        async function loadPosts() {
+            setIsLoading(true);
+            const data = await getPostsFromSheet();
+            setPosts(data);
+            setIsLoading(false);
+        }
+        loadPosts();
     }, []);
 
-    // 🔒 로그인 안 되어 있으면 입장 컷!
-    if (status === "unauthenticated") {
-        alert("로그인이 필요한 서비스입니다! 🔒");
-        router.push("/");
-        return null;
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!nickname.trim()) return alert("사용하실 닉네임을 입력해 주세요! 🥸");
-        if (!title.trim() || !content.trim()) return alert("제목과 내용을 모두 작성해 주세요!");
-
-        setIsSubmitting(true);
-
-        // 닉네임 기억해두기 (다음번에 또 안 써도 되게!)
-        localStorage.setItem("aparty_nickname", nickname.trim());
-
-        const postData = {
-            action: "addPost", // 🚀 구글 스크립트에서 "기타(else)"로 처리되거나 "addPost"로 명시 가능
-            id: Date.now().toString(),
-            category,
-            title,
-            content: content.replace(/\n/g, "<br>"), // 줄바꿈 보존
-            author: nickname.trim(),
-            authorImage: session?.user?.image || "",
-            date: new Date().toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }),
-        };
-
-        try {
-            const response = await fetch(COMMUNITY_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", // 구글 스크립트 특성상 no-cors 필수
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(postData),
-            });
-
-            alert("글이 성공적으로 등록되었습니다! ✨");
-            router.push("/community"); // 등록 후 목록으로 이동
-            router.refresh(); // 최신 데이터로 새로고침
-        } catch (error) {
-            console.error("등록 실패:", error);
-            alert("등록 중 오류가 발생했습니다. 다시 시도해 주세요.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+    const filteredPosts = activeTab === "전체"
+        ? posts
+        : posts.filter(post => post.category.includes(activeTab));
 
     return (
-        <div className="min-h-screen bg-[#fdfbf7] p-4 md:p-10 pt-28 flex justify-center">
-            <div className="w-full max-w-2xl">
-                <button onClick={() => router.back()} className="flex items-center text-gray-400 hover:text-[#FF5A00] font-bold mb-6 transition-colors">
-                    <ChevronLeft size={20} /> 돌아가기
-                </button>
+        <div className="min-h-screen bg-[#fdfbf7] pb-32">
 
-                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 md:p-10">
-                    <h1 className="text-2xl font-black text-[#4A403A] mb-8">새로운 소식 남기기</h1>
+            {/* 🚀 1. 칙칙함 0%! 화사하고 밝은 크림/오렌지 배너로 교체! */}
+            <div className="relative bg-gradient-to-br from-[#FFF5F0] to-[#FFFFFF] border-b border-orange-100 text-[#4A403A] pt-28 pb-16 px-5 md:px-10 overflow-hidden shadow-sm">
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* 닉네임 입력 (로그인한 사람만 쓸 수 있지만, 닉네임은 자유!) */}
-                        <div>
-                            <label className="text-[13px] font-black text-[#4A403A] mb-2 flex items-center gap-1.5">
-                                <UserCircle size={16} className="text-[#FF5A00]" /> 커뮤니티 닉네임
-                            </label>
-                            <input
-                                type="text"
-                                value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                                placeholder="사용하실 닉네임을 입력하세요 (최대 10자)"
-                                maxLength={10}
-                                className="w-full px-5 py-3.5 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-[#FF5A00] outline-none text-[15px] font-bold transition-all"
-                            />
+                {/* 배경 꾸밈 요소 (햇살처럼 은은한 오렌지 빛) */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FF8C42] opacity-[0.04] rounded-full blur-3xl -translate-y-1/4 translate-x-1/4 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FF5A00] opacity-[0.03] rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
+
+                <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:justify-between md:items-end relative z-10 gap-6">
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            {/* 상단 뱃지도 귀엽고 화사하게 */}
+                            <span className="bg-orange-100 text-[#FF5A00] text-[11px] font-black px-3 py-1.5 rounded-full tracking-wider">
+                                APARTY LOUNGE
+                            </span>
                         </div>
+                        <h1 className="text-3xl md:text-4xl font-black mb-3 flex items-center gap-2 leading-tight text-[#4A403A]">
+                            아파티 라운지 <Sparkles className="text-[#FF5A00]" size={28} />
+                        </h1>
+                        <p className="text-gray-500 text-[14px] md:text-[15px] font-medium">
+                            분양, 청약, 부동산 인사이트를 자유롭게 나누는 프리미엄 공간
+                        </p>
+                    </div>
 
-                        {/* 카테고리 선택 */}
-                        <div>
-                            <label className="text-[13px] font-black text-[#4A403A] mb-2 block">카테고리</label>
-                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                {["자유게시판", "가입인사", "분양질문", "임장후기"].map((cat) => (
-                                    <button
-                                        key={cat}
-                                        type="button"
-                                        onClick={() => setCategory(cat)}
-                                        className={`shrink-0 px-4 py-2 rounded-full text-[12px] font-bold border transition-all ${category === cat ? "bg-[#4A403A] text-white border-[#4A403A]" : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
-                                            }`}
-                                    >
-                                        {cat}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                    {/* PC용 새 글 쓰기 버튼 (그림자를 더 화사하게 줘서 둥둥 떠 있는 느낌!) */}
+                    <Link
+                        href="/community/write"
+                        className="hidden md:flex bg-[#FF5A00] hover:bg-[#E04D00] text-white px-7 py-3.5 rounded-2xl font-black text-[15px] items-center gap-2 transition-all shadow-[0_8px_20px_rgba(255,90,0,0.25)] hover:shadow-[0_10px_25px_rgba(255,90,0,0.35)] hover:-translate-y-1"
+                    >
+                        <Pencil size={18} /> 새 글 쓰기
+                    </Link>
+                </div>
+            </div>
 
-                        {/* 제목 입력 */}
-                        <div>
-                            <label className="text-[13px] font-black text-[#4A403A] mb-2 block">제목</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="제목을 입력해 주세요"
-                                className="w-full px-5 py-3.5 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-[#FF5A00] outline-none text-[15px] font-bold transition-all"
-                            />
-                        </div>
+            <div className="max-w-4xl mx-auto px-4 md:px-0 mt-8 relative z-20">
 
-                        {/* 내용 입력 */}
-                        <div>
-                            <label className="text-[13px] font-black text-[#4A403A] mb-2 block">내용</label>
-                            <textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder="아파티 가족들과 나누고 싶은 이야기를 적어주세요!"
-                                rows={8}
-                                className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-[#FF5A00] outline-none text-[15px] font-medium transition-all resize-none"
-                            />
-                        </div>
+                {/* 모바일용 새 글 쓰기 버튼 */}
+                <div className="flex justify-end mb-4 md:hidden">
+                    <Link
+                        href="/community/write"
+                        className="bg-[#FF5A00] hover:bg-[#E04D00] text-white px-5 py-2.5 rounded-xl font-black text-[13px] flex items-center gap-1.5 shadow-[0_6px_15px_rgba(255,90,0,0.25)] hover:shadow-lg transition-all"
+                    >
+                        <Pencil size={14} /> 새 글 쓰기
+                    </Link>
+                </div>
 
+                {/* 2. 고급스러운 카테고리 탭 */}
+                <div className="flex gap-2 overflow-x-auto pb-6 scrollbar-hide">
+                    {categories.map((cat) => (
                         <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full bg-[#FF5A00] hover:bg-[#E04D00] text-white py-4 rounded-2xl font-black text-[16px] flex items-center justify-center gap-2 shadow-lg shadow-orange-200 transition-all disabled:bg-gray-200 disabled:shadow-none"
+                            key={cat}
+                            onClick={() => setActiveTab(cat)}
+                            className={`whitespace-nowrap px-5 py-2.5 rounded-full text-[13px] md:text-[14px] font-black transition-all border ${activeTab === cat
+                                ? "bg-[#4A403A] text-white border-[#4A403A] shadow-md"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#FF5A00] hover:text-[#FF5A00] shadow-sm"
+                                }`}
                         >
-                            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <><Send size={18} /> 등록하기</>}
+                            {cat}
                         </button>
-                    </form>
+                    ))}
+                </div>
+
+                {/* 3. 게시글 카드 리스트 */}
+                <div className="space-y-4 md:space-y-5">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[32px] border border-gray-100 shadow-sm gap-4">
+                            <Loader2 className="animate-spin text-[#FF5A00]" size={36} />
+                            <p className="text-[14px] font-bold text-gray-400">라운지 소식을 불러오는 중입니다...</p>
+                        </div>
+                    ) : filteredPosts.length > 0 ? (
+                        filteredPosts.map((post) => (
+                            <Link
+                                key={post.id}
+                                href={`/community/${post.id}`}
+                                className="block bg-white p-5 md:p-7 rounded-[24px] shadow-sm border border-gray-100 hover:border-orange-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all group"
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2.5 mb-2.5">
+                                            <span className="text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100/50">
+                                                {post.category}
+                                            </span>
+                                            <h2 className="text-[16px] md:text-[18px] font-black text-[#4A403A] group-hover:text-[#FF5A00] transition-colors line-clamp-1">
+                                                {post.title}
+                                            </h2>
+                                        </div>
+
+                                        <p className="text-[14px] md:text-[15px] text-gray-500 line-clamp-2 leading-relaxed mb-5 font-medium">
+                                            {post.content.replace(/<br>/g, " ")}
+                                        </p>
+
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2.5">
+                                                {post.authorImage ? (
+                                                    <img src={post.authorImage} alt="프로필" className="w-6 h-6 rounded-full object-cover border border-gray-100" />
+                                                ) : (
+                                                    <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
+                                                        <User size={12} />
+                                                    </div>
+                                                )}
+                                                <span className="text-[13px] font-bold text-gray-700">{post.author}</span>
+                                                <span className="text-gray-300 text-[10px]">|</span>
+                                                <span className="text-[12px] font-medium text-gray-400">{post.date}</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 text-gray-400">
+                                                <Heart size={14} className={post.likes > 0 ? "fill-red-500 text-red-500" : ""} />
+                                                <span className={`text-[12px] font-bold ${post.likes > 0 ? "text-red-500" : ""}`}>
+                                                    {post.likes}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 text-gray-300 group-hover:bg-[#FF5A00] group-hover:text-white transition-colors mt-2 shrink-0">
+                                        <ChevronRight size={18} />
+                                    </div>
+                                </div>
+                            </Link>
+                        ))
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[32px] border border-gray-100 shadow-sm">
+                            <div className="text-5xl mb-4">📭</div>
+                            <p className="text-gray-400 font-bold text-[15px] mb-6">아직 작성된 라운지 소식이 없습니다.</p>
+                            <Link href="/community/write" className="bg-[#4A403A] text-white px-6 py-2.5 rounded-full font-bold text-[13px] hover:bg-black transition-colors">
+                                첫 번째 글 남기기
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
