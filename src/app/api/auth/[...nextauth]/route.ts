@@ -5,7 +5,7 @@ import KakaoProvider from "next-auth/providers/kakao";
 console.log("🔑 내 카카오 키:", process.env.KAKAO_CLIENT_ID);
 
 // 🚀 any 타입으로 감싸서 최신 버전(v5)의 엄격한 검사를 부드럽게 통과시킵니다.
-const handler: any = NextAuth({
+const handler = NextAuth({
   providers: [
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID || "",
@@ -13,8 +13,19 @@ const handler: any = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  // 🚀 보안 쿠키 설정을 추가하면 실서버 배포 시 안정성이 확 올라갑니다!
+  cookies: {
+    pkceCodeVerifier: {
+      name: 'next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+  },
 });
 
-// 🚀 최신 버전(v5)이면 새로운 방식(handlers.GET)으로, 구 버전이면 기존 방식(handler)으로 자동 맞춤 출력합니다!
-export const GET = handler.handlers?.GET || handler;
-export const POST = handler.handlers?.POST || handler;
+// 🚀 깔끔한 내보내기 방식
+export { handler as GET, handler as POST };
