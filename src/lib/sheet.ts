@@ -18,10 +18,12 @@ export interface Property {
   coordinates?: string; // 🚀 [추가됨] 강제 좌표 (Q열)
 }
 
+// 🚀 [수정됨] TickerMessage 인터페이스에 link 추가
 export interface TickerMessage {
   id: string;
   text: string;
   type: string;
+  link?: string; // 💡 링크가 있을수도, 없을수도 있게 설정
 }
 
 const SHEET_ID = '123zREvn17nXffpXx56KXyeMjdoOy0JJHwGw_4wDFuXE';
@@ -49,7 +51,6 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
     const csvData = await response.text();
     const lines = csvData.split('\n').slice(1);
 
-    // 🚀 1. 일단 return을 지우고, properties 라는 상자에 목록을 다 담습니다.
     const properties = lines.map(line => {
       const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
       const title = cols[1] || "";
@@ -78,7 +79,6 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
       };
     });
 
-    // 🚀 2. 다 담은 상자(properties)의 순서를 뒤집어서(.reverse()) 최종적으로 내보냅니다!
     return properties.reverse();
 
   } catch (error) {
@@ -87,6 +87,7 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
   }
 }
 
+// 🚀 [수정됨] 티커 메시지에서 링크 데이터도 함께 가져옵니다.
 export async function getTickerMessages(): Promise<TickerMessage[]> {
   try {
     const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Ticker`);
@@ -99,8 +100,9 @@ export async function getTickerMessages(): Promise<TickerMessage[]> {
       const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
       return {
         id: cols[0] || "",
-        text: cols[1] || "", // 🚀 빈칸이면 기본 텍스트 대신 아예 비워두도록 수정
-        type: cols[2] || "", // 🚀 빈칸이면 'HOT' 대신 아예 비워두도록 수정!
+        text: cols[1] || "",
+        type: cols[2] || "",
+        link: cols[3] || "", // 🚀 [추가] 시트의 4번째 열(D열)에서 링크를 가져옵니다.
       };
     });
   } catch (error) {
@@ -108,6 +110,7 @@ export async function getTickerMessages(): Promise<TickerMessage[]> {
     return [];
   }
 }
+
 export interface Review {
   propertyId: string;
   id: string;
@@ -117,13 +120,9 @@ export interface Review {
   date: string;
 }
 
-// 🚀 특정 매물(propertyId)의 리뷰만 쏙쏙 골라오는 함수 (강력한 캐시 방지 및 안전장치 적용)
 export async function getReviewsFromSheet(propertyId: string): Promise<Review[]> {
   try {
-    // 1. 브라우저가 옛날 데이터를 기억하지 못하도록 매번 새로운 시간(난수)을 주소에 붙입니다.
     const timestamp = new Date().getTime();
-
-    // 2. 브라우저 캐시를 무시하고 항상 최신 데이터를 가져옵니다.
     const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Reviews&t=${timestamp}`, {
       cache: 'no-store'
     });
@@ -145,13 +144,42 @@ export async function getReviewsFromSheet(propertyId: string): Promise<Review[]>
       };
     });
 
-    // 3. 띄어쓰기 공백 때문에 필터링에 실패하지 않도록 양쪽 공백을 잘라내고(.trim()) 비교합니다!
     return allReviews
       .filter(review => review.propertyId.trim() === String(propertyId).trim())
       .reverse();
 
   } catch (error) {
     console.error("리뷰 로드 실패:", error);
+    return [];
+  }
+}
+
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+}
+
+export async function getNoticesFromSheet(): Promise<Notice[]> {
+  try {
+    const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Notice`);
+    if (!response.ok) throw new Error('공지사항을 가져오지 못했습니다.');
+
+    const csvData = await response.text();
+    const lines = csvData.split('\n').slice(1);
+
+    return lines.map(line => {
+      const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
+      return {
+        id: cols[0] || "",
+        title: cols[1] || "",
+        content: cols[2] || "",
+        date: cols[3] || "",
+      };
+    }).reverse(); // 최신글이 위로 오게 역순 정렬
+  } catch (error) {
+    console.error("공지사항 로드 실패:", error);
     return [];
   }
 }

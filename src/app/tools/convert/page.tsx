@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Home, Maximize, ArrowUpDown, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Home, Maximize, ArrowUpDown, Info, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AreaConverter() {
     const router = useRouter();
@@ -36,37 +36,48 @@ export default function AreaConverter() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fdfbf7] p-4 md:p-6 pb-20">
-            <div className="max-w-xl mx-auto mt-4 md:mt-0">
-
-                {/* 상단 네비게이션 */}
-                <div className="flex items-center justify-between mb-8 md:mb-10">
-                    <button
-                        onClick={() => router.back()}
-                        className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 hover:text-[#FF8C42] hover:border-orange-200 transition-all"
-                    >
-                        <ArrowLeft size={20} strokeWidth={2.5} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="bg-indigo-50 p-2 rounded-xl text-indigo-500 shadow-inner">
-                            <Maximize size={18} strokeWidth={2.5} />
-                        </div>
-                        <h1 className="text-lg md:text-xl font-black text-[#4A403A] tracking-tighter">평형 변환기</h1>
+        <main className="min-h-screen bg-[#f8f9fa] pb-24">
+            {/* 🚀 상단 네비게이션 */}
+            <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white/70 backdrop-blur-md border-b border-white/20">
+                <button
+                    onClick={() => router.back()}
+                    className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700 hover:scale-110 transition-all"
+                >
+                    <ArrowLeft size={20} strokeWidth={2.5} />
+                </button>
+                <div className="flex items-center gap-2">
+                    <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-500 shadow-inner">
+                        <Maximize size={16} strokeWidth={2.5} />
                     </div>
-                    <button
-                        onClick={() => router.push('/')}
-                        className="p-3 bg-white rounded-2xl border border-gray-100 text-[#4A403A] shadow-sm hover:bg-orange-50 hover:text-[#FF8C42] hover:border-orange-200 transition-all"
-                    >
-                        <Home size={20} strokeWidth={2.5} />
-                    </button>
+                    <span className="text-sm font-bold text-gray-800 tracking-tight">면적 변환기</span>
+                </div>
+                <button
+                    onClick={() => router.push('/')}
+                    className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-700 hover:scale-110 transition-all"
+                >
+                    <Home size={18} strokeWidth={2.5} />
+                </button>
+            </nav>
+
+            <div className="max-w-xl mx-auto px-5 mt-6">
+
+                {/* 🚀 타이틀 영역 */}
+                <div className="flex items-center gap-3 mb-6 md:mb-8 px-2">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 shadow-inner">
+                        <Maximize size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-black text-[#2d2d2d]">평형 / ㎡ 변환기</h1>
+                        <p className="text-[12px] md:text-[13px] text-gray-400 mt-1 font-medium">아파트 면적을 가장 빠르고 직관적으로 계산하세요.</p>
+                    </div>
                 </div>
 
-                {/* 입력 섹션 */}
-                <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] border border-gray-50 space-y-6">
+                {/* 🚀 입력 섹션 (인디고 테마 적용) */}
+                <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-xl border border-gray-50 relative z-10">
                     <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <CheckCircle2 size={18} className="text-[#FF8C42]" strokeWidth={2.5} />
-                            <label className="text-[14px] md:text-[15px] font-black text-[#4A403A]">
+                        <div className="flex items-center gap-2 mb-3 md:mb-4">
+                            <CheckCircle2 size={16} className="text-indigo-500" strokeWidth={2.5} />
+                            <label className="text-[13px] md:text-[15px] font-black text-[#4A403A]">
                                 {isSqmToPyeong ? "제곱미터(㎡) 입력" : "평수(P) 입력"}
                             </label>
                         </div>
@@ -76,67 +87,62 @@ export default function AreaConverter() {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 placeholder="0"
-                                className="w-full bg-[#fdfbf7] border border-gray-100 rounded-[20px] p-5 md:p-6 text-2xl md:text-3xl font-black text-[#4A403A] focus:ring-4 focus:ring-orange-100 focus:border-orange-200 text-right outline-none transition-all placeholder:text-gray-200"
+                                className="w-full bg-[#fdfbf7] border border-gray-200 rounded-[16px] md:rounded-[20px] p-4 md:p-5 text-2xl md:text-3xl font-black text-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 text-right outline-none transition-all placeholder:text-gray-200 pr-12"
                             />
-                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[#4A403A]/30 font-black text-lg">
-                                {isSqmToPyeong ? "㎡" : "P"}
+                            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg md:text-xl">
+                                {isSqmToPyeong ? "㎡" : "평"}
                             </span>
                         </div>
                     </div>
-
-                    {/* 스왑 버튼 영역 */}
-                    <div className="flex justify-center -my-2 relative z-10">
-                        <button
-                            onClick={handleSwap}
-                            className="w-12 h-12 bg-[#FF8C42] text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:rotate-180 transition-all duration-500 border-4 border-white"
-                        >
-                            <ArrowUpDown size={22} strokeWidth={3} />
-                        </button>
-                    </div>
-
-                    {/* 변환 대상 안내 */}
-                    <div className="text-center opacity-40 py-2">
-                        <p className="text-xs font-bold text-[#4A403A]">클릭하여 입력 단위를 변경할 수 있습니다</p>
-                    </div>
                 </div>
 
-                {/* 결과 리포트 (다크 브라운 카드) */}
-                <div className="mt-6 md:mt-8 bg-[#4A403A] rounded-[24px] md:rounded-[32px] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-white/5 rounded-full -mr-12 -mt-12 md:-mr-16 md:-mt-16"></div>
+                {/* 🚀 스왑 버튼 영역 (입력창과 결과창 사이에 동동 떠있는 디자인) */}
+                <div className="flex flex-col items-center justify-center -my-4 relative z-20">
+                    <button
+                        onClick={handleSwap}
+                        className="w-14 h-14 bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-200 flex items-center justify-center hover:bg-indigo-600 hover:scale-110 active:scale-95 transition-all duration-300 border-[5px] border-[#f8f9fa] group"
+                    >
+                        <ArrowUpDown size={20} strokeWidth={3} className="group-active:rotate-180 transition-transform duration-300" />
+                    </button>
+                </div>
+
+                {/* 🚀 결과 리포트 (인디고 그라데이션 박스) */}
+                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-[24px] md:rounded-[32px] p-6 md:p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden z-10 pt-10">
+                    <div className="absolute -right-6 -top-6 opacity-10">
+                        <Maximize size={160} />
+                    </div>
 
                     <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-3 opacity-80">
-                            <Info size={16} />
-                            <p className="text-[13px] font-bold tracking-tight">변환 결과 내역</p>
+                        <div className="flex items-center gap-2 mb-2 opacity-90">
+                            <Info size={16} className="text-indigo-100" />
+                            <p className="text-[13px] font-bold text-indigo-100 tracking-tight">변환된 크기 결과</p>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#FF8C42] mb-6 md:mb-8 tracking-tighter">
-                            {getResult()} <span className="text-lg md:text-xl font-bold text-white/50 ml-1">
+                        <h2 className="text-4xl md:text-5xl font-black text-white mb-6 md:mb-8 tracking-tighter flex items-baseline gap-1.5">
+                            {getResult()} <span className="text-xl md:text-2xl font-bold text-indigo-100">
                                 {isSqmToPyeong ? "평" : "㎡"}
                             </span>
                         </h2>
 
-                        <div className="space-y-4 border-t border-white/10 pt-6 md:pt-8">
+                        <div className="space-y-4 border-t border-indigo-400/50 pt-5 md:pt-6">
                             <div className="flex justify-between items-center">
-                                <span className="text-[13px] md:text-sm font-medium text-white/60">적용 환산율</span>
-                                <span className="text-sm md:text-base font-black text-[#FF8C42] bg-white/10 px-4 py-1.5 rounded-xl">1평 = 3.3058㎡</span>
+                                <span className="text-[12px] md:text-[13px] font-bold text-indigo-100">적용 환산율</span>
+                                <span className="text-[12px] md:text-[13px] font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg shadow-sm">1평 = 3.3058㎡</span>
                             </div>
-                            <div className="flex justify-between items-center text-[13px] md:text-sm">
-                                <span className="text-white/60">입력하신 크기</span>
+                            <div className="flex justify-between items-center text-[13px] md:text-sm text-indigo-50">
+                                <span>입력하신 크기</span>
                                 <span className="font-bold">{inputValue || "0"} {isSqmToPyeong ? "㎡" : "평"}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[13px] md:text-sm">
-                                <span className="text-white/60">변환된 크기</span>
-                                <span className="font-bold">{getResult()} {isSqmToPyeong ? "평" : "㎡"}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <p className="mt-8 md:mt-10 text-center text-[11px] text-[#4A403A]/40 leading-relaxed font-bold px-4 md:px-6">
-                    법정계량단위 사용 의무화에 따라 건물 면적은 ㎡로 표기해야 합니다.<br className="hidden md:block" />
-                    본 계산기는 편의를 위한 단순 환산 수치이며, 실제 대장상의 면적과 차이가 있을 수 있습니다.
-                </p>
+                {/* 하단 안내 문구 */}
+                <div className="mt-8 flex items-start gap-2 text-[11px] md:text-[12px] leading-relaxed text-gray-400 bg-gray-50 p-4 rounded-xl">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                    <p>법정계량단위 사용 의무화에 따라 건물 면적은 ㎡로 표기해야 합니다. 본 계산기는 사용자의 편의를 돕기 위한 단순 환산 도구이며, 실제 건축물대장 및 등기부등본상의 면적과 미세한 소수점 차이가 발생할 수 있습니다.</p>
+                </div>
+
             </div>
-        </div>
+        </main>
     );
 }
