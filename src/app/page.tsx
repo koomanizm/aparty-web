@@ -8,15 +8,17 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Search, Sparkles, TrendingUp, Calculator, Landmark,
-  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare
+  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
 
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남", "47": "경북", "43": "충북", "44": "충남", "45": "전북", "46": "전남", "50": "제주도" };
-const SGG_NAME_MAP: { [key: string]: string } = { "11680": "강남구", "11410": "용산구", "11110": "종로구", "11710": "송파구", "26440": "강서구", "26350": "해운대구", "26500": "수영구", "26230": "부산진구", "41135": "성남시 분당구", "41117": "수원시 영통구", "41590": "화성시", "28110": "인천 중구", "28260": "인천 서구", "48121": "창원시 성산구", "48170": "진주시", "48250": "김해시", "27290": "대구 달서구", "27110": "대구 중구", "27260": "대구 수성구", "47110": "포항시 남구", "47190": "구미시", "30200": "대전 유성구", "30170": "대전 서구", "29110": "광주 동구", "29200": "광주 광산구", "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시" };
+// 🚀 수정됨: 맵핑 데이터에 서귀포시(50130) 추가
+const SGG_NAME_MAP: { [key: string]: string } = { "11680": "강남구", "11410": "용산구", "11110": "종로구", "11710": "송파구", "26440": "강서구", "26350": "해운대구", "26500": "수영구", "26230": "부산진구", "41135": "성남시 분당구", "41117": "수원시 영통구", "41590": "화성시", "28110": "인천 중구", "28260": "인천 서구", "48121": "창원시 성산구", "48170": "진주시", "48250": "김해시", "27290": "대구 달서구", "27110": "대구 중구", "27260": "대구 수성구", "47110": "포항시 남구", "47190": "구미시", "30200": "대전 유성구", "30170": "대전 서구", "29110": "광주 동구", "29200": "광주 광산구", "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시", "50130": "서귀포시" };
 
-const REGION_CODES: { [key: string]: string[] } = { "전국 HOT 🔥": ["11680", "11710", "41590", "26440", "28260"], "서울/수도권": ["11680", "11410", "11710", "41135", "41590", "28260"], "부산/경남": ["26440", "26350", "26230", "48121", "48250"], "대구/경북": ["27260", "27290", "27110", "47110", "47190"], "충청/호남": ["30200", "30170", "36110", "29200", "29110"], "강원/제주": ["42110", "42150", "50110"] };
+// 🚀 수정됨: 강원/제주 탭에 서귀포시(50130) 코드 추가로 중복/누락 방지!
+const REGION_CODES: { [key: string]: string[] } = { "전국 HOT 🔥": ["11680", "11710", "41590", "26440", "28260"], "서울/수도권": ["11680", "11410", "11710", "41135", "41590", "28260"], "부산/경남": ["26440", "26350", "26230", "48121", "48250"], "대구/경북": ["27260", "27290", "27110", "47110", "47190"], "충청/호남": ["30200", "30170", "36110", "29200", "29110"], "강원/제주": ["42110", "42150", "50110", "50130"] };
 
 const SENTIMENT_REGIONS = ["전국 평균", "서울/수도권", "부산/경남", "대구/경북", "충청/호남", "강원/제주"];
 
@@ -31,11 +33,33 @@ const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: n
 
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
   const sidoName = SIDO_DATA[sidoCode] || "";
-  let finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
+
+  // 국토부 데이터의 불필요한 "특별자치도", "특별자치시" 텍스트를 강제로 잘라냅니다.
+  let cleanSgg = rawSgg.replace(/특별자치도|특별자치시/g, "").trim();
+
+  let finalSgg = cleanSgg || SGG_NAME_MAP[code] || "";
   const shortSido = sidoName.substring(0, 2);
-  if (finalSgg.startsWith(shortSido)) {
-    finalSgg = finalSgg.replace(shortSido, "").trim();
+
+  // 🚀 핵심 수정: "제주 제주시" 처럼 공백이 포함된 중복만 제거합니다! 
+  // ("제주시" -> "시", "부산진구" -> "진구"가 되는 대참사 방지)
+  if (finalSgg.startsWith(shortSido + " ")) {
+    finalSgg = finalSgg.replace(shortSido + " ", "").trim();
+  } else if (finalSgg.startsWith(sidoName + " ")) {
+    finalSgg = finalSgg.replace(sidoName + " ", "").trim();
   }
+
+  // 세종시 특별 처리
+  if (sidoCode === "36") {
+    return `세종시 ${umd}`.replace(/\s+/g, " ").trim();
+  }
+
+  // 제주도 특별 처리
+  if (sidoCode === "50") {
+    // 혹시라도 '시'만 넘어오는 예외 상황을 위한 2중 방어막
+    if (finalSgg === "시") finalSgg = "제주시";
+    return `제주 ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+  }
+
   if (METRO_CODES.includes(sidoCode)) return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
   return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
 };
@@ -70,13 +94,15 @@ const fetchTradeData = async (codes: string[]) => {
           addr: formatRealAddr(sidoCode, code, item.getElementsByTagName("sggNm")[0]?.textContent || "", (item.getElementsByTagName("umdNm")[0]?.textContent || "").trim()),
           price,
           val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 === 0 ? '' : price % 10000}`.trim() : `${price}만`,
-          date: `${year}.${month}.${day}`,
+          date: `${year}.${month}.${day}`, // 날짜 형식: 2026.02.26
           sub: `전용 ${area}㎡ · ${floor}층`,
           details: { fullDate: `${year}년 ${month}월 ${day}일`, buildYear, area, floor }
         });
       });
     });
-    return allItems.sort((a, b) => b.price - a.price).slice(0, 6);
+
+    // 🚀 핵심 수정: b.price - a.price (가격순) ➔ b.date.localeCompare(a.date) (최신 날짜순) 으로 변경!
+    return allItems.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
   } catch { return []; }
 };
 
@@ -617,63 +643,111 @@ export default function Home() {
               <Link href="/tools/checklist" className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><CalendarDays size={20} /></div><span className="text-[12px] font-black text-[#4A403A]">입주 체크리스트</span></Link>
             </div>
 
-            {/* 🚀 수정됨: 글자/아이콘 크기를 더 줄이고, 여백을 타이트하게 잡아 절대 깨지지 않게 방어! */}
+            {/* 🚀 째미의 폴드5 맞춤 최적화: 모바일과 PC에서 제목 글씨가 다르게 나오도록 설정! */}
             <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-16">
               {/* 1. 공지사항 카드 */}
-              <Link href="/notice" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
-                <div className="flex items-center gap-2 md:gap-4 z-10 min-w-0">
-                  <div className="w-8 h-8 md:w-12 md:h-12 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <Link href="/notice" className="bg-white p-2.5 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-1.5 md:gap-4 z-10 min-w-0">
+                  {/* 🚀 핵심 수정: 밋밋한 회색에서 쨍하고 눈에 띄는 블루(blue-500)로 변경! */}
+                  <div className="w-7 h-7 md:w-12 md:h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                     <Megaphone size={14} className="md:w-6 md:h-6" />
                   </div>
                   <div className="text-left min-w-0">
-                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">아파티 소식</h3>
-                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">새로운 공지 확인</p>
+                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">
+                      <span className="md:hidden">공지사항</span>
+                      <span className="hidden md:inline">아파티 소식</span>
+                    </h3>
+                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">공지 확인</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={16} />
-                <div className="absolute right-0 bottom-0 w-24 h-24 bg-gray-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-gray-100 transition-colors"></div>
+                {/* 🚀 우측 화살표도 호버 시 블루로 통일! */}
+                <ChevronRight className="text-gray-300 group-hover:text-blue-500 transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={14} />
+                <div className="absolute right-0 bottom-0 w-24 h-24 bg-blue-50/50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-blue-100/60 transition-colors"></div>
               </Link>
 
               {/* 2. 커뮤니티(라운지) 카드 */}
-              <Link href="/community" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
-                <div className="flex items-center gap-2 md:gap-4 z-10 min-w-0">
-                  <div className="w-8 h-8 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <Link href="/community" className="bg-white p-2.5 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
+                <div className="flex items-center gap-1.5 md:gap-4 z-10 min-w-0">
+                  <div className="w-7 h-7 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                     <MessageSquare size={14} className="md:w-6 md:h-6" />
                   </div>
                   <div className="text-left min-w-0">
-                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">아파티 라운지</h3>
-                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">자유로운 소통 공간</p>
+                    {/* 🚀 핵심 수정: 모바일은 '라운지', PC는 '아파티 라운지' */}
+                    <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">
+                      <span className="md:hidden">라운지</span>
+                      <span className="hidden md:inline">아파티 라운지</span>
+                    </h3>
+                    <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">소통 공간</p>
                   </div>
                 </div>
-                <ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={16} />
+                <ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={14} />
                 <div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-orange-100 transition-colors"></div>
               </Link>
             </div>
 
+
+
+            {/* 🚀 1. 배너 영역 (폴드5 맞춤: 모바일/PC 텍스트 분리 및 극한의 다이어트!) */}
+            <div className="w-full max-w-5xl mb-12 md:mb-16 px-4 md:px-6">
+              {/* 🚀 패딩을 모바일에서 p-3으로 줄여 여백을 확보! */}
+              <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden shadow-lg md:shadow-2xl flex flex-row items-center justify-between p-3 sm:p-4 md:px-12 md:py-8 group text-left bg-black">
+                <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-70 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
+                <div className="absolute inset-0 bg-black/50 md:bg-black/40 z-0"></div>
+
+                <div className="relative z-10 flex-1 pr-1.5 md:pr-4">
+                  <h3 className="text-[11px] sm:text-[14px] md:text-2xl lg:text-3xl font-black text-white mb-0.5 md:mb-2 leading-tight tracking-tight">
+                    {/* 🚀 핵심 수정: 폴드에서는 짧게, PC에서는 길게! */}
+                    <span className="md:hidden">빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</span>
+                    <span className="hidden md:inline">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</span>
+                  </h3>
+                  <p className="text-[9px] sm:text-[11px] md:text-[15px] text-white/80 leading-tight break-keep">
+                    {/* 🚀 핵심 수정: 설명 문구도 모바일 맞춤형으로 압축! */}
+                    <span className="md:hidden">로얄동·로얄층 실시간 정보 제공</span>
+                    <span className="hidden md:inline">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</span>
+                  </p>
+                </div>
+
+                {/* 🚀 버튼도 폴드에 맞게 px-2.5, py-1.5, text-[10px]로 앙증맞게 축소! */}
+                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-3.5 sm:py-2 md:px-7 md:py-3.5 rounded-[10px] md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg>
+                  <span className="text-[10px] sm:text-[11px] md:text-[15px]">
+                    <span className="hidden md:inline">아파티 </span>채널추가
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            {/* 🚀 2. 추천 단지 영역 (배너 밑으로 이동!) */}
             <section className="w-full max-w-6xl mb-24 px-6 text-left">
               <div className="flex items-center justify-between mb-8"><h2 className="text-xl font-black text-[#4a403a] flex items-center gap-2.5"><Sparkles className="text-orange-500" size={24} /> 오늘의 추천 단지</h2></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">{filteredProperties.map((p) => (<PropertyCard key={p.id} {...p} />))}</div>
             </section>
 
-            <div className="w-full max-w-5xl mb-16 md:mb-24 px-4 md:px-6">
-              <div className="relative w-full rounded-2xl md:rounded-[40px] overflow-hidden shadow-lg md:shadow-2xl flex flex-row items-center justify-between p-4 md:p-16 group text-left bg-black">
-                <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-70 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
-                <div className="absolute inset-0 bg-black/50 md:bg-black/40 z-0"></div>
+            {/* 🚀 3. [신규 추가] 앱테크 & 리워드 유도 배너 (아이콘 교체 완료!) */}
+            <div className="w-full max-w-5xl mb-24 px-4 md:px-6">
+              <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden shadow-sm border border-orange-100 flex flex-row items-center justify-between p-3.5 sm:p-5 md:px-10 md:py-8 group text-left bg-gradient-to-r from-[#FFF5F0] to-white hover:shadow-md transition-all">
+                {/* 배경 꾸밈 요소 */}
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl group-hover:bg-orange-300/40 transition-colors pointer-events-none"></div>
 
-                <div className="relative z-10 flex-1 pr-2 md:pr-4">
-                  <h3 className="text-[12px] sm:text-[14px] md:text-3xl lg:text-4xl font-black text-white mb-0.5 md:mb-3 leading-tight tracking-tight truncate">
-                    누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔
-                  </h3>
-                  <p className="text-[10px] sm:text-[11px] md:text-lg text-white/80 leading-tight break-keep">
-                    로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.
-                  </p>
+                <div className="relative z-10 flex-1 pr-2 flex items-center gap-2.5 md:gap-5 min-w-0">
+                  {/* 🚀 수정됨: 투박한 동전 이모지(🪙) 대신 세련된 선물상자 아이콘으로 교체! */}
+                  <div className="w-10 h-10 md:w-16 md:h-16 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0 border border-orange-100 text-[#FF8C42]">
+                    <Gift className="w-5 h-5 md:w-8 md:h-8" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-[12px] sm:text-[14px] md:text-2xl font-black text-[#4A403A] mb-0.5 md:mb-1.5 tracking-tight truncate">
+                      <span className="md:hidden">매일 쌓이는 <span className="text-[#FF8C42]">아파티 포인트</span></span>
+                      <span className="hidden md:inline">라운지 활동하고 <span className="text-[#FF8C42]">아파티 포인트</span> 받자!</span>
+                    </h3>
+                    <p className="text-[9px] sm:text-[11px] md:text-[14px] text-gray-400 font-bold leading-tight break-keep truncate">
+                      <span className="md:hidden">출석체크하고 리워드 혜택 받기</span>
+                      <span className="hidden md:inline">출석체크, 글쓰기로 포인트 모으고 다양한 혜택으로 교환해 보세요.</span>
+                    </p>
+                  </div>
                 </div>
 
-                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-3.5 py-2 md:px-10 md:py-5 rounded-xl md:rounded-[20px] shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 md:gap-2.5 shrink-0">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 md:w-7 md:h-7"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg>
-                  <span className="text-[11px] md:text-[16px]">
-                    <span className="hidden md:inline">아파티 </span>채널추가
-                  </span>
+                <Link href="/point" className="relative z-10 bg-[#FF8C42] text-white font-black px-3 py-2 md:px-6 md:py-3.5 rounded-[10px] md:rounded-xl shadow-sm hover:bg-[#E07A30] hover:-translate-y-0.5 transition-all shrink-0 text-[11px] md:text-[15px]">
+                  포인트 받기
                 </Link>
               </div>
             </div>

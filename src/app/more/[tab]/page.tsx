@@ -21,7 +21,8 @@ const SGG_NAME_MAP: { [key: string]: string } = {
     "47110": "포항시 남구", "47190": "구미시",
     "30200": "대전 유성구", "30170": "대전 서구",
     "29110": "광주 동구", "29200": "광주 광산구",
-    "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시"
+    // 🚀 수정됨: 서귀포시(50130) 추가!
+    "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시", "50130": "서귀포시"
 };
 
 const METRO_CODES = ["11", "26", "27", "28", "29", "30", "31", "36"];
@@ -32,7 +33,8 @@ const REGION_CODES: { [key: string]: string[] } = {
     "부산/경남": ["26440", "26350", "26230", "48121", "48250"],
     "대구/경북": ["27260", "27290", "27110", "47110", "47190"],
     "충청/호남": ["30200", "30170", "36110", "29200", "29110"],
-    "강원/제주": ["42110", "42150", "50110"],
+    // 🚀 수정됨: 서귀포시 누락 방지를 위해 코드 추가!
+    "강원/제주": ["42110", "42150", "50110", "50130"],
 };
 
 const REGION_KEYWORDS: { [key: string]: string[] } = {
@@ -46,13 +48,34 @@ const REGION_KEYWORDS: { [key: string]: string[] } = {
 
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
     const sidoName = SIDO_DATA[sidoCode] || "";
-    const finalSgg = rawSgg || SGG_NAME_MAP[code] || "";
-    if (METRO_CODES.includes(sidoCode)) {
-        return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
-    } else {
-        const shortSido = sidoName.substring(0, 2);
-        return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+
+    // 🚀 핵심 수술: 국토부 데이터의 불필요한 "특별자치도", "특별자치시" 텍스트를 강제로 잘라냅니다!
+    let cleanSgg = rawSgg.replace(/특별자치도|특별자치시/g, "").trim();
+
+    let finalSgg = cleanSgg || SGG_NAME_MAP[code] || "";
+    const shortSido = sidoName.substring(0, 2);
+
+    // 🚀 핵심 수정: "제주 제주시" 처럼 공백이 포함된 중복만 제거합니다! 
+    if (finalSgg.startsWith(shortSido + " ")) {
+        finalSgg = finalSgg.replace(shortSido + " ", "").trim();
+    } else if (finalSgg.startsWith(sidoName + " ")) {
+        finalSgg = finalSgg.replace(sidoName + " ", "").trim();
     }
+
+    // 🚀 세종시 특별 처리: 구(SGG)가 없으므로 "세종시 어진동" 처럼 바로 붙입니다.
+    if (sidoCode === "36") {
+        return `세종시 ${umd}`.replace(/\s+/g, " ").trim();
+    }
+
+    // 🚀 제주도 특별 처리: "제주 제주시", "제주 서귀포시" 로 통일감 있게 매핑합니다.
+    if (sidoCode === "50") {
+        // 혹시라도 '시'만 넘어오는 예외 상황을 위한 2중 방어막
+        if (finalSgg === "시") finalSgg = "제주시";
+        return `제주 ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+    }
+
+    if (METRO_CODES.includes(sidoCode)) return `${sidoName} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
+    return `${shortSido} ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
 };
 
 // 🚀 데이터 Fetch 함수들 (50개까지 넉넉하게, 팝업용 상세 데이터 포함!)
