@@ -56,18 +56,23 @@ export default function NewsSection() {
     return (
         <section className="w-full max-w-6xl mb-24 px-4 mx-auto">
             {/* 상단 타이틀 & 탭 영역 */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 md:gap-6">
+            {/* 상단 타이틀 & 탭 영역 */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-8 gap-3 md:gap-6">
                 <div className="text-left">
-                    <h2 className="text-xl font-black text-[#4a403a] flex items-center gap-2.5 mb-1.5 md:mb-2 tracking-tight">
-                        <Newspaper className="text-orange-500" size={24} strokeWidth={2.5} />
+                    {/* 🚀 1. 타이틀: 모바일 아이콘(w-4.5) & 글자(text-[16px]) 축소 */}
+                    <h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-1.5 md:gap-2.5 mb-1 md:mb-2 tracking-tight">
+                        <Newspaper className="text-orange-500 w-4.5 h-4.5 md:w-6 md:h-6" strokeWidth={2.5} />
                         부동산 인사이트 매거진
                     </h2>
-                    <p className="text-gray-400 text-[12px] md:text-sm font-medium ml-1 flex items-center gap-1.5">
-                        <Layout size={14} className="text-orange-500" /> 실시간으로 업데이트되는 시장의 흐름을 확인하세요.
+
+                    {/* 🚀 2. 설명: 자간(tracking-tighter)과 한 줄 고정(whitespace-nowrap) 마법 적용! */}
+                    <p className="text-gray-400 text-[10px] md:text-sm font-bold ml-0.5 flex items-center gap-1 tracking-tighter whitespace-nowrap overflow-hidden">
+                        <Layout size={12} className="text-orange-500 shrink-0 md:w-[14px] md:h-[14px]" />
+                        실시간으로 업데이트되는 시장의 흐름을 확인하세요.
                     </p>
                 </div>
 
-                {/* 🚀 카테고리 버튼: 모바일 한 줄 표시 최적화 */}
+                {/* 🚀 카테고리 버튼 영역: 기존 코드 유지하되 여백만 미세 조정 */}
                 <div className="flex overflow-x-auto scrollbar-hide gap-1.5 md:gap-2 pb-1">
                     {CATEGORIES.map((cat) => {
                         const Icon = cat.icon;
@@ -76,10 +81,9 @@ export default function NewsSection() {
                             <button
                                 key={cat.label}
                                 onClick={() => setActiveTab(cat.query)}
-                                // px-2.5와 text-[10px]로 모바일에서 최대한 한 줄에 담기도록 압축
                                 className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full md:rounded-xl text-[10px] md:text-[13px] font-bold transition-all duration-300 flex items-center gap-1 shrink-0 ${isActive
-                                        ? "bg-[#4A403A] text-white shadow-md scale-105"
-                                        : "bg-white text-gray-400 border border-gray-100 hover:text-[#FF8C42] hover:border-orange-200 hover:bg-orange-50"
+                                    ? "bg-[#4A403A] text-white shadow-md scale-105"
+                                    : "bg-white text-gray-400 border border-gray-100 hover:text-[#FF8C42] hover:border-orange-200 hover:bg-orange-50"
                                     }`}
                             >
                                 <Icon size={12} className={isActive ? "text-orange-400" : "text-gray-300"} />

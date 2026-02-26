@@ -1,27 +1,59 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft } from "lucide-react";
+import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft, Camera, X, Image as ImageIcon } from "lucide-react";
 
-// 🚀 대표님이 주신 최신 주소로 제가 직접 넣어드렸습니다!
 const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlck9eWmXjvDuSge30z2K0m4eCeTDzdeNNW5kE_krDc15zitAQMmwYLg8NUh/exec";
 
 export default function WritePage() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [category, setCategory] = useState("자유게시판");
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [nickname, setNickname] = useState("");
+
+    // 📸 사진 관련 상태
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [base64Image, setBase64Image] = useState<string | null>(null);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const savedNickname = localStorage.getItem("aparty_nickname");
         if (savedNickname) setNickname(savedNickname);
     }, []);
+
+    // 📸 사진 선택 핸들러
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // 파일 크기 제한 (GAS는 너무 크면 힘들어해요. 5MB 이하 추천)
+            if (file.size > 5 * 1024 * 1024) {
+                alert("사진 크기가 너무 커요! 5MB 이하의 사진을 올려주세요. 😉");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setImagePreview(result); // 화면 미리보기용
+                setBase64Image(result);  // 서버 전송용
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // 📸 사진 삭제 핸들러
+    const removeImage = () => {
+        setImagePreview(null);
+        setBase64Image(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
 
     if (status === "loading") {
         return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">신분증 확인 중... 🕵️‍♂️</div>;
@@ -50,9 +82,8 @@ export default function WritePage() {
         setIsSubmitting(true);
         localStorage.setItem("aparty_nickname", nickname.trim());
 
-        // 🚀 구글 앱스 스크립트와 규격을 딱 맞춘 데이터셋입니다.
         const newPost = {
-            action: "addPost", // 👈 명령어를 명시했습니다.
+            action: "addPost",
             id: Date.now().toString(),
             category,
             title,
@@ -60,6 +91,7 @@ export default function WritePage() {
             author: nickname.trim(),
             authorImage: session.user?.image || "",
             date: new Date().toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }),
+            image: base64Image // 🚀 [추가] 사진 문자열 전송
         };
 
         try {
@@ -92,9 +124,7 @@ export default function WritePage() {
                     <div className="w-16"></div>
                 </div>
 
-                {/* 폼 영역 */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
@@ -104,12 +134,12 @@ export default function WritePage() {
                                 <select
                                     value={category}
                                     onChange={(e) => setCategory(e.target.value)}
-                                    className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] focus:ring-4 focus:ring-orange-50/50 outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50 hover:bg-gray-50 appearance-none transition-all cursor-pointer"
+                                    className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50 appearance-none cursor-pointer"
                                 >
                                     <option value="자유게시판">자유게시판</option>
-                                    <option value="가입인사">가입인사</option>
                                     <option value="분양질문">분양/청약 질문</option>
                                     <option value="임장후기">임장 후기</option>
+                                    <option value="임장후기">분양 현장소식</option>
                                 </select>
                                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                     <ChevronLeft size={14} className="-rotate-90" />
@@ -123,11 +153,10 @@ export default function WritePage() {
                             </label>
                             <input
                                 type="text"
-                                placeholder="닉네임 (최대 10자)"
                                 value={nickname}
                                 onChange={(e) => setNickname(e.target.value)}
                                 maxLength={10}
-                                className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] focus:ring-4 focus:ring-orange-50/50 outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50 hover:bg-gray-50 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300"
+                                className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50"
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -142,9 +171,50 @@ export default function WritePage() {
                             placeholder="게시글 제목을 입력해 주세요."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-[#FF8C42] focus:ring-4 focus:ring-orange-50/50 outline-none text-[14px] md:text-[15px] font-bold text-[#4A403A] bg-gray-50/50 hover:bg-gray-50 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300"
+                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[14px] md:text-[15px] font-bold text-[#4A403A] bg-gray-50/50"
                             disabled={isSubmitting}
                         />
+                    </div>
+
+                    {/* 📸 사진 업로드 영역 */}
+                    <div>
+                        <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
+                            <Camera size={14} className="text-[#FF8C42]" /> 사진 첨부
+                        </label>
+
+                        <div className="flex items-start gap-4">
+                            {/* 사진 선택 버튼 */}
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-[#FF8C42] hover:text-[#FF8C42] hover:bg-orange-50/30 transition-all"
+                            >
+                                <Camera size={24} />
+                                <span className="text-[11px] font-bold">사진 추가</span>
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageChange}
+                                accept="image/*"
+                                className="hidden"
+                            />
+
+                            {/* 사진 미리보기 */}
+                            {imagePreview && (
+                                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-100 group">
+                                    <img src={imagePreview} alt="미리보기" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={removeImage}
+                                        className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-2 pl-1">* 현장 사진이나 임장 사진을 1장 올릴 수 있습니다.</p>
                     </div>
 
                     <div>
@@ -152,10 +222,10 @@ export default function WritePage() {
                             <AlignLeft size={14} className="text-[#FF8C42]" /> 내용
                         </label>
                         <textarea
-                            placeholder="분양, 청약, 부동산과 관련된 자유로운 이야기를 남겨주세요."
+                            placeholder="부동산과 관련된 자유로운 이야기를 남겨주세요."
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            className="w-full p-4 md:p-5 rounded-xl border border-gray-200 focus:border-[#FF8C42] focus:ring-4 focus:ring-orange-50/50 outline-none text-[14px] md:text-[15px] text-[#4A403A] bg-gray-50/50 hover:bg-gray-50 focus:bg-white transition-all resize-none min-h-[220px] md:min-h-[260px] leading-relaxed placeholder:font-medium placeholder:text-gray-300"
+                            className="w-full p-4 md:p-5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[14px] md:text-[15px] text-[#4A403A] bg-gray-50/50 min-h-[220px] leading-relaxed"
                             disabled={isSubmitting}
                         />
                     </div>
@@ -165,8 +235,7 @@ export default function WritePage() {
                             type="submit"
                             disabled={isSubmitting || !title.trim() || !content.trim()}
                             className="px-8 py-2.5 md:py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center gap-1.5 transition-all shadow-sm
-              disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none
-              bg-[#FF5A00] hover:bg-[#E04D00] text-white hover:shadow-lg hover:-translate-y-0.5"
+                             disabled:bg-gray-200 disabled:text-gray-400 bg-[#FF5A00] hover:bg-[#E04D00] text-white"
                         >
                             {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> 등록 중...</> : <><Send size={14} /> 등록</>}
                         </button>

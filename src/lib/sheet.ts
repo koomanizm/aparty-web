@@ -221,6 +221,8 @@ export interface Post {
   authorImage: string;
   date: string;
   likes: number; // 🚀 H열 하트 개수
+  postImage?: string; // 🚀 사진 주소 타입 추가
+
 }
 
 // 2. 댓글 타입 정의 (신규!)
@@ -231,6 +233,8 @@ export interface Comment {
   authorImage: string;
   content: string;
   date: string;
+  likes: number; // 🚀 이 줄을 추가해서 '공감' 자리를 만들어줍니다!
+
 }
 
 // 3. 커뮤니티 글 불러오기
@@ -244,16 +248,18 @@ export async function getPostsFromSheet(): Promise<Post[]> {
     const lines = csvData.split('\n').slice(1);
 
     return lines.map(line => {
+      // 콤마로 구분된 열을 나누는 로직 (기존 그대로 사용)
       const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
       return {
         id: cols[0] || "",
-        category: cols[1] || "자유게시판",
+        category: cols[1] || "",
         title: cols[2] || "",
         content: cols[3] || "",
-        author: cols[4] || "익명",
+        author: cols[4] || "",
         authorImage: cols[5] || "",
         date: cols[6] || "",
-        likes: parseInt(cols[7]) || 0, // H열 파싱
+        likes: parseInt(cols[7]) || 0,
+        postImage: cols[8] || "", // 🚀 9번째 열(I열) 읽어오기
       };
     }).reverse();
   } catch (error) { return []; }
@@ -278,6 +284,8 @@ export async function getCommentsFromSheet(postId: string): Promise<Comment[]> {
         authorImage: cols[3] || "",
         content: cols[4] || "",
         date: cols[5] || "",
+        // 🚀 핵심 수정: 시트의 7번째 열(G열)에서 좋아요 수를 가져와 숫자로 변환합니다!
+        likes: parseInt(cols[6]) || 0,
       };
     });
 

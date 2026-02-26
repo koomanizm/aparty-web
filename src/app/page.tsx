@@ -644,7 +644,7 @@ export default function Home() {
             </div>
 
             {/* 🚀 째미의 폴드5 맞춤 최적화: 모바일과 PC에서 제목 글씨가 다르게 나오도록 설정! */}
-            <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-16">
+            <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-10">
               {/* 1. 공지사항 카드 */}
               <Link href="/notice" className="bg-white p-2.5 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
                 <div className="flex items-center gap-1.5 md:gap-4 z-10 min-w-0">
@@ -687,39 +687,46 @@ export default function Home() {
 
 
 
-            {/* 🚀 1. 배너 영역 (폴드5 맞춤: 모바일/PC 텍스트 분리 및 극한의 다이어트!) */}
-            <div className="w-full max-w-5xl mb-12 md:mb-16 px-4 md:px-6">
-              {/* 🚀 패딩을 모바일에서 p-3으로 줄여 여백을 확보! */}
-              <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden shadow-lg md:shadow-2xl flex flex-row items-center justify-between p-3 sm:p-4 md:px-12 md:py-8 group text-left bg-black">
-                <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-70 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
-                <div className="absolute inset-0 bg-black/50 md:bg-black/40 z-0"></div>
+            {/* 🚀 1. VIP 배너: 카카오톡 비즈보드 스타일 (슬림 & 글자 시인성 보강) */}
+            <div className="w-full max-w-5xl -mt-6 md:mt-0 mb-6 md:mb-12 px-4 md:px-6">
+              {/* py-3.5(모바일)로 높이를 슬림하게 고정하면서, 내용물에 따라 자연스럽게 조절되게 했습니다. */}
+              <div className="relative w-full rounded-xl md:rounded-[32px] overflow-hidden shadow-md md:shadow-2xl flex flex-row items-center justify-between px-4 sm:px-6 md:px-12 py-3.5 md:py-8 group text-left bg-black">
+                <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60 md:opacity-80">
+                  <source src="/vip-bg.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-black/40 z-0"></div>
 
-                <div className="relative z-10 flex-1 pr-1.5 md:pr-4">
-                  <h3 className="text-[11px] sm:text-[14px] md:text-2xl lg:text-3xl font-black text-white mb-0.5 md:mb-2 leading-tight tracking-tight">
-                    {/* 🚀 핵심 수정: 폴드에서는 짧게, PC에서는 길게! */}
-                    <span className="md:hidden">빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</span>
+                <div className="relative z-10 flex-1 pr-3">
+                  {/* 제목: 폰트 사이즈를 모바일에 최적화(13px) */}
+                  <h3 className="text-[13px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">
+                    <span className="md:hidden">누구보다 빠른 <span className="text-[#FF8C42]">분양</span> 알림 🔔</span>
                     <span className="hidden md:inline">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</span>
                   </h3>
-                  <p className="text-[9px] sm:text-[11px] md:text-[15px] text-white/80 leading-tight break-keep">
-                    {/* 🚀 핵심 수정: 설명 문구도 모바일 맞춤형으로 압축! */}
-                    <span className="md:hidden">로얄동·로얄층 실시간 정보 제공</span>
+                  {/* 부제목: 절대 숨기지 않고, 아주 작은 폰트로 찰떡같이 붙여두었습니다. */}
+                  <p className="text-[9.5px] sm:text-[12px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">
+                    <span className="md:hidden">로얄동·로얄층을 실시간으로 !</span>
                     <span className="hidden md:inline">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</span>
                   </p>
                 </div>
 
-                {/* 🚀 버튼도 폴드에 맞게 px-2.5, py-1.5, text-[10px]로 앙증맞게 축소! */}
-                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-3.5 sm:py-2 md:px-7 md:py-3.5 rounded-[10px] md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg>
-                  <span className="text-[10px] sm:text-[11px] md:text-[15px]">
-                    <span className="hidden md:inline">아파티 </span>채널추가
-                  </span>
+                {/* 버튼: 슬림한 배너에 맞춰 크기 최적화 */}
+                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-1 md:gap-2 shrink-0">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6">
+                    <path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" />
+                  </svg>
+                  <span className="text-[10px] sm:text-[12px] md:text-[15px]">채널추가</span>
                 </Link>
               </div>
             </div>
 
-            {/* 🚀 2. 추천 단지 영역 (배너 밑으로 이동!) */}
-            <section className="w-full max-w-6xl mb-24 px-6 text-left">
-              <div className="flex items-center justify-between mb-8"><h2 className="text-xl font-black text-[#4a403a] flex items-center gap-2.5"><Sparkles className="text-orange-500" size={24} /> 오늘의 추천 단지</h2></div>
+            {/* 🚀 2. 추천 단지 영역: 모바일 폰트 및 아이콘 최적화 */}
+            <section className="w-full max-w-6xl mb-16 md:mb-24 px-6 text-left">
+              <div className="flex items-center justify-between mb-6 md:mb-8">
+                <h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-1.5 md:gap-2.5">
+                  <Sparkles className="text-orange-500 w-4.5 h-4.5 md:w-6 md:h-6" />
+                  오늘의 추천 단지
+                </h2>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">{filteredProperties.map((p) => (<PropertyCard key={p.id} {...p} />))}</div>
             </section>
 
@@ -736,11 +743,11 @@ export default function Home() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-[12px] sm:text-[14px] md:text-2xl font-black text-[#4A403A] mb-0.5 md:mb-1.5 tracking-tight truncate">
-                      <span className="md:hidden">매일 쌓이는 <span className="text-[#FF8C42]">아파티 포인트</span></span>
+                      <span className="md:hidden">매일 쌓이는 <span className="text-[#FF8C42]">포인트</span></span>
                       <span className="hidden md:inline">라운지 활동하고 <span className="text-[#FF8C42]">아파티 포인트</span> 받자!</span>
                     </h3>
                     <p className="text-[9px] sm:text-[11px] md:text-[14px] text-gray-400 font-bold leading-tight break-keep truncate">
-                      <span className="md:hidden">출석체크하고 리워드 혜택 받기</span>
+                      <span className="md:hidden">출첵하고 리워드 혜택 받기</span>
                       <span className="hidden md:inline">출석체크, 글쓰기로 포인트 모으고 다양한 혜택으로 교환해 보세요.</span>
                     </p>
                   </div>

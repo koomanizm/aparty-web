@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, Search } from "lucide-react";
 import { getPostsFromSheet, Post } from "../../lib/sheet";
 
 export default function CommunityPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("전체");
+    const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
 
-    const categories = ["전체", "자유게시판", "가입인사", "분양질문", "임장후기"];
+    const categories = ["전체", "자유게시판", "분양질문", "임장후기"];
 
     useEffect(() => {
         async function loadPosts() {
@@ -22,16 +25,28 @@ export default function CommunityPage() {
         loadPosts();
     }, []);
 
-    const filteredPosts = activeTab === "전체"
-        ? posts
-        : posts.filter(post => post.category.includes(activeTab));
+    const filteredPosts = posts.filter(post => {
+        const matchesTab = activeTab === "전체" || post.category.includes(activeTab);
+        const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+    });
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f9fa]">
+                <Loader2 className="animate-spin text-orange-500 mb-4" size={36} />
+                <p className="text-gray-900 font-bold text-[14px]">라운지 소식 불러오는 중...</p>
+            </div>
+        );
+    }
 
     return (
+        // 🚀 공지사항 테마: bg-[#f8f9fa] 적용
         <main className="min-h-screen bg-[#f8f9fa] selection:bg-orange-100 pb-32">
 
-            {/* 🚀 1. 소식 페이지와 동일한 모던 네비게이션 바 */}
+            {/* 🚀 상단 네비게이션: 공지사항과 완전히 동일하게 (text-gray-900, max-w-3xl) */}
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-                <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
+                <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
                         <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                         <span className="font-bold text-xs tracking-tight">홈으로</span>
@@ -40,13 +55,14 @@ export default function CommunityPage() {
                 </div>
             </nav>
 
-            <div className="max-w-4xl mx-auto px-5 pt-10 relative z-20">
+            {/* 🚀 메인 컨테이너: 공지사항과 동일한 넓이 (max-w-3xl)와 패딩 */}
+            <div className="max-w-3xl mx-auto px-5 pt-10 pb-20">
 
-                {/* 🚀 2. 소식 페이지와 동일한 깔끔한 헤더 + 새 글 쓰기 버튼 */}
+                {/* 🚀 헤더 영역: 공지사항 테마 완벽 적용 (bg-orange-500, text-gray-900 등) */}
                 <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-5">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <div className="bg-[#FF5A00] p-1.5 rounded-lg">
+                            <div className="bg-orange-500 p-1.5 rounded-lg">
                                 <MessageSquare size={16} className="text-white" />
                             </div>
                             <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter">
@@ -60,19 +76,31 @@ export default function CommunityPage() {
                         href="/community/write"
                         className="bg-[#FF5A00] hover:bg-[#E04D00] text-white px-6 py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center justify-center gap-1.5 shadow-[0_6px_15px_rgba(255,90,0,0.2)] hover:shadow-lg transition-all shrink-0"
                     >
-                        <Pencil size={14} /> 새 글 쓰기
+                        <Pencil size={14} /> 글쓰기
                     </Link>
                 </header>
 
-                {/* 3. 🚀 수정됨: 사이즈 축소 & 모바일 최적화된 카테고리 탭 */}
-                <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide w-full">
+                {/* 🚀 검색바: 공지사항의 흰색 박스 스타일(border-gray-100, rounded-2xl)에 맞춰 재디자인 */}
+                <div className="relative mb-8 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#FF5A00] transition-colors" size={18} />
+                    <input
+                        type="text"
+                        placeholder="게시글을 검색하세요"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-11 pr-4 text-[14px] shadow-sm focus:ring-2 focus:ring-[#FF5A00]/10 focus:border-[#FF5A00] transition-all outline-none placeholder:text-gray-300 font-medium text-gray-900"
+                    />
+                </div>
+
+                {/* 카테고리 탭 */}
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
                     {categories.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => setActiveTab(cat)}
-                            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] md:text-[13px] font-black tracking-tight transition-all border ${activeTab === cat
-                                ? "bg-[#4A403A] text-white border-[#4A403A] shadow-md"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-[#FF5A00] hover:text-[#FF5A00] shadow-sm"
+                            className={`shrink-0 px-5 py-2 rounded-full text-[12px] font-bold transition-all border-2 ${activeTab === cat
+                                ? "bg-gray-900 text-white border-gray-900 shadow-md"
+                                : "bg-white text-gray-400 border-gray-50 shadow-sm hover:border-[#FF5A00]/30"
                                 }`}
                         >
                             {cat}
@@ -80,77 +108,71 @@ export default function CommunityPage() {
                     ))}
                 </div>
 
-                {/* 4. 게시글 카드 리스트 (기존 유지) */}
-                <div className="space-y-4 md:space-y-5">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[24px] border border-gray-100 shadow-sm gap-4">
-                            <Loader2 className="animate-spin text-[#FF5A00]" size={36} />
-                            <p className="text-[14px] font-bold text-gray-400">라운지 소식을 불러오는 중입니다...</p>
-                        </div>
-                    ) : filteredPosts.length > 0 ? (
+                {/* 게시글 리스트 (이전 요청사항인 font-bold, 14px 등 완벽 유지) */}
+                <div className="space-y-3">
+                    {filteredPosts.length > 0 ? (
                         filteredPosts.map((post) => (
                             <Link
                                 key={post.id}
                                 href={`/community/${post.id}`}
-                                className="block bg-white p-5 md:p-7 rounded-[24px] shadow-sm border border-gray-100 hover:border-orange-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all group"
+                                className="block bg-white px-5 py-4 rounded-[28px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 hover:border-[#FF5A00]/20 hover:shadow-md transition-all group"
                             >
-                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex gap-4 items-center">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2.5 mb-2.5">
-                                            <span className="text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100/50 shrink-0">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span className="text-[10px] font-bold text-[#FF5A00] bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100/50">
                                                 {post.category}
                                             </span>
-                                            <h2 className="text-[16px] md:text-[18px] font-black text-[#4A403A] group-hover:text-[#FF5A00] transition-colors truncate">
-                                                {post.title}
-                                            </h2>
+                                            <span className="text-[11px] text-gray-400 font-bold">{post.date}</span>
                                         </div>
 
-                                        <p className="text-[14px] md:text-[15px] text-gray-500 line-clamp-2 leading-relaxed mb-5 font-medium break-keep">
-                                            {post.content.replace(/<br>/g, " ")}
-                                        </p>
+                                        {/* 제목 사이즈 14px, 두께 font-bold 유지 */}
+                                        <h2 className="text-[14px] font-bold text-gray-900 group-hover:text-[#FF5A00] transition-colors truncate">
+                                            {post.title}
+                                        </h2>
 
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2.5">
-                                                {post.authorImage ? (
-                                                    <img src={post.authorImage} alt="프로필" className="w-6 h-6 rounded-full object-cover border border-gray-100" />
-                                                ) : (
-                                                    <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
-                                                        <User size={12} />
-                                                    </div>
-                                                )}
-                                                <span className="text-[13px] font-bold text-gray-700">{post.author}</span>
-                                                <span className="text-gray-300 text-[10px]">|</span>
-                                                <span className="text-[12px] font-medium text-gray-400">{post.date}</span>
+                                        <div className="flex items-center gap-4 mt-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                                                    {post.authorImage ? <img src={post.authorImage} className="w-full h-full object-cover" /> : <User size={10} className="text-gray-300" />}
+                                                </div>
+                                                <span className="text-[12px] font-bold text-gray-500">{post.author}</span>
                                             </div>
-
-                                            <div className="flex items-center gap-1.5 text-gray-400">
-                                                <Heart size={14} className={post.likes > 0 ? "fill-red-500 text-red-500" : ""} />
-                                                <span className={`text-[12px] font-bold ${post.likes > 0 ? "text-red-500" : ""}`}>
-                                                    {post.likes}
-                                                </span>
+                                            <div className="flex items-center gap-3 text-gray-200">
+                                                <div className="flex items-center gap-1">
+                                                    <Heart size={13} className={post.likes > 0 ? "fill-red-500 text-red-500" : ""} />
+                                                    <span className="text-[11px] font-bold text-gray-400">{post.likes}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <MessageSquare size={13} className="text-gray-300" />
+                                                    <span className="text-[11px] font-bold text-gray-400">댓글</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 text-gray-300 group-hover:bg-[#FF5A00] group-hover:text-white transition-colors mt-2 shrink-0">
-                                        <ChevronRight size={18} />
-                                    </div>
+                                    {post.postImage && (
+                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-[20px] overflow-hidden shrink-0 border border-gray-50 shadow-inner bg-gray-50">
+                                            <img
+                                                src={post.postImage.split(',')[0]}
+                                                alt="썸네일"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </Link>
                         ))
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[24px] border border-gray-100 shadow-sm">
-                            <div className="text-5xl mb-4">📭</div>
-                            <p className="text-gray-400 font-bold text-[15px] mb-6">해당 카테고리의 소식이 없습니다.</p>
-                            <Link href="/community/write" className="bg-[#4A403A] text-white px-6 py-2.5 rounded-full font-bold text-[13px] hover:bg-black transition-colors">
-                                첫 번째 글 남기기
-                            </Link>
+                        <div className="text-center py-20 bg-white rounded-[32px] border border-gray-100 shadow-sm">
+                            <p className="text-gray-400 font-bold text-[14px]">아직 올라온 소식이 없네요. 😉</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            <footer className="text-center pt-24 pb-12 opacity-30">
+            {/* 🚀 푸터: 공지사항과 동일한 레이아웃 (pt-24 -> pb-12 opacity-30) */}
+            <footer className="text-center pb-12 opacity-30">
                 <p className="text-[9px] font-black tracking-[0.3em] uppercase text-gray-400 font-sans">© Aparty Lounge</p>
             </footer>
         </main>
