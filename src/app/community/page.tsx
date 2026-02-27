@@ -6,15 +6,23 @@ import Link from "next/link";
 import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, Search } from "lucide-react";
 import { getPostsFromSheet, Post } from "../../lib/sheet";
 
+// 🚀 [추가됨] 수파베이스와 로그인 모달 임포트
+import { supabase } from "../../lib/supabase";
+import LoginModal from "../../components/LoginModal";
+
 export default function CommunityPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("전체");
     const [searchQuery, setSearchQuery] = useState("");
-    const router = useRouter();
 
+    // 🚀 [추가됨] 로그인 모달 제어 상태
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+    const router = useRouter();
     const categories = ["전체", "자유게시판", "분양질문", "임장후기"];
 
+    // 1. 게시글 불러오기 로직 (기존 유지)
     useEffect(() => {
         async function loadPosts() {
             setIsLoading(true);
@@ -25,11 +33,29 @@ export default function CommunityPage() {
         loadPosts();
     }, []);
 
+    // 2. 검색 및 탭 필터링 로직 (기존 유지)
     const filteredPosts = posts.filter(post => {
         const matchesTab = activeTab === "전체" || post.category.includes(activeTab);
         const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesTab && matchesSearch;
     });
+
+    // 🚀 3. [추가됨] 글쓰기 권한 체크 함수
+    const handleWriteClick = async (e: React.MouseEvent) => {
+        e.preventDefault(); // 링크 클릭 시 즉시 이동 방지
+
+        // 수파베이스에게 현재 로그인 상태 물어보기
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+            alert("로그인이 필요한 서비스입니다.");
+            setIsLoginModalOpen(true); // 로그인 안됐으면 모달 띄우기
+            return;
+        }
+
+        // 로그인 되어있다면 글쓰기 페이지로 당당하게 입장!
+        router.push("/community/write");
+    };
 
     if (isLoading) {
         return (
@@ -41,10 +67,9 @@ export default function CommunityPage() {
     }
 
     return (
-        // 🚀 공지사항 테마: bg-[#f8f9fa] 적용
         <main className="min-h-screen bg-[#f8f9fa] selection:bg-orange-100 pb-32">
 
-            {/* 🚀 상단 네비게이션: 공지사항과 완전히 동일하게 (text-gray-900, max-w-3xl) */}
+            {/* 상단 네비게이션 */}
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
                 <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
@@ -55,10 +80,9 @@ export default function CommunityPage() {
                 </div>
             </nav>
 
-            {/* 🚀 메인 컨테이너: 공지사항과 동일한 넓이 (max-w-3xl)와 패딩 */}
             <div className="max-w-3xl mx-auto px-5 pt-10 pb-20">
 
-                {/* 🚀 헤더 영역: 공지사항 테마 완벽 적용 (bg-orange-500, text-gray-900 등) */}
+                {/* 헤더 영역 */}
                 <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-5">
                     <div>
                         <div className="flex items-center gap-2 mb-3">
@@ -72,15 +96,17 @@ export default function CommunityPage() {
                         <p className="text-[12px] font-medium text-gray-400">분양, 청약, 부동산 인사이트를 자유롭게 나누는 공간</p>
                     </div>
 
+                    {/* 🚀 [수정됨] onClick으로 권한 체크 함수 연결 */}
                     <Link
                         href="/community/write"
+                        onClick={handleWriteClick}
                         className="bg-[#FF5A00] hover:bg-[#E04D00] text-white px-6 py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center justify-center gap-1.5 shadow-[0_6px_15px_rgba(255,90,0,0.2)] hover:shadow-lg transition-all shrink-0"
                     >
                         <Pencil size={14} /> 글쓰기
                     </Link>
                 </header>
 
-                {/* 🚀 검색바: 공지사항의 흰색 박스 스타일(border-gray-100, rounded-2xl)에 맞춰 재디자인 */}
+                {/* 검색바 */}
                 <div className="relative mb-8 group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#FF5A00] transition-colors" size={18} />
                     <input
@@ -108,7 +134,7 @@ export default function CommunityPage() {
                     ))}
                 </div>
 
-                {/* 게시글 리스트 (이전 요청사항인 font-bold, 14px 등 완벽 유지) */}
+                {/* 게시글 리스트 */}
                 <div className="space-y-3">
                     {filteredPosts.length > 0 ? (
                         filteredPosts.map((post) => (
@@ -126,7 +152,6 @@ export default function CommunityPage() {
                                             <span className="text-[11px] text-gray-400 font-bold">{post.date}</span>
                                         </div>
 
-                                        {/* 제목 사이즈 14px, 두께 font-bold 유지 */}
                                         <h2 className="text-[14px] font-bold text-gray-900 group-hover:text-[#FF5A00] transition-colors truncate">
                                             {post.title}
                                         </h2>
@@ -171,7 +196,9 @@ export default function CommunityPage() {
                 </div>
             </div>
 
-            {/* 🚀 푸터: 공지사항과 동일한 레이아웃 (pt-24 -> pb-12 opacity-30) */}
+            {/* 🚀 [추가됨] 로그인 모달 컴포넌트 */}
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+
             <footer className="text-center pb-12 opacity-30">
                 <p className="text-[9px] font-black tracking-[0.3em] uppercase text-gray-400 font-sans">© Aparty Lounge</p>
             </footer>

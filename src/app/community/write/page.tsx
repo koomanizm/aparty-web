@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+// 🚀 [수정] next-auth 대신 supabase를 가져옵니다.
+import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft, Camera, X, Image as ImageIcon } from "lucide-react";
+import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft, Camera, X } from "lucide-react";
 
 const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlck9eWmXjvDuSge30z2K0m4eCeTDzdeNNW5kE_krDc15zitAQMmwYLg8NUh/exec";
 
 export default function WritePage() {
-    const { data: session, status } = useSession();
+    // 🚀 [수정] useSession 대신 로컬 상태로 유저 정보를 관리합니다.
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,55 +22,77 @@ export default function WritePage() {
     const [content, setContent] = useState("");
     const [nickname, setNickname] = useState("");
 
-    // 📸 사진 관련 상태
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [base64Image, setBase64Image] = useState<string | null>(null);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // 🚀 [수정] 페이지 진입 시 수파베이스 세션과 프로필(닉네임)을 가져옵니다.
     useEffect(() => {
-        const savedNickname = localStorage.getItem("aparty_nickname");
-        if (savedNickname) setNickname(savedNickname);
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                setUser(session.user);
+                // 명부(profiles)에서 닉네임과 사진 가져오기
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileData) {
+                    setProfile(profileData);
+                    setNickname(profileData.nickname || "");
+                }
+                setStatus("authenticated");
+            } else {
+                setStatus("unauthenticated");
+            }
+        };
+        checkAuth();
     }, []);
 
-    // 📸 사진 선택 핸들러
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // 파일 크기 제한 (GAS는 너무 크면 힘들어해요. 5MB 이하 추천)
             if (file.size > 5 * 1024 * 1024) {
                 alert("사진 크기가 너무 커요! 5MB 이하의 사진을 올려주세요. 😉");
                 return;
             }
-
             const reader = new FileReader();
             reader.onloadend = () => {
                 const result = reader.result as string;
-                setImagePreview(result); // 화면 미리보기용
-                setBase64Image(result);  // 서버 전송용
+                setImagePreview(result);
+                setBase64Image(result);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    // 📸 사진 삭제 핸들러
     const removeImage = () => {
         setImagePreview(null);
         setBase64Image(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
+    // 로딩 중 화면
     if (status === "loading") {
-        return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">신분증 확인 중... 🕵️‍♂️</div>;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfbf7]">
+                <Loader2 className="animate-spin text-orange-500 mb-4" size={32} />
+                <p className="text-gray-500 font-bold">권한 확인 중... 🕵️‍♂️</p>
+            </div>
+        );
     }
 
-    if (!session) {
+    // 미로그인 시 화면
+    if (status === "unauthenticated") {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#fdfbf7]">
                 <div className="bg-white p-8 md:p-10 rounded-[24px] shadow-sm border border-gray-100 text-center max-w-sm w-full border-t-[4px] border-t-[#FF8C42]">
                     <div className="w-14 h-14 bg-orange-50 text-[#FF8C42] rounded-full flex items-center justify-center mx-auto mb-5 text-xl">🔒</div>
                     <h2 className="text-lg font-black text-[#4A403A] mb-2">로그인이 필요합니다</h2>
-                    <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">커뮤니티에 글을 작성하시려면<br />카카오 로그인을 진행해 주세요.</p>
+                    <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">커뮤니티에 글을 작성하시려면<br />아파티 로그인을 진행해 주세요.</p>
                     <button onClick={() => router.push("/")} className="w-full bg-[#4A403A] text-white font-bold py-3.5 rounded-xl hover:bg-black transition-colors text-[14px]">
                         메인으로 돌아가기
                     </button>
@@ -76,11 +103,10 @@ export default function WritePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!nickname.trim()) return alert("사용하실 닉네임을 입력해 주세요! 🥸");
+        if (!nickname.trim()) return alert("닉네임이 설정되지 않았습니다. 프로필을 먼저 설정해 주세요! 🥸");
         if (!title.trim() || !content.trim()) return alert("제목과 내용을 모두 입력해 주세요!");
 
         setIsSubmitting(true);
-        localStorage.setItem("aparty_nickname", nickname.trim());
 
         const newPost = {
             action: "addPost",
@@ -89,9 +115,10 @@ export default function WritePage() {
             title,
             content: content.replace(/\n/g, "<br>"),
             author: nickname.trim(),
-            authorImage: session.user?.image || "",
+            // 🚀 [수정] 수파베이스 프로필 이미지로 연동
+            authorImage: profile?.avatar_url || "",
             date: new Date().toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }),
-            image: base64Image // 🚀 [추가] 사진 문자열 전송
+            image: base64Image
         };
 
         try {
@@ -139,7 +166,7 @@ export default function WritePage() {
                                     <option value="자유게시판">자유게시판</option>
                                     <option value="분양질문">분양/청약 질문</option>
                                     <option value="임장후기">임장 후기</option>
-                                    <option value="임장후기">분양 현장소식</option>
+                                    <option value="현장소식">분양 현장소식</option>
                                 </select>
                                 <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                     <ChevronLeft size={14} className="-rotate-90" />
@@ -154,10 +181,8 @@ export default function WritePage() {
                             <input
                                 type="text"
                                 value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                                maxLength={10}
-                                className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50"
-                                disabled={isSubmitting}
+                                className="w-full p-3.5 rounded-xl border border-gray-200 outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-100/50 cursor-not-allowed"
+                                disabled={true} // 🚀 닉네임은 프로필에서 설정한 걸 그대로 씁니다 (수정 불가)
                             />
                         </div>
                     </div>
@@ -176,14 +201,12 @@ export default function WritePage() {
                         />
                     </div>
 
-                    {/* 📸 사진 업로드 영역 */}
+                    {/* 사진 업로드 */}
                     <div>
                         <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
                             <Camera size={14} className="text-[#FF8C42]" /> 사진 첨부
                         </label>
-
                         <div className="flex items-start gap-4">
-                            {/* 사진 선택 버튼 */}
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
@@ -199,8 +222,6 @@ export default function WritePage() {
                                 accept="image/*"
                                 className="hidden"
                             />
-
-                            {/* 사진 미리보기 */}
                             {imagePreview && (
                                 <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-100 group">
                                     <img src={imagePreview} alt="미리보기" className="w-full h-full object-cover" />
@@ -240,7 +261,6 @@ export default function WritePage() {
                             {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> 등록 중...</> : <><Send size={14} /> 등록</>}
                         </button>
                     </div>
-
                 </form>
             </div>
         </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+// 🚀 [수정] next-auth 대신 supabase를 가져옵니다.
+import { supabase } from "../../../lib/supabase";
 import { ChevronLeft, User, Loader2, Heart, MessageSquare, Send, UserCircle, Trash2 } from "lucide-react";
 import { getPostsFromSheet, getCommentsFromSheet, Post, Comment } from "../../../lib/sheet";
 
@@ -11,7 +12,10 @@ const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlc
 export default function PostDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { data: session, status } = useSession();
+
+    // 🚀 [수정] 세션 상태 관리 변수 추가
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
 
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
@@ -23,12 +27,26 @@ export default function PostDetailPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
 
+    // 🚀 [수정] 진입 시 수파베이스 세션과 프로필 정보를 가져옵니다.
     useEffect(() => {
-        const savedNickname = localStorage.getItem("aparty_nickname");
-        if (savedNickname) setNickname(savedNickname);
+        const fetchAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                if (profileData) {
+                    setProfile(profileData);
+                    setNickname(profileData.nickname || "");
+                }
+            }
+        };
+        fetchAuth();
     }, []);
 
-    // app/community/[id]/page.tsx 내부
     useEffect(() => {
         async function loadData() {
             setIsLoading(true);
@@ -36,12 +54,17 @@ export default function PostDetailPage() {
             const foundPost = allPosts.find((p) => p.id === params.id);
 
             if (foundPost) {
-                console.log("🚀 가져온 데이터 전체:", foundPost); // 이 줄을 추가하세요!
-                console.log("📸 사진 주소 확인:", foundPost.postImage); // 이 줄도!
-
                 setPost(foundPost);
                 setLocalLikes(foundPost.likes);
-                // ... 생략
+                // 댓글 가져오기
+                // 🚀 [수정 포인트] 괄호 안에 params.id 를 넣어주세요!
+                // "이 게시글(params.id)에 달린 댓글들만 가져와라"라는 뜻입니다.
+                const allComments = await getCommentsFromSheet(params.id as string);
+
+                // 이미 위에서 ID로 가져왔다면 아래 filter는 없어도 되지만, 
+                // 안전을 위해 그대로 두셔도 무방합니다.
+                const filteredComments = allComments.filter(c => c.postId === params.id);
+                setComments(filteredComments);
             }
             setIsLoading(false);
         }
@@ -50,13 +73,13 @@ export default function PostDetailPage() {
 
     const handleLike = async () => {
         if (!post) return;
-        if (status === "loading") return;
-        if (!session || !session.user) {
+        // 🚀 [수정] 수파베이스 유저 체크
+        if (!user) {
             alert("로그인 후 하트를 누를 수 있습니다! 🔒");
             return;
         }
 
-        const userIdentifier = nickname || session.user.name || "anonymous";
+        const userIdentifier = nickname || user.email || "anonymous";
         const postLikeKey = `liked_post_${post.id}_${userIdentifier}`;
 
         if (localStorage.getItem(postLikeKey) === "true") {
@@ -81,13 +104,13 @@ export default function PostDetailPage() {
     };
 
     const handleCommentLike = async (commentId: string) => {
-        if (status === "loading") return;
-        if (!session || !session.user) {
+        // 🚀 [수정] 수파베이스 유저 체크
+        if (!user) {
             alert("로그인 후 하트를 누를 수 있습니다! 🔒");
             return;
         }
 
-        const userIdentifier = nickname || session.user.name || "anonymous";
+        const userIdentifier = nickname || user.email || "anonymous";
         const commentLikeKey = `liked_comment_${commentId}_${userIdentifier}`;
 
         if (localStorage.getItem(commentLikeKey) === "true") {
@@ -115,19 +138,20 @@ export default function PostDetailPage() {
 
     const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (status !== "authenticated") return alert("로그인 후 댓글을 남길 수 있습니다! 🔒");
-        if (!nickname.trim()) return alert("사용하실 닉네임을 입력해 주세요! 🥸");
+        // 🚀 [수정] 수파베이스 로그인 체크
+        if (!user) return alert("로그인 후 댓글을 남길 수 있습니다! 🔒");
+        if (!nickname.trim()) return alert("프로필 설정에서 닉네임을 먼저 만들어주세요! 🥸");
         if (!newComment.trim()) return;
 
         setIsSubmitting(true);
-        localStorage.setItem("aparty_nickname", nickname.trim());
 
         const commentData = {
             action: "addComment",
             id: Date.now().toString(),
             postId: post?.id,
             author: nickname.trim(),
-            authorImage: session?.user?.image || "",
+            // 🚀 [수정] 수파베이스 프로필 이미지 연동
+            authorImage: profile?.avatar_url || "",
             content: newComment.replace(/\n/g, "<br>"),
             date: new Date().toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }),
             likes: 0,
@@ -200,7 +224,6 @@ export default function PostDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🚀 [추가됨] 사진이 있다면 본문 위에 표시 */}
                     {post.postImage && (
                         <div className="mb-10 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
                             <img
@@ -235,14 +258,15 @@ export default function PostDetailPage() {
                         <MessageSquare size={18} className="text-[#FF5A00]" /> 댓글 <span className="text-[#FF5A00]">{comments.length}</span>
                     </h3>
                     <form onSubmit={handleCommentSubmit} className="mb-8 relative bg-[#fdfbf7] p-4 md:p-5 rounded-2xl border border-gray-100/60">
-                        {status !== "authenticated" && (
+                        {/* 🚀 [수정] user 존재 여부로 로그인 잠금 처리 */}
+                        {!user && (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-2xl">
                                 <span className="text-[13px] font-bold text-[#4A403A] bg-white px-4 py-2 rounded-full shadow-sm">로그인 후 댓글을 남길 수 있습니다 🔒</span>
                             </div>
                         )}
                         <div className="flex items-center gap-2 mb-3 text-left">
                             <span className="text-[12px] font-bold text-gray-500 flex items-center gap-1"><UserCircle size={14} className="text-[#FF5A00]" /> 닉네임</span>
-                            <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="사용할 닉네임" maxLength={10} className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-[#FF5A00] outline-none text-[13px] font-bold text-[#4A403A] bg-white shadow-sm transition-all" />
+                            <input type="text" value={nickname} readOnly className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 outline-none text-[13px] font-bold text-[#4A403A] bg-gray-100 cursor-not-allowed shadow-sm transition-all" />
                         </div>
                         <div className="relative">
                             <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="게시글에 대한 생각이나 의견을 남겨주세요!" className="w-full p-4 pb-14 rounded-xl border border-gray-200 focus:border-[#FF5A00] outline-none resize-none text-[14px] bg-white font-medium shadow-sm transition-all placeholder:text-gray-300" rows={3} />

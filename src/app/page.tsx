@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // 🚀 길 안내를 위한 라우터 추가
+import { supabase } from "../lib/supabase"; // 경로 주의!
 import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
 import { getPropertiesFromSheet, getNoticesFromSheet, Property, Notice } from "../lib/sheet";
@@ -206,6 +208,77 @@ export default function Home() {
   const [needleRotation, setNeedleRotation] = useState(-90);
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
+
+  // 🚀 [여기서부터 새로 추가할 문지기 코드 시작!] 🚀 
+  const router = useRouter(); // 길 안내원 소환
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // ✨ [무적 문지기] 티켓이 보이면 즉시 삼키고 납치합니다!
+  useEffect(() => {
+    const processAuth = async () => {
+      // 1. 주소창에 티켓(#access_token)이 있는지 확인합니다.
+      const hash = window.location.hash;
+
+      // 🚀 티켓이 있다면? 강제로 수파베이스에 "나 로그인했어!"라고 알려줍니다.
+      if (hash && hash.includes("access_token")) {
+        // 주소창에서 토큰들만 쏙쏙 뽑아냅니다.
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          // 수파베이스에게 이 티켓으로 세션을 활성화하라고 명령합니다!
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          // 티켓을 다 썼으니 주소창을 깨끗하게 청소합니다. (보기 싫으니까요!)
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+
+      // 2. 이제 로그인된 정보를 다시 확인합니다.
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        setUser(session.user);
+
+        // 3. 명부에서 닉네임 확인 (납치할지 결정)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('nickname')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+          // 🚀 닉네임이 'Guest'라면 가차 없이 납치!
+          if (profile.nickname === 'Guest') {
+            router.push('/welcome');
+          }
+        }
+      } else {
+        setUser(null);
+        setUserProfile(null);
+      }
+    };
+
+    processAuth();
+
+    // 로그인 상태 실시간 감지
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        processAuth();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
+  // 🚀 [여기까지 새로 추가할 문지기 코드 끝!] 🚀
 
 
   // 🚀 [여기에 추가!] 푸터에 닿으면 버튼을 위로 밀어올리는 계산기

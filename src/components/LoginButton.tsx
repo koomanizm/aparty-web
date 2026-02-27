@@ -1,71 +1,165 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
+import LoginModal from "./LoginModal";
+import {
+    User, LogOut, ChevronDown, Coins,
+    CreditCard, LayoutDashboard, ArrowRight
+} from "lucide-react";
+import Link from "next/link";
 
 export default function LoginButton() {
-    const { data: session, status } = useSession();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // 1. 로딩 중 (더 슬림해진 스켈레톤)
-    if (status === "loading") {
-        // 모바일엔 작은 원, PC엔 슬림한 타원
-        return <div className="w-9 h-9 md:w-24 md:h-9 bg-gray-100 animate-pulse rounded-full"></div>;
-    }
+    const fetchProfile = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            setUser(session.user);
+            const { data } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", session.user.id)
+                .single();
+            setProfile(data);
+        } else {
+            setUser(null);
+            setProfile(null);
+        }
+    };
 
-    // 2. 🟢 로그인 상태 (군더더기 뺀 초슬림 프로필 칩)
-    if (session && session.user) {
+    useEffect(() => {
+        fetchProfile();
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = async () => {
+        if (confirm("로그아웃 하시겠습니까?")) {
+            await supabase.auth.signOut();
+            window.location.href = "/";
+        }
+    };
+
+    if (!user || !profile) {
         return (
-            <div className="flex items-center gap-2 md:gap-3 bg-white border border-gray-100 py-1 pl-1 pr-3 md:pr-4 rounded-full shadow-sm hover:shadow-md transition-all duration-300">
-
-                {/* 프로필 이미지 (사이즈 미세 조정) */}
-                {session.user.image ? (
-                    <img
-                        src={session.user.image}
-                        alt="프로필"
-                        className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-gray-100 object-cover shrink-0"
-                    />
-                ) : (
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8C42] font-black text-xs shrink-0">
-                        {session.user.name?.[0]}
-                    </div>
-                )}
-
-                {/* 닉네임 (모바일에서도 잘 보이게) */}
-                <span className="text-[12px] md:text-[13px] font-bold text-[#4A403A] tracking-tight truncate max-w-[60px] md:max-w-none">
-                    {session.user.name}<span className="font-medium text-gray-400 ml-0.5 hidden md:inline">님</span>
-                </span>
-
-                {/* 구분선 (PC에서만) */}
-                <div className="hidden md:block w-[1px] h-2.5 bg-gray-200 mx-0.5"></div>
-
-                {/* 로그아웃 버튼 (PC: 텍스트+아이콘 / 모바일: 아이콘만) */}
+            <>
                 <button
-                    onClick={() => signOut()}
-                    className="group flex items-center gap-1 text-[11px] md:text-[12px] text-gray-400 hover:text-gray-600 transition-colors font-bold shrink-0"
-                    title="로그아웃"
+                    onClick={() => setIsOpen(true)}
+                    className="group relative flex items-center justify-center border border-[#4A403A]/10 bg-white hover:bg-[#FF5A00] hover:border-[#FF5A00] rounded-full transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-90
+                    w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-2.5"
                 >
-                    <LogOut size={14} className="group-hover:text-red-400 transition-colors" />
-                    <span className="hidden md:inline">로그아웃</span>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden md:flex flex-col items-start leading-tight text-left">
+                            <span className="text-[14px] font-black text-[#4A403A] group-hover:text-white transition-colors duration-300 tracking-tighter">시작하기</span>
+                            <span className="text-[10px] font-medium text-gray-400 group-hover:text-white/70 transition-colors duration-300">로그인/가입</span>
+                        </div>
+                        <ArrowRight size={18} className="text-[#FF5A00] group-hover:text-white group-hover:translate-x-0.5 transition-all duration-300 shrink-0" />
+                    </div>
                 </button>
-            </div>
+                <LoginModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            </>
         );
     }
 
-    // 3. 🟡 로그아웃 상태 (모바일: 아이콘만 / PC: 슬림한 버튼)
     return (
-        <button
-            onClick={() => signIn("kakao", { callbackUrl: "https://www.aparty.co.kr" })}
-            // 🚀 핵심: 모바일은 p-2(아이콘만 감쌈), PC는 px-4 py-2(슬림한 알약 모양)
-            className="bg-[#FEE500] hover:bg-[#FDD800] text-[#391B1B] rounded-full font-bold text-[13px] md:text-[14px] transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 p-2 md:px-4 md:py-2"
-            aria-label="카카오 로그인"
-        >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 md:w-4 md:h-4 shrink-0">
-                <path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" />
-            </svg>
-            {/* 🚀 핵심: 모바일(hidden)에서는 숨기고, PC(md:inline)에서만 글씨 보이기 */}
-            <span className="hidden md:inline whitespace-nowrap leading-none pt-0.5">
-                카카오 로그인
-            </span>
-        </button>
+        <div className="relative" ref={dropdownRef}>
+            <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-center justify-center bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-orange-200 transition-all group active:scale-90
+                w-10 h-10 rounded-full p-0 md:w-auto md:h-auto md:pl-1.5 md:pr-4 md:py-1.5 md:rounded-full md:gap-3"
+            >
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+                    {profile.avatar_url ? (
+                        <img src={profile.avatar_url} alt="P" className="w-full h-full object-cover" />
+                    ) : (
+                        <User size={16} className="text-[#FF5A00]" />
+                    )}
+                </div>
+
+                <div className="hidden md:flex flex-col items-start text-left leading-tight">
+                    <span className="text-[9px] font-bold text-gray-400 mb-0.5">안녕하세요!</span>
+                    <div className="flex items-baseline">
+                        <span className="text-[13px] font-black text-[#FF5A00] tracking-tight">{profile.nickname}</span>
+                        <span className="text-[12px] font-bold text-[#4A403A] ml-0.5">님</span>
+                    </div>
+                </div>
+
+                <ChevronDown size={14} className="hidden md:block ml-0.5 text-gray-300 group-hover:text-gray-400 transition-all" />
+            </button>
+
+            {isMenuOpen && (
+                <div className="absolute right-0 mt-3 w-56 md:w-60 bg-white rounded-[24px] shadow-[0_15px_50px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+
+                    {/* 🚀 상단 포인트 섹션 (PC/모바일 공통 레이아웃, VIP 삭제) */}
+                    <div className="bg-[#fdfbf7] p-5 border-b border-gray-50">
+                        <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-[11px] font-bold text-gray-400">보유 포인트</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Coins size={18} className="text-[#FF5A00]" />
+                            <span className="text-lg md:text-xl font-black text-[#4A403A]">{profile.point?.toLocaleString() || 0} P</span>
+                        </div>
+                    </div>
+
+                    {/* 하단 메뉴 섹션 */}
+                    <div className="p-2.5">
+                        {/* 🚀 모바일 전용: 메뉴 박스 최상단에 닉네임 배치 */}
+                        <div className="md:hidden px-3.5 pt-2 pb-4 border-b border-gray-50 mb-2">
+                            <span className="text-[16px] font-black text-[#FF5A00] tracking-tighter">
+                                {profile.nickname}
+                            </span>
+                            <span className="text-[14px] font-bold text-[#4A403A] ml-0.5">님</span>
+                        </div>
+
+                        <Link
+                            href="/mypage"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-orange-50 text-gray-600 hover:text-[#FF5A00] transition-all group"
+                        >
+                            <User size={18} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-[13px] font-bold">마이페이지</span>
+                        </Link>
+
+                        <Link
+                            href="/mypage/activity"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-orange-50 text-gray-600 hover:text-[#FF5A00] transition-all group"
+                        >
+                            <LayoutDashboard size={18} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-[13px] font-bold">내 활동 내역</span>
+                        </Link>
+
+                        <Link
+                            href="/point"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-orange-50 text-gray-600 hover:text-[#FF5A00] transition-all group"
+                        >
+                            <CreditCard size={18} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-[13px] font-bold">포인트 관리</span>
+                        </Link>
+
+                        <div className="h-[1px] bg-gray-50 my-2 mx-2"></div>
+
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all group"
+                        >
+                            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+                            <span className="text-[13px] font-bold">로그아웃</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

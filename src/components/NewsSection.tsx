@@ -21,6 +21,23 @@ interface NewsItem {
     imageUrl?: string;
 }
 
+// 🚀 [추가됨] 외국 서버의 횡포를 막아내는 철벽 K-날짜 변환 함수
+function formatKoreanDate(dateString: string) {
+    try {
+        const d = new Date(dateString);
+        // 날짜 데이터가 이상하면 원래 문자열을 그대로 반환
+        if (isNaN(d.getTime())) return dateString;
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+
+        return `${year}. ${month}. ${day}.`; // 무조건 YYYY. MM. DD. 형식으로 고정!
+    } catch {
+        return dateString;
+    }
+}
+
 // 🚀 아이콘 매핑 데이터 (이모지 삭제)
 const CATEGORIES = [
     { label: "주요뉴스", query: "부동산+이슈", icon: Megaphone },
@@ -154,7 +171,8 @@ export default function NewsSection() {
                                     }`}>
                                     <span className={`text-[10px] md:text-[11px] font-medium ${isHeadline ? "text-white/70" : "text-gray-400"
                                         }`}>
-                                        {item.pubDate}
+                                        {/* 🚀 [수정됨] 철벽 함수 적용! 이제 절대 안 깨집니다 */}
+                                        {formatKoreanDate(item.pubDate)}
                                     </span>
 
                                     <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm ${isHeadline
