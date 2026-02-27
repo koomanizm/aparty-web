@@ -403,14 +403,31 @@ export default function Home() {
         </div>
       </Link>
 
-      <header className="w-full max-w-6xl flex justify-between items-center mt-8 mb-10 px-6">
-        <a href="/" className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative w-10 h-10">
-            <Image src="/logo.png" alt="아파티" fill className="object-contain group-hover:rotate-12 transition-transform duration-300" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#4a403a] tracking-tighter">APARTY</h1>
-        </a>
+      {/* 🚀 수정됨: 아파티 헤더 (로고, 슬로건, 로그인 버튼) */}
+      {/* 🚀 수정된 헤더: 슬림한 로고 + APARTY 단독 + 세련된 슬로건 */}
+      <header className="w-full max-w-6xl flex justify-between items-center mt-6 md:mt-8 mb-8 md:mb-10 px-5 md:px-6">
 
+        {/* 로고 & 텍스트 그룹 */}
+        <Link href="/" className="flex items-center gap-2 md:gap-2.5 group cursor-pointer">
+          {/* 1. 로고 이미지 사이즈 더 축소 (모바일 w-8, PC w-10) */}
+          <div className="relative w-8 h-8 md:w-10 md:h-10 shrink-0 transition-transform group-hover:scale-105 duration-300">
+            <Image src="/logo.png" alt="아파티" fill className="object-contain" />
+          </div>
+
+          {/* 2. 텍스트 영역 (세로 정렬) */}
+          <div className="flex flex-col items-start justify-center">
+            {/* 한글 삭제, 영문 APARTY만 유지 */}
+            <h1 className="text-lg md:text-xl font-extrabold text-[#4a403a] tracking-tighter leading-none mb-0.5">
+              APARTY
+            </h1>
+            {/* 3. 슬로건 추가 & 4. 글씨 두께 얇게(font-medium) 적용 */}
+            <span className="text-[9px] md:text-[10px] font-medium text-gray-400 tracking-tight leading-none group-hover:text-gray-500 transition-colors">
+              No. 1 부동산 분양 정보 플랫폼
+            </span>
+          </div>
+        </Link>
+
+        {/* 우측 로그인 버튼 */}
         <div className="flex items-center gap-4">
           <LoginButton />
         </div>
