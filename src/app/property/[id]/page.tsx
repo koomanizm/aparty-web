@@ -8,7 +8,7 @@ import Script from "next/script";
 import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3, MapPin } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 import ReviewSection from "../../../components/ReviewSection";
-
+import PropertyLikeButton from "../../../components/PropertyLikeButton"; // 🚀 1. 찜 버튼 불러오기 추가!
 
 declare global {
     interface Window {
@@ -100,7 +100,6 @@ export default function PropertyDetailPage() {
         fetchExternalData();
     }, [property]);
 
-    // 🚀 [업데이트] 카카오맵 그리는 로직 (스나이퍼 좌표 모드 추가)
     const initMap = () => {
         if (!window.kakao || !window.kakao.maps || !property) return;
 
@@ -110,7 +109,6 @@ export default function PropertyDetailPage() {
 
             const prop = property as any;
 
-            // 🎯 1. 강제 좌표(coordinates)가 있으면 무조건 우선 실행!
             if (prop.coordinates && prop.coordinates.includes(',')) {
                 const [lat, lng] = prop.coordinates.split(',').map((c: string) => parseFloat(c.trim()));
                 const coords = new window.kakao.maps.LatLng(lat, lng);
@@ -122,10 +120,9 @@ export default function PropertyDetailPage() {
                     content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#ff6f42;text-align:center;">${property.title}</div>`
                 });
                 infowindow.open(map, marker);
-                return; // 함수 여기서 끝!
+                return;
             }
 
-            // 🎯 2. 좌표가 없으면 주소(mapAddress 또는 location)로 검색
             const geocoder = new window.kakao.maps.services.Geocoder();
             const targetAddress = prop.mapAddress ? prop.mapAddress : property.location;
 
@@ -142,7 +139,6 @@ export default function PropertyDetailPage() {
                     });
                     infowindow.open(map, marker);
                 } else {
-                    // 아무것도 못 찾으면 부산시청으로 변경!
                     const defaultCoords = new window.kakao.maps.LatLng(35.1795543, 129.0756416);
                     new window.kakao.maps.Map(container, { center: defaultCoords, level: 3 });
                 }
@@ -205,12 +201,19 @@ export default function PropertyDetailPage() {
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-6 md:p-10 border border-gray-50">
 
-                    <div className="flex flex-wrap gap-2.5 mb-5">
-                        {property.status.map((tag, i) => (
-                            <span key={i} className={getStatusStyle(i)}>
-                                {i === 0 && <Flame size={13} className="fill-current" />} {tag}
-                            </span>
-                        ))}
+                    {/* 🚀 2. 뱃지와 찜 버튼을 나란히 두는 양끝 정렬(justify-between) 박스 적용! */}
+                    <div className="flex items-center justify-between mb-5 w-full">
+                        <div className="flex flex-wrap gap-2.5">
+                            {property.status.map((tag, i) => (
+                                <span key={i} className={getStatusStyle(i)}>
+                                    {i === 0 && <Flame size={13} className="fill-current" />} {tag}
+                                </span>
+                            ))}
+                        </div>
+
+                        <div className="shrink-0 ml-4">
+                            <PropertyLikeButton propertyId={String(property.id)} />
+                        </div>
                     </div>
 
                     <div className="mb-6 border-b border-gray-100 pb-6">
@@ -328,7 +331,7 @@ export default function PropertyDetailPage() {
                             <div className="text-center py-5 text-gray-400 text-sm">관련 뉴스가 없습니다.</div>
                         )}
                     </div>
-                    {/* 🚀 뉴스 바로 아래, 리뷰 섹션 등판! */}
+
                     <div className="mt-12">
                         <ReviewSection propertyId={String(property.id)} />
                     </div>

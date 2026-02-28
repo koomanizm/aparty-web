@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, Edit3, Gift, Ticket, Bell, ChevronRight, CheckCircle2, LogOut, User as UserIcon } from "lucide-react";
+// 🚀 MessageSquare(게시글), Heart(찜) 아이콘이 추가되었습니다.
+import {
+    ChevronLeft, Edit3, Gift, Ticket, Bell, ChevronRight,
+    CheckCircle2, LogOut, User as UserIcon, MessageSquare, Heart
+} from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 export default function MyPage() {
@@ -11,17 +15,39 @@ export default function MyPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [newNickname, setNewNickname] = useState("");
 
-    // 1. 프로필 정보 불러오기
+    // 🚀 [추가됨] DB에서 가져올 활동 내역 숫자 상태
+    const [postCount, setPostCount] = useState(0);
+    const [likeCount, setLikeCount] = useState(0);
+
+    // 1. 프로필 정보 및 활동 내역 불러오기
     const fetchProfile = async (userId: string) => {
+        // 기존 프로필 가져오기
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
+
         if (data) {
             setProfile(data);
             setNewNickname(data.nickname);
         }
+
+        // 🚀 [추가됨] 내 게시글 수 가져오기 (head: true로 숫자만 빠르게 연동)
+        // ⚠️ 주의: 'posts'라는 테이블이 실제로 수파베이스에 있어야 합니다.
+        const { count: pCount } = await supabase
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+        setPostCount(pCount || 0);
+
+        // 🚀 [추가됨] 관심 매물(찜) 수 가져오기
+        // ⚠️ 주의: 'likes'라는 테이블이 실제로 수파베이스에 있어야 합니다.
+        const { count: lCount } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+        setLikeCount(lCount || 0);
     };
 
     useEffect(() => {
@@ -42,7 +68,6 @@ export default function MyPage() {
             return;
         }
 
-        // 월 1회 제한 체크
         if (profile.last_nickname_update) {
             const lastUpdate = new Date(profile.last_nickname_update);
             const now = new Date();
@@ -74,11 +99,13 @@ export default function MyPage() {
 
     // 3. 로그아웃 함수
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        window.location.href = "/";
+        if (confirm("로그아웃 하시겠습니까?")) {
+            await supabase.auth.signOut();
+            window.location.href = "/";
+        }
     };
 
-    if (!profile) return <div className="p-10 text-center font-bold">로딩 중...</div>;
+    if (!profile) return <div className="p-10 text-center font-bold text-[#FF8C42] animate-pulse">데이터를 불러오는 중...</div>;
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
@@ -98,7 +125,11 @@ export default function MyPage() {
                 <div className="bg-white rounded-[28px] p-6 shadow-sm border border-gray-100 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border-2 border-orange-100 text-[#FF8C42]">
-                            <UserIcon size={32} />
+                            {profile.avatar_url ? (
+                                <img src={profile.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                                <UserIcon size={32} />
+                            )}
                         </div>
                         <div>
                             {isEditing ? (
@@ -107,10 +138,10 @@ export default function MyPage() {
                                         type="text"
                                         value={newNickname}
                                         onChange={(e) => setNewNickname(e.target.value)}
-                                        className="border-b-2 border-[#FF8C42] outline-none text-[18px] font-black w-32"
+                                        className="border-b-2 border-[#FF8C42] outline-none text-[18px] font-black w-32 bg-transparent"
                                         autoFocus
                                     />
-                                    <button onClick={handleUpdateNickname} className="text-[10px] text-blue-500 font-bold text-left text-orange-500 underline">저장하기</button>
+                                    <button onClick={handleUpdateNickname} className="text-[10px] font-bold text-left text-orange-500 underline">저장하기</button>
                                 </div>
                             ) : (
                                 <>
@@ -136,17 +167,35 @@ export default function MyPage() {
                     <div className="relative z-10">
                         <p className="text-[12px] font-bold text-white/50 mb-1">보유 포인트</p>
                         <div className="flex items-end gap-1 mb-5">
-                            <span className="text-3xl font-black text-white">{profile.points?.toLocaleString()}</span>
+                            <span className="text-3xl font-black text-white">{profile.points?.toLocaleString() || 0}</span>
                             <span className="text-[14px] font-bold text-[#FF8C42] mb-1">P</span>
                         </div>
                         <div className="flex gap-2 text-white">
-                            <button className="flex-1 bg-[#FF8C42] py-3 rounded-xl font-bold text-[13px] hover:bg-[#E07A30]">포인트 적립</button>
-                            <button className="flex-1 bg-white/10 py-3 rounded-xl font-bold text-[13px] hover:bg-white/20">리워드 샵</button>
+                            <button className="flex-1 bg-[#FF8C42] py-3 rounded-xl font-bold text-[13px] hover:bg-[#E07A30] transition-colors">포인트 적립</button>
+                            <button className="flex-1 bg-white/10 py-3 rounded-xl font-bold text-[13px] hover:bg-white/20 transition-colors">리워드 샵</button>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. 활동 메뉴 */}
+                {/* 🚀 3. [신규 추가] 활동 내역 요약 영역 (DB 연동) */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                    <Link href="/mypage/posts" className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 hover:border-orange-200 hover:shadow-md transition-all group">
+                        <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <MessageSquare size={18} />
+                        </div>
+                        <span className="text-[12px] font-bold text-gray-500">내 게시글</span>
+                        <span className="text-xl font-black text-[#4A403A]">{postCount}<span className="text-[12px] font-bold text-gray-400 ml-0.5">개</span></span>
+                    </Link>
+                    <Link href="/mypage/likes" className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 hover:border-orange-200 hover:shadow-md transition-all group">
+                        <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Heart size={18} />
+                        </div>
+                        <span className="text-[12px] font-bold text-gray-500">관심 매물</span>
+                        <span className="text-xl font-black text-[#4A403A]">{likeCount}<span className="text-[12px] font-bold text-gray-400 ml-0.5">개</span></span>
+                    </Link>
+                </div>
+
+                {/* 4. 서비스 설정 메뉴 */}
                 <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-5 border-b border-gray-50 flex items-center gap-2 text-[#4A403A]">
                         <CheckCircle2 size={16} className="text-emerald-500" />
@@ -156,11 +205,11 @@ export default function MyPage() {
                         <li className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer">
                             <div className="flex items-center gap-3">
                                 <Ticket size={18} className="text-gray-400" />
-                                <span className="text-[14px] font-bold">내 활동 내역</span>
+                                <span className="text-[14px] font-bold">내 활동 상세 내역</span>
                             </div>
                             <ChevronRight size={16} className="text-gray-200" />
                         </li>
-                        <li onClick={handleLogout} className="flex items-center justify-between p-5 hover:bg-red-50 cursor-pointer text-red-400">
+                        <li onClick={handleLogout} className="flex items-center justify-between p-5 hover:bg-red-50 cursor-pointer text-red-400 transition-colors">
                             <div className="flex items-center gap-3">
                                 <LogOut size={18} />
                                 <span className="text-[14px] font-bold">로그아웃</span>

@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-// 🚀 [수정] next-auth 대신 supabase를 가져옵니다.
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Send, Loader2, LayoutGrid, UserCircle, Type, AlignLeft, Camera, X } from "lucide-react";
 
-const COMMUNITY_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqxyuadlck9eWmXjvDuSge30z2K0m4eCeTDzdeNNW5kE_krDc15zitAQMmwYLg8NUh/exec";
-
 export default function WritePage() {
-    // 🚀 [수정] useSession 대신 로컬 상태로 유저 정보를 관리합니다.
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
@@ -23,17 +19,14 @@ export default function WritePage() {
     const [nickname, setNickname] = useState("");
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [base64Image, setBase64Image] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // 🚀 [수정] 페이지 진입 시 수파베이스 세션과 프로필(닉네임)을 가져옵니다.
     useEffect(() => {
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (session) {
                 setUser(session.user);
-                // 명부(profiles)에서 닉네임과 사진 가져오기
                 const { data: profileData } = await supabase
                     .from('profiles')
                     .select('*')
@@ -52,6 +45,7 @@ export default function WritePage() {
         checkAuth();
     }, []);
 
+    // 🚀 [수정됨] 오타 해결! handleImageChange로 정상 복구
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -61,9 +55,7 @@ export default function WritePage() {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                const result = reader.result as string;
-                setImagePreview(result);
-                setBase64Image(result);
+                setImagePreview(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -71,11 +63,9 @@ export default function WritePage() {
 
     const removeImage = () => {
         setImagePreview(null);
-        setBase64Image(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // 로딩 중 화면
     if (status === "loading") {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfbf7]">
@@ -85,7 +75,6 @@ export default function WritePage() {
         );
     }
 
-    // 미로그인 시 화면
     if (status === "unauthenticated") {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#fdfbf7]">
@@ -108,30 +97,51 @@ export default function WritePage() {
 
         setIsSubmitting(true);
 
-        const newPost = {
-            action: "addPost",
-            id: Date.now().toString(),
-            category,
-            title,
-            content: content.replace(/\n/g, "<br>"),
-            author: nickname.trim(),
-            // 🚀 [수정] 수파베이스 프로필 이미지로 연동
-            authorImage: profile?.avatar_url || "",
-            date: new Date().toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }),
-            image: base64Image
-        };
-
         try {
-            await fetch(COMMUNITY_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newPost),
-            });
+            let imageUrl = "";
+            const file = fileInputRef.current?.files?.[0];
+
+            // 🚀 1. 사진이 첨부되었다면 Storage(창고)에 업로드!
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('community')
+                    .upload(fileName, file);
+
+                if (uploadError) {
+                    console.error("🚨 창고 에러 상세정보:", uploadError);
+                    alert(`수파베이스 에러: ${uploadError.message}`);
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('community')
+                    .getPublicUrl(fileName);
+
+                imageUrl = publicUrlData.publicUrl;
+            }
+
+            // 🚀 2. 사진 주소(URL)와 글 내용을 수파베이스 DB(posts)에 저장!
+            const { error } = await supabase
+                .from('posts')
+                .insert({
+                    user_id: user.id,
+                    category: category,
+                    title: title,
+                    content: content.replace(/\n/g, "<br>"),
+                    image_data: imageUrl
+                });
+
+            if (error) throw error;
+
             alert("글이 성공적으로 등록되었습니다! ✨");
             router.push("/community");
             router.refresh();
         } catch (error) {
+            console.error(error);
             alert("등록에 실패했습니다.");
         } finally {
             setIsSubmitting(false);
@@ -142,7 +152,6 @@ export default function WritePage() {
         <div className="min-h-screen bg-gradient-to-b from-[#fdfbf7] to-[#f4f0ea] p-4 md:p-8 flex justify-center pb-32">
             <div className="w-full max-w-2xl bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 border-t-[5px] border-t-[#FF8C42] p-6 md:p-8">
 
-                {/* 헤더 */}
                 <div className="flex items-center justify-between mb-8 pb-5 border-b border-gray-100/60">
                     <button onClick={() => router.back()} className="flex items-center text-gray-400 hover:text-[#FF8C42] font-bold transition-colors">
                         <ChevronLeft size={18} /> <span className="text-[13px] md:text-[14px]">뒤로가기</span>
@@ -182,7 +191,7 @@ export default function WritePage() {
                                 type="text"
                                 value={nickname}
                                 className="w-full p-3.5 rounded-xl border border-gray-200 outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-100/50 cursor-not-allowed"
-                                disabled={true} // 🚀 닉네임은 프로필에서 설정한 걸 그대로 씁니다 (수정 불가)
+                                disabled={true}
                             />
                         </div>
                     </div>
@@ -201,7 +210,6 @@ export default function WritePage() {
                         />
                     </div>
 
-                    {/* 사진 업로드 */}
                     <div>
                         <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
                             <Camera size={14} className="text-[#FF8C42]" /> 사진 첨부

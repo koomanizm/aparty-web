@@ -1,64 +1,113 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, MessageSquare, Loader2 } from "lucide-react";
-import { getReviewsFromSheet, Review } from "../lib/sheet";
+import { Star, MessageSquare, Loader2, User, Trash2, Heart } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
-// 🚨 구글 Apps Script에서 발급받은 '웹 앱 URL'을 아래에 꼭 붙여넣으세요!
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIT-jK42TVPUTGvaHF4kj2dfBvN053z2vYXKK0CqHqpSxRZ9bgi8XEo7CaAx8HLVtv/exec";
-
-const ReviewItem = ({ review }: { review: Review }) => {
+// 🚀 개별 리뷰 컴포넌트
+const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, currentUser: any, onDelete: (id: string) => void, onLike: (id: string, currentLikes: number) => void }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const displayText = review.text.replace(/<br>/g, '\n');
-    const isLongText = displayText.length > 45 || displayText.includes('\n');
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const displayText = review.content || "";
+    const isLongText = displayText.length > 45 || displayText.includes('<br>');
+
+    const handleDelete = async () => {
+        if (!confirm("이 리뷰를 삭제하시겠습니까?")) return;
+        setIsDeleting(true);
+        try {
+            const { error } = await supabase.from('property_reviews').delete().eq('id', review.id);
+            if (error) throw error;
+            onDelete(review.id);
+        } catch (error) {
+            alert("리뷰 삭제에 실패했습니다.");
+            setIsDeleting(false);
+        }
+    };
 
     return (
-        // 🚀 모바일에서는 패딩(p)을 살짝 줄였습니다. (p-4, PC는 p-5)
-        <div className="bg-white p-4 md:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1.5 md:gap-2">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 md:gap-3">
-                    {/* 🚀 작성자 이름 크기 축소 */}
-                    <span className="font-black text-[#4A403A] text-[13px] md:text-[15px]">{review.name}</span>
-                    <div className="flex gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                            // 🚀 별 크기도 모바일에서 살짝 작게
-                            <Star key={i} className={`w-3 h-3 md:w-3.5 md:h-3.5 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
-                        ))}
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col text-left">
+            <div className="flex justify-between items-start mb-1">
+                <div className="flex items-center gap-2">
+                    {review.profiles?.avatar_url ? (
+                        <img src={review.profiles.avatar_url} alt="프로필" className="w-7 h-7 rounded-full border border-gray-100 object-cover shrink-0" />
+                    ) : (
+                        <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100 shrink-0"><User size={13} /></div>
+                    )}
+                    <div>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            {/* 🚀 닉네임 크기 1포인트 업! (13px -> 14px) */}
+                            <span className="font-semibold text-[#4A403A] text-[14px]">
+                                {review.profiles?.nickname || "아파티유저"}
+                            </span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">
+                                {new Date(review.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
+                            </span>
+                        </div>
+                        <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
+                            ))}
+                        </div>
                     </div>
                 </div>
-                <span className="text-[10px] md:text-[12px] font-bold text-gray-400">{review.date}</span>
-            </div>
-            <div>
-                {/* 🚀 본문 텍스트 크기 축소 (text-13px, PC는 text-14px) */}
-                <p className={`text-[13px] md:text-[14px] text-gray-600 leading-relaxed mt-1 whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-1" : ""}`}>
-                    {displayText}
-                </p>
-                {isLongText && (
-                    <div className="text-right mt-1.5">
-                        <button
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="text-[11px] md:text-[12px] font-bold text-[#ff6f42] hover:underline"
-                        >
-                            {isExpanded ? "접기" : "more"}
-                        </button>
-                    </div>
+
+                {currentUser && currentUser.id === review.user_id && (
+                    <button onClick={handleDelete} disabled={isDeleting} className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full flex items-center gap-1">
+                        {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                    </button>
                 )}
+            </div>
+
+            <div className="mt-1 pl-9">
+                {/* 🚀 본문 내용 크기 1포인트 업! (13px -> 14px) */}
+                <p className={`text-[14px] text-gray-600 leading-relaxed whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-2" : ""}`}>
+                    {displayText.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
+                </p>
+
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                    <button onClick={() => onLike(review.id, review.likes || 0)} className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-all group/like">
+                        <Heart size={12} className={(review.likes || 0) > 0 ? "fill-red-500 text-red-500" : "group-hover/like:scale-110 transition-transform"} />
+                        <span className={`text-[11px] font-bold ${(review.likes || 0) > 0 ? "text-red-500" : ""}`}>{review.likes || 0}</span>
+                    </button>
+
+                    {isLongText && (
+                        <button onClick={() => setIsExpanded(!isExpanded)} className="text-[11px] font-bold text-[#ff6f42] hover:underline">
+                            {isExpanded ? "접기" : "자세히 보기"}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
+// 🚀 메인 리뷰 섹션 컴포넌트
 export default function ReviewSection({ propertyId }: { propertyId: string }) {
-    const [reviews, setReviews] = useState<Review[]>([]);
+    const [reviews, setReviews] = useState<any[]>([]);
     const [newText, setNewText] = useState("");
-    const [authorName, setAuthorName] = useState("");
     const [rating, setRating] = useState(5);
     const [hoveredStar, setHoveredStar] = useState(0);
+
+    const [user, setUser] = useState<any>(null);
+    const [nickname, setNickname] = useState("");
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const MAX_CHARS = 500; // 🚀 최대 글자 수 제한 설정
+    const MAX_CHARS = 500;
+
+    useEffect(() => {
+        const fetchAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+                const { data: profileData } = await supabase.from('profiles').select('nickname').eq('id', session.user.id).single();
+                if (profileData) setNickname(profileData.nickname || "");
+            }
+        };
+        fetchAuth();
+    }, []);
 
     useEffect(() => {
         async function loadReviews() {
@@ -68,8 +117,14 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
             }
             setIsLoading(true);
             try {
-                const data = await getReviewsFromSheet(propertyId);
-                setReviews(data);
+                const { data, error } = await supabase
+                    .from('property_reviews')
+                    .select('*, profiles(nickname, avatar_url)')
+                    .eq('property_id', propertyId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setReviews(data || []);
             } catch (error) {
                 console.error("리뷰 가져오기 에러:", error);
             } finally {
@@ -81,39 +136,41 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return alert("로그인 후 리뷰를 남길 수 있습니다! 🔒");
         if (!newText.trim() || isSubmitting) return;
 
         setIsSubmitting(true);
-
-        const newReview = {
-            propertyId: propertyId,
-            id: Date.now().toString(),
-            name: authorName.trim() || "방문객",
-            rating: rating,
-            text: newText.replace(/\n/g, "<br>"),
-            date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
-        };
-
         try {
-            await fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(newReview),
-            });
+            const { data: insertedReview, error } = await supabase
+                .from('property_reviews')
+                .insert({ property_id: propertyId, user_id: user.id, rating: rating, content: newText.replace(/\n/g, "<br>") })
+                .select('*, profiles(nickname, avatar_url)')
+                .single();
 
-            setReviews([newReview, ...reviews]);
+            if (error) throw error;
+            setReviews([insertedReview, ...reviews]);
             setNewText("");
-            setAuthorName("");
             setRating(5);
         } catch (error) {
-            console.error("리뷰 등록 실패:", error);
-            alert("리뷰 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+            alert("리뷰 등록에 실패했습니다.");
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleDeleteReview = (deletedId: string) => {
+        setReviews(reviews.filter(r => r.id !== deletedId));
+    };
+
+    const handleLikeReview = async (reviewId: string, currentLikes: number) => {
+        if (!user) return alert("로그인 후 공감할 수 있습니다! 🔒");
+        const likeKey = `liked_property_review_${reviewId}`;
+        if (localStorage.getItem(likeKey)) return alert("이미 공감하셨습니다! 😊");
+
+        const newLikes = currentLikes + 1;
+        setReviews(reviews.map(r => r.id === reviewId ? { ...r, likes: newLikes } : r));
+        localStorage.setItem(likeKey, "true");
+        await supabase.from('property_reviews').update({ likes: newLikes }).eq('id', reviewId);
     };
 
     const averageRating = reviews.length > 0
@@ -128,32 +185,41 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                 <span className="text-[10px] md:text-xs text-[#ff6f42] bg-orange-50 px-2 py-0.5 rounded-full font-black ml-1">
                     {reviews.length}건
                 </span>
-                {/* ... (평점 표시 생략) ... */}
+                {reviews.length > 0 && (
+                    <span className="text-[12px] md:text-sm font-bold text-gray-500 ml-auto flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        {averageRating}
+                    </span>
+                )}
             </h3>
 
-            <form onSubmit={handleSubmit} className="bg-gray-50 p-4 md:p-6 rounded-[20px] md:rounded-[24px] mb-8 shadow-inner border border-gray-100/50">
-
-                <div className="flex flex-row items-center justify-between sm:justify-start sm:gap-4 mb-3 md:mb-4">
-                    {/* 작성자 & 별점 입력 영역 (기존과 동일) */}
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                        <span className="text-[11px] md:text-[13px] font-bold text-gray-500 whitespace-nowrap">작성자</span>
-                        <input
-                            type="text"
-                            value={authorName}
-                            onChange={(e) => setAuthorName(e.target.value)}
-                            placeholder="방문객 (선택)"
-                            maxLength={10}
-                            disabled={isSubmitting}
-                            className="w-20 md:w-28 px-2 md:px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] md:text-sm focus:border-[#FF8C42] outline-none transition-all shadow-sm"
-                        />
-                    </div>
-
-                    {/* 🚀 실시간 글자 수 카운터 추가 */}
-                    <div className="ml-auto sm:ml-4 text-[10px] md:text-[11px] font-black tracking-tighter transition-colors">
-                        <span className={newText.length >= MAX_CHARS ? "text-red-500" : "text-orange-500"}>
-                            {newText.length}
+            <form onSubmit={handleSubmit} className="relative bg-[#fcfcfc] p-4 rounded-2xl mb-6 shadow-sm border border-gray-200">
+                {!user && (
+                    <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-2xl">
+                        <span className="text-[12px] font-bold text-[#4A403A] bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+                            로그인 후 리뷰를 남길 수 있습니다 🔒
                         </span>
-                        <span className="text-gray-300"> / {MAX_CHARS}</span>
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                            {/* 🚀 작성하는 곳 닉네임 텍스트 더 키우기 (12px -> 14px, 굵게) */}
+                            <span className="text-[14px] font-bold text-gray-800">
+                                {nickname || "방문객"}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button key={star} type="button" onMouseEnter={() => setHoveredStar(star)} onMouseLeave={() => setHoveredStar(0)} onClick={() => setRating(star)} className="focus:outline-none transition-transform hover:scale-110">
+                                    <Star className={`w-4 h-4 transition-colors ${star <= (hoveredStar || rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="text-[10px] font-semibold text-gray-400">
+                        <span className={newText.length >= MAX_CHARS ? "text-red-500" : ""}>{newText.length}</span> / {MAX_CHARS}
                     </div>
                 </div>
 
@@ -161,42 +227,27 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                     <textarea
                         value={newText}
                         onChange={(e) => setNewText(e.target.value)}
-                        placeholder="현장 방문 후기를 남겨주세요! (최대 500자)"
-                        // 🚀 maxLength 속성으로 물리적 제한 추가
+                        placeholder="현장 방문 후기나 장단점을 자유롭게 남겨주세요!"
                         maxLength={MAX_CHARS}
-                        className="w-full px-4 md:px-5 py-3 md:py-3.5 pb-12 md:pb-12 min-h-[100px] md:min-h-[120px] rounded-[16px] md:rounded-2xl border border-gray-200 focus:border-[#FF8C42] focus:ring-2 focus:ring-orange-100 outline-none resize-none text-[13px] md:text-[14px] transition-all bg-white shadow-sm"
-                        disabled={isSubmitting}
+                        className="w-full px-3 py-2.5 pb-10 min-h-[80px] rounded-xl border border-gray-200 focus:border-[#FF8C42] focus:ring-1 focus:ring-[#FF8C42] outline-none resize-none text-[13px] bg-white transition-all placeholder:text-gray-300"
+                        disabled={isSubmitting || !user}
                     />
-
-                    {/* 🚀 글자 수가 가득 찼을 때 안내 문구 (선택 사항) */}
-                    {newText.length >= MAX_CHARS && (
-                        <span className="absolute left-4 bottom-3 text-[10px] text-red-400 font-bold animate-pulse">
-                            최대 글자 수에 도달했습니다.
-                        </span>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={!newText.trim() || isSubmitting}
-                        className="absolute bottom-2.5 md:bottom-3 right-2.5 md:right-3 bg-[#4A403A] text-white px-4 md:px-5 py-1.5 md:py-2 rounded-xl font-black text-[12px] md:text-[13px] hover:bg-[#FF8C42] transition-colors disabled:opacity-50 flex items-center gap-1.5 md:gap-2"
-                    >
-                        {isSubmitting ? <><Loader2 size={12} className="animate-spin" /> 전송 중</> : "등록하기"}
+                    <button type="submit" disabled={!newText.trim() || isSubmitting || !user} className="absolute bottom-2 right-2 bg-[#FF5A00] text-white px-4 py-1.5 rounded-lg font-bold text-[12px] hover:bg-[#E04D00] transition-colors disabled:opacity-50 flex items-center gap-1">
+                        {isSubmitting ? <><Loader2 size={12} className="animate-spin" /> 전송 중</> : "등록"}
                     </button>
                 </div>
             </form>
 
-            <div className="space-y-3 min-h-[100px] max-h-[480px] overflow-y-auto pr-1 md:pr-2" style={{ scrollbarWidth: 'thin' }}>
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
                 {isLoading ? (
-                    <div className="flex items-center justify-center py-8 md:py-10 text-gray-400 text-[13px] md:text-sm font-bold animate-pulse">
-                        리뷰를 불러오는 중입니다...
-                    </div>
+                    <div className="text-center py-6 text-gray-400 text-[12px] font-bold animate-pulse">리뷰를 불러오는 중입니다...</div>
                 ) : reviews.length > 0 ? (
                     reviews.map((review) => (
-                        <ReviewItem key={review.id} review={review} />
+                        <ReviewItem key={review.id} review={review} currentUser={user} onDelete={handleDeleteReview} onLike={handleLikeReview} />
                     ))
                 ) : (
-                    <div className="text-center py-8 md:py-10 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
-                        <p className="text-[12px] md:text-sm font-bold text-gray-400">아직 작성된 리뷰가 없습니다.<br />첫 번째 리뷰를 남겨주세요!</p>
+                    <div className="text-center py-8 bg-[#fcfcfc] rounded-xl border border-gray-100 border-dashed">
+                        <p className="text-[12px] font-semibold text-gray-400">아직 작성된 리뷰가 없습니다.<br />첫 번째 리뷰를 남겨주세요!</p>
                     </div>
                 )}
             </div>
