@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// 🚀 MessageSquare(게시글), Heart(찜) 아이콘이 추가되었습니다.
+// 🚀 Camera, Loader2(로딩용) 아이콘 추가
 import {
     ChevronLeft, Edit3, Gift, Ticket, Bell, ChevronRight,
-    CheckCircle2, LogOut, User as UserIcon, MessageSquare, Heart
+    CheckCircle2, LogOut, User as UserIcon, MessageSquare, Heart, Camera, Loader2
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -15,38 +15,23 @@ export default function MyPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [newNickname, setNewNickname] = useState("");
 
-    // 🚀 [추가됨] DB에서 가져올 활동 내역 숫자 상태
+    // 🚀 [추가됨] 사진 업로드 중 로딩 상태
+    const [isUploading, setIsUploading] = useState(false);
+
     const [postCount, setPostCount] = useState(0);
     const [likeCount, setLikeCount] = useState(0);
 
-    // 1. 프로필 정보 및 활동 내역 불러오기
     const fetchProfile = async (userId: string) => {
-        // 기존 프로필 가져오기
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
         if (data) {
             setProfile(data);
             setNewNickname(data.nickname);
         }
 
-        // 🚀 [추가됨] 내 게시글 수 가져오기 (head: true로 숫자만 빠르게 연동)
-        // ⚠️ 주의: 'posts'라는 테이블이 실제로 수파베이스에 있어야 합니다.
-        const { count: pCount } = await supabase
-            .from('posts')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId);
+        const { count: pCount } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', userId);
         setPostCount(pCount || 0);
 
-        // 🚀 [추가됨] 관심 매물(찜) 수 가져오기
-        // ⚠️ 주의: 'likes'라는 테이블이 실제로 수파베이스에 있어야 합니다.
-        const { count: lCount } = await supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId);
+        const { count: lCount } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('user_id', userId);
         setLikeCount(lCount || 0);
     };
 
@@ -56,12 +41,53 @@ export default function MyPage() {
                 setUser(session.user);
                 fetchProfile(session.user.id);
             } else {
-                window.location.href = "/"; // 로그인 안됐으면 메인으로
+                window.location.href = "/";
             }
         });
     }, []);
 
-    // 2. 닉네임 변경 함수 (월 1회 제한 로직 포함)
+    // 🚀 [추가됨] 프로필 사진 업로드 함수
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setIsUploading(true);
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            // 1. 파일 이름 만들기 (중복 방지를 위해 랜덤 문자열 추가)
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+
+            // 2. 수파베이스 'avatars' 창고에 사진 업로드
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            // 3. 방금 올린 사진의 공개 URL(링크) 가져오기
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+
+            // 4. 내 프로필(profiles) 정보에 새 사진 링크 업데이트
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', user.id);
+
+            if (updateError) throw updateError;
+
+            alert("프로필 사진이 변경되었습니다!");
+            fetchProfile(user.id); // 화면 새로고침해서 새 프사 보여주기
+
+        } catch (error) {
+            console.error("사진 업로드 에러:", error);
+            alert("사진 업로드에 실패했습니다. (창고 권한을 확인해주세요!)");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleUpdateNickname = async () => {
         if (!newNickname || newNickname === profile.nickname) {
             setIsEditing(false);
@@ -82,10 +108,7 @@ export default function MyPage() {
 
         const { error } = await supabase
             .from('profiles')
-            .update({
-                nickname: newNickname,
-                last_nickname_update: new Date().toISOString()
-            })
+            .update({ nickname: newNickname, last_nickname_update: new Date().toISOString() })
             .eq('id', user.id);
 
         if (error) {
@@ -93,11 +116,10 @@ export default function MyPage() {
         } else {
             alert("닉네임이 변경되었습니다!");
             setIsEditing(false);
-            fetchProfile(user.id); // 변경된 정보 다시 불러오기
+            fetchProfile(user.id);
         }
     };
 
-    // 3. 로그아웃 함수
     const handleLogout = async () => {
         if (confirm("로그아웃 하시겠습니까?")) {
             await supabase.auth.signOut();
@@ -109,7 +131,6 @@ export default function MyPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
-            {/* 네비게이션 */}
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
                 <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
@@ -121,16 +142,32 @@ export default function MyPage() {
             </nav>
 
             <div className="max-w-2xl mx-auto px-5 pt-8">
-                {/* 1. 프로필 영역 */}
                 <div className="bg-white rounded-[28px] p-6 shadow-sm border border-gray-100 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border-2 border-orange-100 text-[#FF8C42]">
+
+                        {/* 🚀 [수정됨] 프사를 클릭하면 파일 선택창이 열리도록 변경 */}
+                        <label className="relative w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border-2 border-orange-100 text-[#FF8C42] cursor-pointer group">
                             {profile.avatar_url ? (
                                 <img src={profile.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                             ) : (
                                 <UserIcon size={32} />
                             )}
-                        </div>
+
+                            {/* 업로드 중일 때는 빙글빙글 로딩 / 평소엔 마우스 올리면 카메라 아이콘 표시 */}
+                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {isUploading ? <Loader2 size={20} className="text-white animate-spin" /> : <Camera size={20} className="text-white" />}
+                            </div>
+
+                            {/* 실제 기능하는 파일 입력창 (화면에서는 숨김) */}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAvatarUpload}
+                                disabled={isUploading}
+                            />
+                        </label>
+
                         <div>
                             {isEditing ? (
                                 <div className="flex flex-col gap-2">
@@ -177,7 +214,7 @@ export default function MyPage() {
                     </div>
                 </div>
 
-                {/* 🚀 3. [신규 추가] 활동 내역 요약 영역 (DB 연동) */}
+                {/* 3. 활동 내역 요약 영역 */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
                     <Link href="/mypage/posts" className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 hover:border-orange-200 hover:shadow-md transition-all group">
                         <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
