@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { ChevronLeft, User, Loader2, Heart, MessageSquare, Send, UserCircle, Trash2 } from "lucide-react";
+import { ChevronLeft, User, Loader2, Heart, MessageSquare, Send, UserCircle, Trash2, Clock } from "lucide-react";
 
 export default function PostDetailPage() {
     const params = useParams();
@@ -100,20 +100,17 @@ export default function PostDetailPage() {
 
             if (error) throw error;
 
-            // 🚀 [추가됨] 포인트 지급 로직 (+5P)
             const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single();
             const currentPoints = profile?.points || 0;
 
             await Promise.all([
-                // 1. 포인트 로그 기록
                 supabase.from('point_logs').insert({ user_id: user.id, amount: 5, reason: 'comment' }),
-                // 2. 유저 합계 포인트 업데이트
                 supabase.from('profiles').update({ points: currentPoints + 5 }).eq('id', user.id)
             ]);
 
             setComments([...comments, insertedComment]);
             setNewComment("");
-            alert("댓글이 등록되었습니다! 💰 5P가 적립되었습니다."); // 포인트 알림 추가
+            alert("댓글이 등록되었습니다! 💰 5P가 적립되었습니다.");
 
         } catch (error) {
             alert("댓글 등록 실패");
@@ -165,6 +162,11 @@ export default function PostDetailPage() {
     if (isLoading) return <div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-[#FF5A00]" size={36} /></div>;
     if (!post) return <div className="min-h-screen flex justify-center items-center text-xl font-bold">게시글을 찾을 수 없습니다.</div>;
 
+    // 🚀 [신규 추가] 여러 장의 사진 데이터를 배열로 정규화
+    const images = Array.isArray(post.image_data)
+        ? post.image_data
+        : post.image_data ? [post.image_data] : [];
+
     return (
         <main className="min-h-screen bg-[#fdfbf7] p-4 md:p-8 pb-32 flex justify-center text-left">
             <div className="w-full max-w-3xl">
@@ -179,25 +181,30 @@ export default function PostDetailPage() {
                         </button>
                     )}
 
-                    <div className="mb-6 pb-6 border-b border-gray-100/60">
+                    <div className="mb-6 pb-6 border-b border-gray-100/60 text-left">
                         <span className="inline-block text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md mb-3 border border-orange-100/50">{post.category || "자유게시판"}</span>
                         <h1 className="text-2xl md:text-3xl font-black text-[#4A403A] mb-4 leading-tight">{post.title}</h1>
                         <div className="flex items-center gap-3">
                             {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-10 h-10 rounded-full border object-cover" /> : <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border"><User size={18} /></div>}
-                            <div>
+                            <div className="text-left">
                                 <div className="text-[14px] font-bold text-[#4A403A]">{post.profiles?.nickname || "아파티유저"}</div>
-                                <div className="text-[12px] text-gray-400 font-medium">{new Date(post.created_at).toLocaleDateString()}</div>
+                                <div className="text-[12px] text-gray-400 font-medium flex items-center gap-1"><Clock size={12} />{new Date(post.created_at).toLocaleDateString()}</div>
                             </div>
                         </div>
                     </div>
 
-                    {post.image_data && (
-                        <div className="mb-10 rounded-2xl overflow-hidden border bg-gray-50">
-                            <img src={post.image_data} alt="이미지" className="w-full h-auto object-cover max-h-[600px] mx-auto" />
+                    {/* 🚀 [신규 교체] 사진이 여러 장일 때 세로로 나열하여 보여줌 */}
+                    {images.length > 0 && (
+                        <div className="flex flex-col gap-3 mb-10">
+                            {images.map((img: string, index: number) => (
+                                <div key={index} className="rounded-2xl overflow-hidden border bg-gray-50">
+                                    <img src={img} alt={`이미지 ${index + 1}`} className="w-full h-auto object-cover max-h-[800px] mx-auto" />
+                                </div>
+                            ))}
                         </div>
                     )}
 
-                    <div className="min-h-[150px] text-[15px] md:text-[16px] text-gray-600 leading-[1.8] whitespace-pre-wrap font-medium mb-10">
+                    <div className="min-h-[150px] text-[15px] md:text-[16px] text-gray-600 leading-[1.8] whitespace-pre-wrap font-medium mb-10 text-left">
                         {post.content.split('<br>').map((line: string, index: number) => <span key={index}>{line}<br /></span>)}
                     </div>
 
@@ -251,7 +258,7 @@ export default function PostDetailPage() {
                                         <span className="font-bold text-[12px] md:text-[13px] text-[#4A403A]">{comment.profiles?.nickname || "아파티유저"}</span>
                                         <span className="text-[10px] md:text-[11px] text-gray-400 font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-1.5">
+                                    <p className="text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-1.5 text-left">
                                         {comment.content.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
                                     </p>
 

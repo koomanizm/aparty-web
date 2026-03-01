@@ -9,7 +9,6 @@ export default function WritePage() {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
-
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -18,21 +17,17 @@ export default function WritePage() {
     const [content, setContent] = useState("");
     const [nickname, setNickname] = useState("");
 
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    // 🚀 [핵심 수정] 사진 여러 장을 위한 상태 (파일 배열 & 미리보기 URL 배열)
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-
             if (session) {
                 setUser(session.user);
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
+                const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
                 if (profileData) {
                     setProfile(profileData);
                     setNickname(profileData.nickname || "");
@@ -45,111 +40,71 @@ export default function WritePage() {
         checkAuth();
     }, []);
 
+    // 📸 사진 선택 핸들러 (최대 5장)
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                alert("사진 크기가 너무 커요! 5MB 이하의 사진을 올려주세요. 😉");
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+        const files = Array.from(e.target.files || []);
+        if (selectedFiles.length + files.length > 5) {
+            alert("사진은 최대 5장까지만 올릴 수 있어요! 📸");
+            return;
         }
+
+        const newFiles = [...selectedFiles, ...files];
+        setSelectedFiles(newFiles);
+
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setImagePreviews([...imagePreviews, ...newPreviews]);
     };
 
-    const removeImage = () => {
-        setImagePreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+    // 📸 사진 삭제 핸들러
+    const removeImage = (index: number) => {
+        const newFiles = selectedFiles.filter((_, i) => i !== index);
+        const newPreviews = imagePreviews.filter((_, i) => i !== index);
+        setSelectedFiles(newFiles);
+        setImagePreviews(newPreviews);
     };
-
-    if (status === "loading") {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdfbf7]">
-                <Loader2 className="animate-spin text-orange-500 mb-4" size={32} />
-                <p className="text-gray-500 font-bold">권한 확인 중... 🕵️‍♂️</p>
-            </div>
-        );
-    }
-
-    if (status === "unauthenticated") {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#fdfbf7]">
-                <div className="bg-white p-8 md:p-10 rounded-[24px] shadow-sm border border-gray-100 text-center max-w-sm w-full border-t-[4px] border-t-[#FF8C42]">
-                    <div className="w-14 h-14 bg-orange-50 text-[#FF8C42] rounded-full flex items-center justify-center mx-auto mb-5 text-xl">🔒</div>
-                    <h2 className="text-lg font-black text-[#4A403A] mb-2">로그인이 필요합니다</h2>
-                    <p className="text-[13px] text-gray-500 mb-6 leading-relaxed">커뮤니티에 글을 작성하시려면<br />아파티 로그인을 진행해 주세요.</p>
-                    <button onClick={() => router.push("/")} className="w-full bg-[#4A403A] text-white font-bold py-3.5 rounded-xl hover:bg-black transition-colors text-[14px]">
-                        메인으로 돌아가기
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!nickname.trim()) return alert("닉네임이 설정되지 않았습니다. 프로필을 먼저 설정해 주세요! 🥸");
-        if (!title.trim() || !content.trim()) return alert("제목과 내용을 모두 입력해 주세요!");
+        if (!nickname.trim()) return alert("닉네임을 먼저 설정해 주세요!");
+        if (!title.trim() || !content.trim()) return alert("제목과 내용을 입력해 주세요!");
 
         setIsSubmitting(true);
 
         try {
-            let imageUrl = "";
-            const file = fileInputRef.current?.files?.[0];
+            const uploadedUrls = [];
 
-            if (file) {
+            // 🚀 1. 여러 장의 사진을 차례대로 업로드
+            for (const file of selectedFiles) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage.from('community').upload(fileName, file);
 
-                const { error: uploadError } = await supabase.storage
-                    .from('community')
-                    .upload(fileName, file);
-
-                if (uploadError) {
-                    console.error("🚨 창고 에러 상세정보:", uploadError);
-                    alert(`수파베이스 에러: ${uploadError.message}`);
-                    setIsSubmitting(false);
-                    return;
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabase.storage.from('community').getPublicUrl(fileName);
+                    uploadedUrls.push(publicUrl);
                 }
-
-                const { data: publicUrlData } = supabase.storage
-                    .from('community')
-                    .getPublicUrl(fileName);
-
-                imageUrl = publicUrlData.publicUrl;
             }
 
-            const { error } = await supabase
-                .from('posts')
-                .insert({
-                    user_id: user.id,
-                    category: category,
-                    title: title,
-                    content: content.replace(/\n/g, "<br>"),
-                    image_data: imageUrl
-                });
+            // 🚀 2. 사진 URL 배열(jsonb)과 글 저장
+            const { error } = await supabase.from('posts').insert({
+                user_id: user.id,
+                category,
+                title,
+                content: content.replace(/\n/g, "<br>"),
+                image_data: uploadedUrls // 이제 배열이 들어갑니다!
+            });
 
             if (error) throw error;
 
-            // 🚀 [추가된 로직] 글 작성이 완료되었으니 10 포인트를 쏩니다! 🚀
-            const { data: profileData } = await supabase.from('profiles').select('points').eq('id', user.id).single();
-            const currentPoints = profileData?.points || 0;
-
+            // 💰 포인트 지급 (10P)
+            const { data: pData } = await supabase.from('profiles').select('points').eq('id', user.id).single();
             await Promise.all([
-                // 1. 포인트 장부에 기록
                 supabase.from('point_logs').insert({ user_id: user.id, amount: 10, reason: 'post' }),
-                // 2. 유저의 총 포인트 최신화
-                supabase.from('profiles').update({ points: currentPoints + 10 }).eq('id', user.id)
+                supabase.from('profiles').update({ points: (pData?.points || 0) + 10 }).eq('id', user.id)
             ]);
-            // 🚀 [추가 로직 끝] 🚀
 
-            // 🚀 알림창에 포인트 지급 멘트 추가!
-            alert("글이 성공적으로 등록되었습니다! ✨ 💰 10P가 적립되었습니다.");
+            alert("글이 성공적으로 등록되었습니다! ✨ 💰 10P 적립 완료!");
             router.push("/community");
-            router.refresh();
         } catch (error) {
             console.error(error);
             alert("등록에 실패했습니다.");
@@ -158,127 +113,65 @@ export default function WritePage() {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-[#fdfbf7] to-[#f4f0ea] p-4 md:p-8 flex justify-center pb-32">
-            <div className="w-full max-w-2xl bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 border-t-[5px] border-t-[#FF8C42] p-6 md:p-8">
+    if (status === "loading") return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
 
-                <div className="flex items-center justify-between mb-8 pb-5 border-b border-gray-100/60">
-                    <button onClick={() => router.back()} className="flex items-center text-gray-400 hover:text-[#FF8C42] font-bold transition-colors">
-                        <ChevronLeft size={18} /> <span className="text-[13px] md:text-[14px]">뒤로가기</span>
-                    </button>
-                    <h1 className="text-[17px] md:text-[19px] font-black text-[#4A403A]">새 글 쓰기 ✨</h1>
+    return (
+        <div className="min-h-screen bg-[#fdfbf7] p-4 md:p-8 flex justify-center pb-32">
+            <div className="w-full max-w-2xl bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 md:p-8 border-t-[5px] border-t-[#FF8C42]">
+                <div className="flex items-center justify-between mb-8 pb-5 border-b border-gray-50">
+                    <button onClick={() => router.back()} className="text-gray-400 font-bold flex items-center gap-1"><ChevronLeft size={18} /> 뒤로가기</button>
+                    <h1 className="text-[17px] font-black text-[#4A403A]">새 글 쓰기 ✨</h1>
                     <div className="w-16"></div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6 text-left">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
-                                <LayoutGrid size={14} className="text-[#FF8C42]" /> 카테고리
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                    className="w-full p-3.5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-50/50 appearance-none cursor-pointer"
-                                >
-                                    <option value="자유게시판">자유게시판</option>
-                                    <option value="분양질문">분양/청약 질문</option>
-                                    <option value="임장후기">임장 후기</option>
-                                    <option value="현장소식">분양 현장소식</option>
-                                </select>
-                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                    <ChevronLeft size={14} className="-rotate-90" />
-                                </div>
-                            </div>
+                            <label className="text-[12px] font-bold text-gray-500 mb-2 block">카테고리</label>
+                            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-3.5 rounded-xl border border-gray-200 outline-none font-bold text-[14px] bg-gray-50/50">
+                                <option value="자유게시판">자유게시판</option>
+                                <option value="분양질문">분양/청약 질문</option>
+                                <option value="임장후기">임장 후기</option>
+                                <option value="현장소식">분양 현장소식</option>
+                            </select>
                         </div>
-
                         <div>
-                            <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
-                                <UserCircle size={15} className="text-[#FF8C42]" /> 작성자 닉네임
-                            </label>
-                            <input
-                                type="text"
-                                value={nickname}
-                                className="w-full p-3.5 rounded-xl border border-gray-200 outline-none text-[13px] md:text-[14px] font-bold text-[#4A403A] bg-gray-100/50 cursor-not-allowed"
-                                disabled={true}
-                            />
+                            <label className="text-[12px] font-bold text-gray-500 mb-2 block">작성자</label>
+                            <input type="text" value={nickname} className="w-full p-3.5 rounded-xl border border-gray-200 bg-gray-100 font-bold text-[14px]" disabled />
                         </div>
                     </div>
 
                     <div>
-                        <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
-                            <Type size={14} className="text-[#FF8C42]" /> 제목
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="게시글 제목을 입력해 주세요."
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full p-4 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[14px] md:text-[15px] font-bold text-[#4A403A] bg-gray-50/50"
-                            disabled={isSubmitting}
-                        />
+                        <label className="text-[12px] font-bold text-gray-500 mb-2 block">제목</label>
+                        <input type="text" placeholder="제목을 입력해 주세요." value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 rounded-xl border border-gray-200 outline-none font-bold bg-gray-50/50" />
                     </div>
 
                     <div>
-                        <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
-                            <Camera size={14} className="text-[#FF8C42]" /> 사진 첨부
-                        </label>
-                        <div className="flex items-start gap-4">
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-[#FF8C42] hover:text-[#FF8C42] hover:bg-orange-50/30 transition-all"
-                            >
+                        <label className="text-[12px] font-bold text-gray-500 mb-2 block">사진 첨부 ({selectedFiles.length}/5)</label>
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 md:w-24 md:h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 shrink-0 hover:bg-orange-50/30">
                                 <Camera size={24} />
-                                <span className="text-[11px] font-bold">사진 추가</span>
+                                <span className="text-[10px] font-bold">추가</span>
                             </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
-                            {imagePreview && (
-                                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-100 group">
-                                    <img src={imagePreview} alt="미리보기" className="w-full h-full object-cover" />
-                                    <button
-                                        type="button"
-                                        onClick={removeImage}
-                                        className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black transition-colors"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                            <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" multiple />
+
+                            {imagePreviews.map((src, index) => (
+                                <div key={index} className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden border border-gray-100 shrink-0">
+                                    <img src={src} className="w-full h-full object-cover" />
+                                    <button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center"><X size={12} /></button>
                                 </div>
-                            )}
+                            ))}
                         </div>
-                        <p className="text-[11px] text-gray-400 mt-2 pl-1">* 현장 사진이나 임장 사진을 1장 올릴 수 있습니다.</p>
                     </div>
 
                     <div>
-                        <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 mb-2 pl-1">
-                            <AlignLeft size={14} className="text-[#FF8C42]" /> 내용
-                        </label>
-                        <textarea
-                            placeholder="부동산과 관련된 자유로운 이야기를 남겨주세요."
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            className="w-full p-4 md:p-5 rounded-xl border border-gray-200 focus:border-[#FF8C42] outline-none text-[14px] md:text-[15px] text-[#4A403A] bg-gray-50/50 min-h-[220px] leading-relaxed"
-                            disabled={isSubmitting}
-                        />
+                        <label className="text-[12px] font-bold text-gray-500 mb-2 block">내용</label>
+                        <textarea placeholder="부동산 이야기를 남겨주세요." value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-4 md:p-5 rounded-xl border border-gray-200 outline-none min-h-[200px] leading-relaxed bg-gray-50/50" />
                     </div>
 
-                    <div className="flex justify-end mt-2">
-                        <button
-                            type="submit"
-                            disabled={isSubmitting || !title.trim() || !content.trim()}
-                            className="px-8 py-2.5 md:py-3 rounded-xl font-black text-[13px] md:text-[14px] flex items-center gap-1.5 transition-all shadow-sm
-                             disabled:bg-gray-200 disabled:text-gray-400 bg-[#FF5A00] hover:bg-[#E04D00] text-white"
-                        >
-                            {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> 등록 중...</> : <><Send size={14} /> 등록</>}
-                        </button>
-                    </div>
+                    <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-[#FF5A00] text-white rounded-xl font-black shadow-lg disabled:bg-gray-300">
+                        {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : "등록하기"}
+                    </button>
                 </form>
             </div>
         </div>
