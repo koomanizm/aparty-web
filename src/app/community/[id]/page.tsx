@@ -41,11 +41,27 @@ export default function PostDetailPage() {
         async function loadData() {
             if (!params.id) return;
             setIsLoading(true);
+
             try {
-                const { data: postData } = await supabase.from('posts').select('*').eq('id', params.id).single();
+                const { data: postData, error: postError } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('id', params.id)
+                    .single();
+
+                if (postError) throw postError;
+
                 if (postData) {
-                    const { data: profileData } = await supabase.from('profiles').select('nickname, avatar_url').eq('id', postData.user_id).single();
-                    setPost({ ...postData, profiles: profileData });
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('nickname, avatar_url')
+                        .eq('id', postData.user_id)
+                        .single();
+
+                    setPost({
+                        ...postData,
+                        profiles: profileData
+                    });
                     setLocalLikes(postData.likes || 0);
 
                     const { data: commentsData } = await supabase
@@ -53,6 +69,7 @@ export default function PostDetailPage() {
                         .select('*, profiles(nickname, avatar_url)')
                         .eq('post_id', params.id)
                         .order('created_at', { ascending: true });
+
                     setComments(commentsData || []);
                 }
             } catch (error) {
@@ -73,10 +90,16 @@ export default function PostDetailPage() {
         try {
             const { data: insertedComment, error } = await supabase
                 .from('comments')
-                .insert({ post_id: post.id, user_id: user.id, content: newComment.replace(/\n/g, "<br>") })
+                .insert({
+                    post_id: post.id,
+                    user_id: user.id,
+                    content: newComment.replace(/\n/g, "<br>")
+                })
                 .select('*, profiles(nickname, avatar_url)')
                 .single();
+
             if (error) throw error;
+
             setComments([...comments, insertedComment]);
             setNewComment("");
         } catch (error) {
@@ -89,26 +112,22 @@ export default function PostDetailPage() {
     const handleDeleteComment = async (commentId: string) => {
         if (!confirm("댓글을 삭제하시겠습니까?")) return;
         try {
-            await supabase.from('comments').delete().eq('id', commentId);
+            const { error } = await supabase.from('comments').delete().eq('id', commentId);
+            if (error) throw error;
             setComments(comments.filter(c => c.id !== commentId));
         } catch (e) {
             alert("삭제 권한이 없거나 실패했습니다.");
         }
     };
 
-    // 🚀 [복구됨] 댓글 좋아요 기능
     const handleCommentLike = async (commentId: string, currentLikes: number) => {
         if (!user) return alert("로그인 후 공감할 수 있습니다! 🔒");
         const likeKey = `liked_comment_${commentId}`;
         if (localStorage.getItem(likeKey)) return alert("이미 공감하셨습니다! 😊");
 
         const newLikes = currentLikes + 1;
-
-        // 화면 먼저 업데이트
         setComments(comments.map(c => c.id === commentId ? { ...c, likes: newLikes } : c));
         localStorage.setItem(likeKey, "true");
-
-        // DB 업데이트
         await supabase.from('comments').update({ likes: newLikes }).eq('id', commentId);
     };
 
@@ -169,7 +188,6 @@ export default function PostDetailPage() {
                         {post.content.split('<br>').map((line: string, index: number) => <span key={index}>{line}<br /></span>)}
                     </div>
 
-                    {/* 🚀 [복구됨] 본문 밑에 댓글 갯수 아이콘 다시 추가! */}
                     <div className="flex items-center justify-center gap-4 pt-6 border-t border-gray-100/60">
                         <button onClick={handleLike} className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors group">
                             <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${localLikes > 0 ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-white group-hover:border-red-200 group-hover:bg-red-50'}`}>
@@ -207,34 +225,33 @@ export default function PostDetailPage() {
                         </div>
                     </form>
 
-                    <div className="space-y-5">
+                    <div className="space-y-4">
                         {comments.length > 0 ? comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-3 md:gap-4 group relative text-left">
+                            <div key={comment.id} className="flex gap-2.5 md:gap-4 group relative text-left">
                                 {comment.profiles?.avatar_url ? (
-                                    <img src={comment.profiles.avatar_url} className="w-8 h-8 md:w-10 md:h-10 rounded-full border object-cover shrink-0" />
+                                    <img src={comment.profiles.avatar_url} className="w-6 h-6 md:w-10 md:h-10 rounded-full border object-cover shrink-0 mt-1" />
                                 ) : (
-                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border shrink-0"><User size={16} /></div>
+                                    <div className="w-6 h-6 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border shrink-0 mt-1"><User size={12} className="md:w-5 md:h-5" /></div>
                                 )}
-                                <div className="flex-1 bg-[#fdfbf7] p-4 rounded-2xl rounded-tl-none border border-gray-100/60">
-                                    <div className="flex justify-between items-start mb-1.5">
-                                        <span className="font-bold text-[13px] md:text-[14px] text-[#4A403A]">{comment.profiles?.nickname || "아파티유저"}</span>
-                                        <span className="text-[11px] text-gray-400 font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
+                                <div className="flex-1 bg-[#fdfbf7] px-3.5 py-3 md:p-4 rounded-2xl rounded-tl-none border border-gray-100/60">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="font-bold text-[12px] md:text-[13px] text-[#4A403A]">{comment.profiles?.nickname || "아파티유저"}</span>
+                                        <span className="text-[10px] md:text-[11px] text-gray-400 font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-[13px] md:text-[14px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-2">
+                                    <p className="text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-1.5">
                                         {comment.content.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
                                     </p>
 
-                                    {/* 🚀 [복구됨] 댓글 밑에 하트 버튼 다시 추가! */}
-                                    <div className="flex items-center gap-3 pt-2 border-t border-gray-100/30">
+                                    <div className="flex items-center gap-3 pt-2 border-t border-gray-100/30 mt-1">
                                         <button onClick={() => handleCommentLike(comment.id, comment.likes || 0)} className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-all group/like">
-                                            <Heart size={13} className={(comment.likes || 0) > 0 ? "fill-red-500 text-red-500" : "group-hover/like:scale-110 transition-transform"} />
-                                            <span className={`text-[12px] font-bold ${(comment.likes || 0) > 0 ? "text-red-500" : ""}`}>{comment.likes || 0}</span>
+                                            <Heart size={12} className={(comment.likes || 0) > 0 ? "fill-red-500 text-red-500" : "group-hover/like:scale-110 transition-transform"} />
+                                            <span className={`text-[11px] md:text-[12px] font-bold ${(comment.likes || 0) > 0 ? "text-red-500" : ""}`}>{comment.likes || 0}</span>
                                         </button>
                                     </div>
                                 </div>
                                 {user && comment.user_id === user.id && (
-                                    <button onClick={() => handleDeleteComment(comment.id)} className="absolute -right-2 -top-2 md:right-0 md:top-2 text-gray-300 hover:text-red-500 bg-white md:bg-transparent rounded-full p-1.5 md:opacity-0 group-hover:opacity-100 shadow-sm md:shadow-none border md:border-none border-gray-100">
-                                        <Trash2 size={14} />
+                                    <button onClick={() => handleDeleteComment(comment.id)} className="absolute -right-1 -top-1 md:right-0 md:top-2 text-gray-300 hover:text-red-500 bg-white md:bg-transparent rounded-full p-1.5 md:opacity-0 group-hover:opacity-100 shadow-sm md:shadow-none border md:border-none border-gray-100">
+                                        <Trash2 size={13} />
                                     </button>
                                 )}
                             </div>

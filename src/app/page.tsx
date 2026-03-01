@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"; // 🚀 길 안내를 위한 라우
 import { supabase } from "../lib/supabase"; // 경로 주의!
 import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
+import WelcomePopup from "../components/WelcomePopup"; // 🚀 [추가됨 1] 팝업 컴포넌트 불러오기!
 import { getPropertiesFromSheet, getNoticesFromSheet, Property, Notice } from "../lib/sheet";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,29 +36,20 @@ const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: n
 
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
   const sidoName = SIDO_DATA[sidoCode] || "";
-
-  // 국토부 데이터의 불필요한 "특별자치도", "특별자치시" 텍스트를 강제로 잘라냅니다.
   let cleanSgg = rawSgg.replace(/특별자치도|특별자치시/g, "").trim();
-
   let finalSgg = cleanSgg || SGG_NAME_MAP[code] || "";
   const shortSido = sidoName.substring(0, 2);
 
-  // 🚀 핵심 수정: "제주 제주시" 처럼 공백이 포함된 중복만 제거합니다! 
-  // ("제주시" -> "시", "부산진구" -> "진구"가 되는 대참사 방지)
   if (finalSgg.startsWith(shortSido + " ")) {
     finalSgg = finalSgg.replace(shortSido + " ", "").trim();
   } else if (finalSgg.startsWith(sidoName + " ")) {
     finalSgg = finalSgg.replace(sidoName + " ", "").trim();
   }
 
-  // 세종시 특별 처리
   if (sidoCode === "36") {
     return `세종시 ${umd}`.replace(/\s+/g, " ").trim();
   }
-
-  // 제주도 특별 처리
   if (sidoCode === "50") {
-    // 혹시라도 '시'만 넘어오는 예외 상황을 위한 2중 방어막
     if (finalSgg === "시") finalSgg = "제주시";
     return `제주 ${finalSgg} ${umd}`.replace(/\s+/g, " ").trim();
   }
@@ -96,14 +88,13 @@ const fetchTradeData = async (codes: string[]) => {
           addr: formatRealAddr(sidoCode, code, item.getElementsByTagName("sggNm")[0]?.textContent || "", (item.getElementsByTagName("umdNm")[0]?.textContent || "").trim()),
           price,
           val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 === 0 ? '' : price % 10000}`.trim() : `${price}만`,
-          date: `${year}.${month}.${day}`, // 날짜 형식: 2026.02.26
+          date: `${year}.${month}.${day}`,
           sub: `전용 ${area}㎡ · ${floor}층`,
           details: { fullDate: `${year}년 ${month}월 ${day}일`, buildYear, area, floor }
         });
       });
     });
 
-    // 🚀 핵심 수정: b.price - a.price (가격순) ➔ b.date.localeCompare(a.date) (최신 날짜순) 으로 변경!
     return allItems.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
   } catch { return []; }
 };
@@ -148,7 +139,6 @@ const fetchApplyData = async (dashboardRegion: string, type: "competition" | "ca
 
         const compRate = type === "competition" ? parseFloat((Math.random() * 20 + 1.2).toFixed(1)) : 0;
 
-        // 🚀 에러 수정: 모달창에 필요한 디테일 데이터를 전부 추가했습니다!
         list.push({
           type: "apply",
           title,
@@ -209,43 +199,32 @@ export default function Home() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // 🚀 [여기서부터 새로 추가할 문지기 코드 시작!] 🚀 
-  const router = useRouter(); // 길 안내원 소환
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // ✨ [무적 문지기] 티켓이 보이면 즉시 삼키고 납치합니다!
   useEffect(() => {
     const processAuth = async () => {
-      // 1. 주소창에 티켓(#access_token)이 있는지 확인합니다.
       const hash = window.location.hash;
 
-      // 🚀 티켓이 있다면? 강제로 수파베이스에 "나 로그인했어!"라고 알려줍니다.
       if (hash && hash.includes("access_token")) {
-        // 주소창에서 토큰들만 쏙쏙 뽑아냅니다.
         const params = new URLSearchParams(hash.substring(1));
         const accessToken = params.get("access_token");
         const refreshToken = params.get("refresh_token");
 
         if (accessToken && refreshToken) {
-          // 수파베이스에게 이 티켓으로 세션을 활성화하라고 명령합니다!
           await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
-
-          // 티켓을 다 썼으니 주소창을 깨끗하게 청소합니다. (보기 싫으니까요!)
           window.history.replaceState(null, "", window.location.pathname);
         }
       }
 
-      // 2. 이제 로그인된 정보를 다시 확인합니다.
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {
         setUser(session.user);
-
-        // 3. 명부에서 닉네임 확인 (납치할지 결정)
         const { data: profile } = await supabase
           .from('profiles')
           .select('nickname')
@@ -254,7 +233,6 @@ export default function Home() {
 
         if (profile) {
           setUserProfile(profile);
-          // 🚀 닉네임이 'Guest'라면 가차 없이 납치!
           if (profile.nickname === 'Guest') {
             router.push('/welcome');
           }
@@ -267,7 +245,6 @@ export default function Home() {
 
     processAuth();
 
-    // 로그인 상태 실시간 감지
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         processAuth();
@@ -278,10 +255,7 @@ export default function Home() {
       authListener.subscription.unsubscribe();
     };
   }, [router]);
-  // 🚀 [여기까지 새로 추가할 문지기 코드 끝!] 🚀
 
-
-  // 🚀 [여기에 추가!] 푸터에 닿으면 버튼을 위로 밀어올리는 계산기
   const [bottomOffset, setBottomOffset] = useState(0);
 
   useEffect(() => {
@@ -290,10 +264,8 @@ export default function Home() {
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
 
-      // 맨 밑바닥까지 남은 거리 계산
       const scrollBottom = documentHeight - (scrollY + windowHeight);
 
-      // 푸터 영역 대략 200px로 잡고, 200px 이내로 들어오면 그만큼 버튼을 위로(-Y) 들어올림
       const footerHeight = 200;
       if (scrollBottom < footerHeight) {
         setBottomOffset(footerHeight - scrollBottom);
@@ -378,7 +350,9 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden">
 
-      {/* 🚀 수정됨: 숨지 않고 푸터 위에서 딱 멈추는 마법! */}
+      {/* 🚀 [추가됨 2] 드디어 팝업창이 메인 화면에 뜹니다! */}
+      <WelcomePopup />
+
       <Link
         href="https://pro.aparty.co.kr"
         target="_blank"
@@ -403,31 +377,23 @@ export default function Home() {
         </div>
       </Link>
 
-      {/* 🚀 수정됨: 아파티 헤더 (로고, 슬로건, 로그인 버튼) */}
-      {/* 🚀 수정된 헤더: 슬림한 로고 + APARTY 단독 + 세련된 슬로건 */}
       <header className="w-full max-w-6xl flex justify-between items-center mt-6 md:mt-8 mb-8 md:mb-10 px-5 md:px-6">
 
-        {/* 로고 & 텍스트 그룹 */}
         <Link href="/" className="flex items-center gap-2 md:gap-2.5 group cursor-pointer">
-          {/* 1. 로고 이미지 사이즈 더 축소 (모바일 w-8, PC w-10) */}
           <div className="relative w-8 h-8 md:w-10 md:h-10 shrink-0 transition-transform group-hover:scale-105 duration-300">
             <Image src="/logo.png" alt="아파티" fill className="object-contain" />
           </div>
 
-          {/* 2. 텍스트 영역 (세로 정렬) */}
           <div className="flex flex-col items-start justify-center">
-            {/* 한글 삭제, 영문 APARTY만 유지 */}
             <h1 className="text-lg md:text-xl font-extrabold text-[#4a403a] tracking-tighter leading-none mb-0.5">
               APARTY
             </h1>
-            {/* 3. 슬로건 추가 & 4. 글씨 두께 얇게(font-medium) 적용 */}
             <span className="text-[9px] md:text-[10px] font-medium text-gray-400 tracking-tight leading-none group-hover:text-gray-500 transition-colors">
               No. 1 부동산 분양 정보 플랫폼
             </span>
           </div>
         </Link>
 
-        {/* 우측 로그인 버튼 */}
         <div className="flex items-center gap-4">
           <LoginButton />
         </div>
@@ -463,13 +429,11 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🚀 수정됨 1: mb-10을 mb-4로 줄여서 검색창과 필터 버튼 사이를 찰싹 붙였습니다! */}
         <div className="relative w-full max-w-xl mx-auto mb-4 group mt-8 z-20">
           <input type="text" placeholder="어떤 지역, 어떤 아파트를 찾으세요?" className="w-full px-5 py-4 pr-16 rounded-[24px] border border-gray-100 shadow-md focus:ring-4 focus:ring-orange-100 text-[15px] font-bold outline-none bg-white transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           {searchQuery ? (<button onClick={() => setSearchQuery("")} className="absolute right-3 top-3 bottom-3 w-12 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center transition-all"><X size={20} /></button>) : (<button className="absolute right-3 top-3 bottom-3 w-12 bg-[#4A403A] text-white rounded-2xl flex items-center justify-center shadow-md"><Search size={22} /></button>)}
         </div>
 
-        {/* 🚀 수정됨 2: 간격(gap) 축소, 버튼 사이즈(px, py, text) 극한의 다이어트! */}
         <div className="flex overflow-x-auto scrollbar-hide justify-start md:justify-center gap-1.5 md:gap-2 mb-10 px-4 py-2 w-full">
           {["전체", "분양예정", "줍줍", "분양중", "마감임박"].map((filter) => (
             <button
@@ -493,7 +457,6 @@ export default function Home() {
         ) : (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
 
-            {/* 메인 대시보드 */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 w-full max-w-7xl text-left mb-10 px-4 items-stretch">
               <div className="md:col-span-3">
                 <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
@@ -733,12 +696,9 @@ export default function Home() {
               <Link href="/tools/checklist" className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><CalendarDays size={20} /></div><span className="text-[12px] font-black text-[#4A403A]">입주 체크리스트</span></Link>
             </div>
 
-            {/* 🚀 째미의 폴드5 맞춤 최적화: 모바일과 PC에서 제목 글씨가 다르게 나오도록 설정! */}
             <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-10">
-              {/* 1. 공지사항 카드 */}
               <Link href="/notice" className="bg-white p-2.5 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
                 <div className="flex items-center gap-1.5 md:gap-4 z-10 min-w-0">
-                  {/* 🚀 핵심 수정: 밋밋한 회색에서 쨍하고 눈에 띄는 블루(blue-500)로 변경! */}
                   <div className="w-7 h-7 md:w-12 md:h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                     <Megaphone size={14} className="md:w-6 md:h-6" />
                   </div>
@@ -750,19 +710,16 @@ export default function Home() {
                     <p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight break-keep leading-tight truncate">공지 확인</p>
                   </div>
                 </div>
-                {/* 🚀 우측 화살표도 호버 시 블루로 통일! */}
                 <ChevronRight className="text-gray-300 group-hover:text-blue-500 transition-colors z-10 shrink-0 ml-0.5 md:ml-1" size={14} />
                 <div className="absolute right-0 bottom-0 w-24 h-24 bg-blue-50/50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-blue-100/60 transition-colors"></div>
               </Link>
 
-              {/* 2. 커뮤니티(라운지) 카드 */}
               <Link href="/community" className="bg-white p-2.5 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden">
                 <div className="flex items-center gap-1.5 md:gap-4 z-10 min-w-0">
                   <div className="w-7 h-7 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                     <MessageSquare size={14} className="md:w-6 md:h-6" />
                   </div>
                   <div className="text-left min-w-0">
-                    {/* 🚀 핵심 수정: 모바일은 '라운지', PC는 '아파티 라운지' */}
                     <h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">
                       <span className="md:hidden">라운지</span>
                       <span className="hidden md:inline">아파티 라운지</span>
@@ -775,11 +732,7 @@ export default function Home() {
               </Link>
             </div>
 
-
-
-            {/* 🚀 1. VIP 배너: 카카오톡 비즈보드 스타일 (슬림 & 글자 시인성 보강) */}
             <div className="w-full max-w-5xl -mt-6 md:mt-0 mb-6 md:mb-12 px-4 md:px-6">
-              {/* py-3.5(모바일)로 높이를 슬림하게 고정하면서, 내용물에 따라 자연스럽게 조절되게 했습니다. */}
               <div className="relative w-full rounded-xl md:rounded-[32px] overflow-hidden shadow-md md:shadow-2xl flex flex-row items-center justify-between px-4 sm:px-6 md:px-12 py-3.5 md:py-8 group text-left bg-black">
                 <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60 md:opacity-80">
                   <source src="/vip-bg.mp4" type="video/mp4" />
@@ -787,19 +740,16 @@ export default function Home() {
                 <div className="absolute inset-0 bg-black/40 z-0"></div>
 
                 <div className="relative z-10 flex-1 pr-3">
-                  {/* 제목: 폰트 사이즈를 모바일에 최적화(13px) */}
                   <h3 className="text-[13px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">
                     <span className="md:hidden">누구보다 빠른 <span className="text-[#FF8C42]">분양</span> 알림 🔔</span>
                     <span className="hidden md:inline">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</span>
                   </h3>
-                  {/* 부제목: 절대 숨기지 않고, 아주 작은 폰트로 찰떡같이 붙여두었습니다. */}
                   <p className="text-[9.5px] sm:text-[12px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">
                     <span className="md:hidden">로얄동·로얄층을 실시간으로 !</span>
                     <span className="hidden md:inline">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</span>
                   </p>
                 </div>
 
-                {/* 버튼: 슬림한 배너에 맞춰 크기 최적화 */}
                 <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-1 md:gap-2 shrink-0">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6">
                     <path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" />
@@ -809,7 +759,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 🚀 2. 추천 단지 영역: 모바일 폰트 및 아이콘 최적화 */}
             <section className="w-full max-w-6xl mb-16 md:mb-24 px-6 text-left">
               <div className="flex items-center justify-between mb-6 md:mb-8">
                 <h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-1.5 md:gap-2.5">
@@ -820,14 +769,11 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">{filteredProperties.map((p) => (<PropertyCard key={p.id} {...p} />))}</div>
             </section>
 
-            {/* 🚀 3. [신규 추가] 앱테크 & 리워드 유도 배너 (아이콘 교체 완료!) */}
             <div className="w-full max-w-5xl mb-24 px-4 md:px-6">
               <div className="relative w-full rounded-2xl md:rounded-[32px] overflow-hidden shadow-sm border border-orange-100 flex flex-row items-center justify-between p-3.5 sm:p-5 md:px-10 md:py-8 group text-left bg-gradient-to-r from-[#FFF5F0] to-white hover:shadow-md transition-all">
-                {/* 배경 꾸밈 요소 */}
                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl group-hover:bg-orange-300/40 transition-colors pointer-events-none"></div>
 
                 <div className="relative z-10 flex-1 pr-2 flex items-center gap-2.5 md:gap-5 min-w-0">
-                  {/* 🚀 수정됨: 투박한 동전 이모지(🪙) 대신 세련된 선물상자 아이콘으로 교체! */}
                   <div className="w-10 h-10 md:w-16 md:h-16 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0 border border-orange-100 text-[#FF8C42]">
                     <Gift className="w-5 h-5 md:w-8 md:h-8" strokeWidth={2.5} />
                   </div>
@@ -854,12 +800,10 @@ export default function Home() {
         )}
       </div>
 
-      {/* 🚀 [디자인 동기화] 전체보기와 100% 동일한 고급 모달창 */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedItem(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
 
-            {/* 다크 브라운 헤더 */}
             <div className="bg-[#4A403A] p-5 flex justify-between items-center text-white">
               <h3 className="font-black text-lg truncate pr-4">
                 {selectedItem.type === "transaction" ? "실거래 상세 정보" : "청약 공급 상세 내역"}

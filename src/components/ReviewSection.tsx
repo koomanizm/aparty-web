@@ -30,14 +30,14 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
             <div className="flex justify-between items-start mb-1">
                 <div className="flex items-center gap-2">
                     {review.profiles?.avatar_url ? (
-                        <img src={review.profiles.avatar_url} alt="프로필" className="w-7 h-7 rounded-full border border-gray-100 object-cover shrink-0" />
+                        <img src={review.profiles.avatar_url} alt="프로필" className="w-6 h-6 rounded-full border border-gray-100 object-cover shrink-0" />
                     ) : (
-                        <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100 shrink-0"><User size={13} /></div>
+                        <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100 shrink-0"><User size={12} /></div>
                     )}
                     <div>
                         <div className="flex items-center gap-1.5 mb-0.5">
-                            {/* 🚀 닉네임 크기 1포인트 업! (13px -> 14px) */}
-                            <span className="font-semibold text-[#4A403A] text-[14px]">
+                            {/* 🚀 닉네임 크기 확실하게 축소! (모바일 12px, PC 13px) */}
+                            <span className="font-semibold text-[#4A403A] text-[12px] md:text-[13px]">
                                 {review.profiles?.nickname || "아파티유저"}
                             </span>
                             <span className="text-[10px] text-gray-400 mt-0.5">
@@ -59,9 +59,9 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
                 )}
             </div>
 
-            <div className="mt-1 pl-9">
-                {/* 🚀 본문 내용 크기 1포인트 업! (13px -> 14px) */}
-                <p className={`text-[14px] text-gray-600 leading-relaxed whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-2" : ""}`}>
+            <div className="mt-2">
+                {/* 🚀 본문 내용 크기 확실하게 축소! (모바일 12px, PC 13px) */}
+                <p className={`text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-2" : ""}`}>
                     {displayText.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
                 </p>
 
@@ -82,7 +82,6 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
     );
 };
 
-// 🚀 메인 리뷰 섹션 컴포넌트
 export default function ReviewSection({ propertyId }: { propertyId: string }) {
     const [reviews, setReviews] = useState<any[]>([]);
     const [newText, setNewText] = useState("");
@@ -205,7 +204,6 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1.5">
-                            {/* 🚀 작성하는 곳 닉네임 텍스트 더 키우기 (12px -> 14px, 굵게) */}
                             <span className="text-[14px] font-bold text-gray-800">
                                 {nickname || "방문객"}
                             </span>
