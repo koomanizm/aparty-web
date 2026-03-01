@@ -142,21 +142,39 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
         try {
             const { data: insertedReview, error } = await supabase
                 .from('property_reviews')
-                .insert({ property_id: propertyId, user_id: user.id, rating: rating, content: newText.replace(/\n/g, "<br>") })
+                .insert({
+                    property_id: propertyId,
+                    user_id: user.id,
+                    rating: rating,
+                    content: newText.replace(/\n/g, "<br>")
+                })
                 .select('*, profiles(nickname, avatar_url)')
                 .single();
 
             if (error) throw error;
+
+            // 🚀 [추가됨] 포인트 지급 로직 (+50P)
+            const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single();
+            const currentPoints = profile?.points || 0;
+
+            await Promise.all([
+                // 1. 포인트 로그 기록
+                supabase.from('point_logs').insert({ user_id: user.id, amount: 50, reason: 'review' }),
+                // 2. 유저 합계 포인트 업데이트
+                supabase.from('profiles').update({ points: currentPoints + 50 }).eq('id', user.id)
+            ]);
+
             setReviews([insertedReview, ...reviews]);
             setNewText("");
             setRating(5);
+            alert("정성스러운 리뷰 감사합니다! 💰 50P가 적립되었습니다.");
+
         } catch (error) {
             alert("리뷰 등록에 실패했습니다.");
         } finally {
             setIsSubmitting(false);
         }
     };
-
     const handleDeleteReview = (deletedId: string) => {
         setReviews(reviews.filter(r => r.id !== deletedId));
     };

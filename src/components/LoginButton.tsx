@@ -34,25 +34,39 @@ export default function LoginButton() {
 
     useEffect(() => {
         fetchProfile();
+
+        // 인증 상태가 변경될 때 프로필 갱신
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN") {
                 fetchProfile();
                 if (window.location.hash.includes("access_token")) {
                     window.history.replaceState(null, "", window.location.pathname);
                 }
+            } else if (event === "SIGNED_OUT") {
+                setUser(null);
+                setProfile(null);
             }
         });
+
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setIsMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
+
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
             authListener.subscription.unsubscribe();
         };
     }, []);
+
+    // 🚀 [추가됨] 드롭다운 메뉴가 열릴 때마다 최신 포인트를 다시 불러옴
+    useEffect(() => {
+        if (isMenuOpen && user) {
+            fetchProfile();
+        }
+    }, [isMenuOpen]);
 
     const handleLogout = async () => {
         if (confirm("로그아웃 하시겠습니까?")) {
@@ -61,17 +75,13 @@ export default function LoginButton() {
         }
     };
 
-    // 🚀 1. [로그인 전] 모바일 캡슐 디자인 적용
     if (!user || !profile) {
         return (
             <>
                 <button
                     onClick={() => setIsOpen(true)}
-                    // 모바일에서는 p-1 pr-3.5 로 좌측 아바타를 감싸는 캡슐 형태를 만듭니다.
-                    className="group relative flex items-center justify-center bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50/50 rounded-full transition-all duration-300 shadow-sm hover:shadow-md active:scale-95
-                    p-1 pr-3.5 md:pl-4 md:pr-1.5 md:py-1.5 gap-2 md:gap-0"
+                    className="group relative flex items-center justify-center bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50/50 rounded-full transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 p-1 pr-3.5 md:pl-4 md:pr-1.5 md:py-1.5 gap-2 md:gap-0"
                 >
-                    {/* 📱 모바일 전용: 꼬마 아바타 + '로그인' 텍스트 */}
                     <div className="md:hidden w-7 h-7 bg-orange-50 rounded-full flex items-center justify-center border border-orange-100 shrink-0 group-hover:bg-[#FF5A00] transition-colors">
                         <User size={13} className="text-[#FF5A00] group-hover:text-white transition-colors" />
                     </div>
@@ -79,7 +89,6 @@ export default function LoginButton() {
                         로그인
                     </span>
 
-                    {/* 💻 PC 전용: 텍스트 + 화살표 (기존 유지) */}
                     <div className="hidden md:flex flex-col items-start text-left mr-3">
                         <span className="text-[13px] font-extrabold text-[#4A403A] group-hover:text-[#FF5A00] tracking-tighter leading-none mb-0.5 transition-colors duration-300">
                             아파티 시작하기
@@ -98,13 +107,11 @@ export default function LoginButton() {
         );
     }
 
-    // 2. [로그인 후] 유지
     return (
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center justify-center bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-orange-200 transition-all group active:scale-90
-                w-auto h-auto p-1 pr-3 md:pl-1.5 md:pr-4 md:py-1.5 rounded-full gap-2 md:gap-3"
+                className="flex items-center justify-center bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-orange-200 transition-all group active:scale-90 w-auto h-auto p-1 pr-3 md:pl-1.5 md:pr-4 md:py-1.5 rounded-full gap-2 md:gap-3"
             >
                 <div className="w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
                     {profile.avatar_url ? (
@@ -134,7 +141,8 @@ export default function LoginButton() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Coins size={18} className="text-[#FF5A00]" />
-                            <span className="text-lg md:text-xl font-black text-[#4A403A]">{profile.point?.toLocaleString() || 0} P</span>
+                            {/* 🚀 [수정됨] profile.point -> profile.points 로 변경 */}
+                            <span className="text-lg md:text-xl font-black text-[#4A403A]">{profile.points?.toLocaleString() || 0} P</span>
                         </div>
                     </div>
 
@@ -155,8 +163,10 @@ export default function LoginButton() {
                             <span className="text-[13px] font-bold">마이페이지</span>
                         </Link>
 
+                        {/* components/LoginButton.tsx 메뉴 부분 */}
+
                         <Link
-                            href="/mypage/activity"
+                            href="/mypage/activity" // 🚀 경로 확인!
                             onClick={() => setIsMenuOpen(false)}
                             className="flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-orange-50 text-gray-600 hover:text-[#FF5A00] transition-all group"
                         >

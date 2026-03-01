@@ -45,7 +45,6 @@ export default function WritePage() {
         checkAuth();
     }, []);
 
-    // 🚀 [수정됨] 오타 해결! handleImageChange로 정상 복구
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -101,7 +100,6 @@ export default function WritePage() {
             let imageUrl = "";
             const file = fileInputRef.current?.files?.[0];
 
-            // 🚀 1. 사진이 첨부되었다면 Storage(창고)에 업로드!
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -124,7 +122,6 @@ export default function WritePage() {
                 imageUrl = publicUrlData.publicUrl;
             }
 
-            // 🚀 2. 사진 주소(URL)와 글 내용을 수파베이스 DB(posts)에 저장!
             const { error } = await supabase
                 .from('posts')
                 .insert({
@@ -137,7 +134,20 @@ export default function WritePage() {
 
             if (error) throw error;
 
-            alert("글이 성공적으로 등록되었습니다! ✨");
+            // 🚀 [추가된 로직] 글 작성이 완료되었으니 10 포인트를 쏩니다! 🚀
+            const { data: profileData } = await supabase.from('profiles').select('points').eq('id', user.id).single();
+            const currentPoints = profileData?.points || 0;
+
+            await Promise.all([
+                // 1. 포인트 장부에 기록
+                supabase.from('point_logs').insert({ user_id: user.id, amount: 10, reason: 'post' }),
+                // 2. 유저의 총 포인트 최신화
+                supabase.from('profiles').update({ points: currentPoints + 10 }).eq('id', user.id)
+            ]);
+            // 🚀 [추가 로직 끝] 🚀
+
+            // 🚀 알림창에 포인트 지급 멘트 추가!
+            alert("글이 성공적으로 등록되었습니다! ✨ 💰 10P가 적립되었습니다.");
             router.push("/community");
             router.refresh();
         } catch (error) {

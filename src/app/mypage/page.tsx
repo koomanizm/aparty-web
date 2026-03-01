@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// 🚀 Camera, Loader2(로딩용) 아이콘 추가
+// 🚀 Coins 아이콘 추가 (이미 import 되어 있을 수도 있지만 확인!)
 import {
     ChevronLeft, Edit3, Gift, Ticket, Bell, ChevronRight,
-    CheckCircle2, LogOut, User as UserIcon, MessageSquare, Heart, Camera, Loader2
+    CheckCircle2, LogOut, User as UserIcon, MessageSquare, Heart, Camera, Loader2, Coins
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -14,10 +14,7 @@ export default function MyPage() {
     const [profile, setProfile] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [newNickname, setNewNickname] = useState("");
-
-    // 🚀 [추가됨] 사진 업로드 중 로딩 상태
     const [isUploading, setIsUploading] = useState(false);
-
     const [postCount, setPostCount] = useState(0);
     const [likeCount, setLikeCount] = useState(0);
 
@@ -46,30 +43,25 @@ export default function MyPage() {
         });
     }, []);
 
-    // 🚀 [추가됨] 프로필 사진 업로드 함수
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
             setIsUploading(true);
             const file = e.target.files?.[0];
             if (!file) return;
 
-            // 1. 파일 이름 만들기 (중복 방지를 위해 랜덤 문자열 추가)
             const fileExt = file.name.split('.').pop();
             const fileName = `${user.id}-${Math.random()}.${fileExt}`;
 
-            // 2. 수파베이스 'avatars' 창고에 사진 업로드
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(fileName, file);
 
             if (uploadError) throw uploadError;
 
-            // 3. 방금 올린 사진의 공개 URL(링크) 가져오기
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(fileName);
 
-            // 4. 내 프로필(profiles) 정보에 새 사진 링크 업데이트
             const { error: updateError } = await supabase
                 .from('profiles')
                 .update({ avatar_url: publicUrl })
@@ -78,7 +70,7 @@ export default function MyPage() {
             if (updateError) throw updateError;
 
             alert("프로필 사진이 변경되었습니다!");
-            fetchProfile(user.id); // 화면 새로고침해서 새 프사 보여주기
+            fetchProfile(user.id);
 
         } catch (error) {
             console.error("사진 업로드 에러:", error);
@@ -130,7 +122,7 @@ export default function MyPage() {
     if (!profile) return <div className="p-10 text-center font-bold text-[#FF8C42] animate-pulse">데이터를 불러오는 중...</div>;
 
     return (
-        <main className="min-h-screen bg-[#f8f9fa] pb-32">
+        <main className="min-h-screen bg-[#f8f9fa] pb-32 text-left">
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
                 <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
@@ -142,30 +134,19 @@ export default function MyPage() {
             </nav>
 
             <div className="max-w-2xl mx-auto px-5 pt-8">
+                {/* 1. 프로필 카드 */}
                 <div className="bg-white rounded-[28px] p-6 shadow-sm border border-gray-100 mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-
-                        {/* 🚀 [수정됨] 프사를 클릭하면 파일 선택창이 열리도록 변경 */}
+                    <div className="flex items-center gap-4 text-left">
                         <label className="relative w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center border-2 border-orange-100 text-[#FF8C42] cursor-pointer group">
                             {profile.avatar_url ? (
                                 <img src={profile.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                             ) : (
                                 <UserIcon size={32} />
                             )}
-
-                            {/* 업로드 중일 때는 빙글빙글 로딩 / 평소엔 마우스 올리면 카메라 아이콘 표시 */}
                             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 {isUploading ? <Loader2 size={20} className="text-white animate-spin" /> : <Camera size={20} className="text-white" />}
                             </div>
-
-                            {/* 실제 기능하는 파일 입력창 (화면에서는 숨김) */}
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleAvatarUpload}
-                                disabled={isUploading}
-                            />
+                            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
                         </label>
 
                         <div>
@@ -199,17 +180,37 @@ export default function MyPage() {
                     </button>
                 </div>
 
-                {/* 2. 내 자산 (포인트) 영역 */}
-                <div className="bg-gradient-to-br from-[#4A403A] to-[#2d2521] rounded-[28px] p-6 shadow-md mb-6 relative overflow-hidden text-white">
-                    <div className="relative z-10">
-                        <p className="text-[12px] font-bold text-white/50 mb-1">보유 포인트</p>
-                        <div className="flex items-end gap-1 mb-5">
-                            <span className="text-3xl font-black text-white">{profile.points?.toLocaleString() || 0}</span>
-                            <span className="text-[14px] font-bold text-[#FF8C42] mb-1">P</span>
+                {/* 🚀 2. 내 자산 (포인트) 영역 - 깔끔한 텍스트 & 산뜻한 컬러 */}
+                <div className="bg-white rounded-[28px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-6 border border-orange-100 relative overflow-hidden">
+                    {/* 배경 꾸밈: 은은한 장식 */}
+                    <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-orange-50 rounded-full opacity-50 pointer-events-none"></div>
+
+                    <div className="relative z-10 text-left">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[11px] font-black text-orange-400 uppercase tracking-wider">My Points</p>
+                            <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center">
+                                <Coins size={16} className="text-[#FF8C42]" />
+                            </div>
                         </div>
-                        <div className="flex gap-2 text-white">
-                            <button className="flex-1 bg-[#FF8C42] py-3 rounded-xl font-bold text-[13px] hover:bg-[#E07A30] transition-colors">포인트 적립</button>
-                            <button className="flex-1 bg-white/10 py-3 rounded-xl font-bold text-[13px] hover:bg-white/20 transition-colors">리워드 샵</button>
+
+                        {/* 포인트 숫자 클릭 시 이동 */}
+                        <Link href="/point" className="inline-flex items-baseline gap-1 mb-6 group">
+                            <span className="text-3xl font-black text-[#4A403A] group-hover:text-[#FF8C42] transition-colors tracking-tight">
+                                {profile.points?.toLocaleString() || 0}
+                            </span>
+                            <span className="text-[16px] font-bold text-[#4A403A]/40">P</span>
+                            <ChevronRight size={18} className="text-gray-300 ml-1 group-hover:translate-x-1 transition-all" />
+                        </Link>
+
+                        {/* 하단 버튼 그룹: 이모티콘 제거 및 컬러 수정 */}
+                        <div className="flex gap-2.5">
+                            <Link href="/point" className="flex-1 bg-[#FF8C42] text-white py-3.5 rounded-2xl font-black text-[13px] hover:bg-[#FF5A00] transition-all flex items-center justify-center shadow-sm shadow-orange-100 active:scale-95">
+                                포인트 적립
+                            </Link>
+                            {/* 리워드 샵: 칙칙한 색 대신 산뜻한 블루그레이/인디고 계열로 변경 */}
+                            <Link href="/point/shop" className="flex-1 bg-[#5C7CFA] text-white py-3.5 rounded-2xl font-black text-[13px] hover:bg-[#4263eb] transition-all flex items-center justify-center shadow-sm shadow-blue-100 active:scale-95">
+                                리워드 샵
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -236,16 +237,18 @@ export default function MyPage() {
                 <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-5 border-b border-gray-50 flex items-center gap-2 text-[#4A403A]">
                         <CheckCircle2 size={16} className="text-emerald-500" />
-                        <h3 className="text-[13px] font-black">서비스 설정</h3>
+                        <h3 className="text-[13px] font-black text-left">서비스 설정</h3>
                     </div>
-                    <ul className="divide-y divide-gray-50 text-gray-700">
-                        <li className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer">
+                    <ul className="divide-y divide-gray-50 text-gray-700 text-left">
+                        {/* 🚀 여기를 Link로 감싸서 연결합니다! */}
+                        <Link href="/mypage/activity" className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors">
                             <div className="flex items-center gap-3">
                                 <Ticket size={18} className="text-gray-400" />
                                 <span className="text-[14px] font-bold">내 활동 상세 내역</span>
                             </div>
                             <ChevronRight size={16} className="text-gray-200" />
-                        </li>
+                        </Link>
+
                         <li onClick={handleLogout} className="flex items-center justify-between p-5 hover:bg-red-50 cursor-pointer text-red-400 transition-colors">
                             <div className="flex items-center gap-3">
                                 <LogOut size={18} />

@@ -100,8 +100,21 @@ export default function PostDetailPage() {
 
             if (error) throw error;
 
+            // 🚀 [추가됨] 포인트 지급 로직 (+5P)
+            const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single();
+            const currentPoints = profile?.points || 0;
+
+            await Promise.all([
+                // 1. 포인트 로그 기록
+                supabase.from('point_logs').insert({ user_id: user.id, amount: 5, reason: 'comment' }),
+                // 2. 유저 합계 포인트 업데이트
+                supabase.from('profiles').update({ points: currentPoints + 5 }).eq('id', user.id)
+            ]);
+
             setComments([...comments, insertedComment]);
             setNewComment("");
+            alert("댓글이 등록되었습니다! 💰 5P가 적립되었습니다."); // 포인트 알림 추가
+
         } catch (error) {
             alert("댓글 등록 실패");
         } finally {
