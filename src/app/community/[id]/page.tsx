@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
-import { ChevronLeft, User, Loader2, Heart, MessageSquare, Send, UserCircle, Trash2, Clock } from "lucide-react";
+import { ChevronLeft, User, Loader2, Heart, MessageSquare, Send, UserCircle, Trash2, Clock, Pencil, X } from "lucide-react";
 
 export default function PostDetailPage() {
     const params = useParams();
@@ -21,6 +21,9 @@ export default function PostDetailPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
+
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editCommentText, setEditCommentText] = useState("");
 
     useEffect(() => {
         const fetchAuth = async () => {
@@ -108,6 +111,19 @@ export default function PostDetailPage() {
                 supabase.from('profiles').update({ points: currentPoints + 5 }).eq('id', user.id)
             ]);
 
+            // 🚀🚀🚀 [신규 추가] 게시글 작성자에게 알림 전송 로직 🚀🚀🚀
+            // 내가 쓴 글에 내가 댓글 단 경우가 아닐 때만 알림 전송
+            if (post.user_id !== user.id) {
+                await supabase.from('notifications').insert({
+                    user_id: post.user_id, // 알림을 받을 사람 (게시글 작성자)
+                    actor_id: user.id,     // 알림을 보낸 사람 (댓글 단 사람)
+                    type: 'comment',
+                    post_id: post.id,
+                    content: `${nickname || "아파티유저"}님이 회원님의 게시글에 댓글을 남겼습니다. 💬`
+                });
+            }
+            // 🚀🚀🚀 ----------------------------------------- 🚀🚀🚀
+
             setComments([...comments, insertedComment]);
             setNewComment("");
             alert("댓글이 등록되었습니다! 💰 5P가 적립되었습니다.");
@@ -130,6 +146,25 @@ export default function PostDetailPage() {
         }
     };
 
+    const handleCommentEditSubmit = async (commentId: string) => {
+        if (!editCommentText.trim()) return;
+        try {
+            const formattedContent = editCommentText.replace(/\n/g, "<br>");
+            const { error } = await supabase
+                .from('comments')
+                .update({ content: formattedContent })
+                .eq('id', commentId);
+
+            if (error) throw error;
+
+            setComments(comments.map(c => c.id === commentId ? { ...c, content: formattedContent } : c));
+            setEditingCommentId(null);
+            setEditCommentText("");
+        } catch (e) {
+            alert("댓글 수정에 실패했습니다.");
+        }
+    };
+
     const handleCommentLike = async (commentId: string, currentLikes: number) => {
         if (!user) return alert("로그인 후 공감할 수 있습니다! 🔒");
         const likeKey = `liked_comment_${commentId}`;
@@ -149,6 +184,17 @@ export default function PostDetailPage() {
         setLocalLikes(newLikes);
         localStorage.setItem(likeKey, "true");
         await supabase.from('posts').update({ likes: newLikes }).eq('id', post.id);
+
+        // 🚀 [보너스 추가] 게시글 공감 시에도 알림 전송 (옵션)
+        if (post.user_id !== user.id) {
+            await supabase.from('notifications').insert({
+                user_id: post.user_id,
+                actor_id: user.id,
+                type: 'like',
+                post_id: post.id,
+                content: `${nickname || "아파티유저"}님이 회원님의 게시글에 공감했습니다. ❤️`
+            });
+        }
     };
 
     const handleDeletePost = async () => {
@@ -162,10 +208,10 @@ export default function PostDetailPage() {
     if (isLoading) return <div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-[#FF5A00]" size={36} /></div>;
     if (!post) return <div className="min-h-screen flex justify-center items-center text-xl font-bold">게시글을 찾을 수 없습니다.</div>;
 
-    // 🚀 [신규 추가] 여러 장의 사진 데이터를 배열로 정규화
-    const images = Array.isArray(post.image_data)
+    const images = (Array.isArray(post.image_data)
         ? post.image_data
-        : post.image_data ? [post.image_data] : [];
+        : post.image_data ? [post.image_data] : [])
+        .filter((img: string) => typeof img === 'string' && img.trim() !== "");
 
     return (
         <main className="min-h-screen bg-[#fdfbf7] p-4 md:p-8 pb-32 flex justify-center text-left">
@@ -174,16 +220,22 @@ export default function PostDetailPage() {
                     <ChevronLeft size={18} /> 목록으로
                 </button>
 
-                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 md:p-10 mb-6 relative">
+                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 md:p-10 mb-6 relative group/post">
                     {user && post.user_id === user.id && (
-                        <button onClick={handleDeletePost} disabled={isDeleting} className="absolute top-6 right-6 text-gray-300 hover:text-red-500">
-                            {isDeleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                        </button>
+                        <div className="absolute top-5 right-5 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover/post:opacity-100 transition-opacity bg-white px-2 py-1.5 rounded-xl border border-gray-100 shadow-sm">
+                            <button onClick={() => router.push(`/community/edit/${post.id}`)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                                <Pencil size={15} strokeWidth={2.5} />
+                            </button>
+                            <div className="w-[1px] h-3 bg-gray-200"></div>
+                            <button onClick={handleDeletePost} disabled={isDeleting} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} strokeWidth={2.5} />}
+                            </button>
+                        </div>
                     )}
 
                     <div className="mb-6 pb-6 border-b border-gray-100/60 text-left">
                         <span className="inline-block text-[11px] font-black text-[#FF5A00] bg-orange-50 px-2.5 py-1 rounded-md mb-3 border border-orange-100/50">{post.category || "자유게시판"}</span>
-                        <h1 className="text-2xl md:text-3xl font-black text-[#4A403A] mb-4 leading-tight">{post.title}</h1>
+                        <h1 className="text-2xl md:text-3xl font-black text-[#4A403A] mb-4 leading-tight pr-10">{post.title}</h1>
                         <div className="flex items-center gap-3">
                             {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-10 h-10 rounded-full border object-cover" /> : <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border"><User size={18} /></div>}
                             <div className="text-left">
@@ -193,11 +245,10 @@ export default function PostDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🚀 [신규 교체] 사진이 여러 장일 때 세로로 나열하여 보여줌 */}
                     {images.length > 0 && (
                         <div className="flex flex-col gap-3 mb-10">
                             {images.map((img: string, index: number) => (
-                                <div key={index} className="rounded-2xl overflow-hidden border bg-gray-50">
+                                <div key={index} className="rounded-2xl overflow-hidden">
                                     <img src={img} alt={`이미지 ${index + 1}`} className="w-full h-auto object-cover max-h-[800px] mx-auto" />
                                 </div>
                             ))}
@@ -253,14 +304,31 @@ export default function PostDetailPage() {
                                 ) : (
                                     <div className="w-6 h-6 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border shrink-0 mt-1"><User size={12} className="md:w-5 md:h-5" /></div>
                                 )}
-                                <div className="flex-1 bg-[#fdfbf7] px-3.5 py-3 md:p-4 rounded-2xl rounded-tl-none border border-gray-100/60">
+                                <div className="flex-1 bg-[#fdfbf7] px-3.5 py-3 md:p-4 rounded-2xl rounded-tl-none border border-gray-100/60 relative">
                                     <div className="flex justify-between items-start mb-1">
                                         <span className="font-bold text-[12px] md:text-[13px] text-[#4A403A]">{comment.profiles?.nickname || "아파티유저"}</span>
                                         <span className="text-[10px] md:text-[11px] text-gray-400 font-medium">{new Date(comment.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-1.5 text-left">
-                                        {comment.content.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
-                                    </p>
+
+                                    {editingCommentId === comment.id ? (
+                                        <div className="mt-2 mb-2">
+                                            <textarea
+                                                value={editCommentText}
+                                                onChange={(e) => setEditCommentText(e.target.value)}
+                                                className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-[13px] bg-white resize-none shadow-inner"
+                                                rows={2}
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-1.5 mt-2">
+                                                <button onClick={() => setEditingCommentId(null)} className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-gray-500 hover:bg-gray-100 transition-colors">취소</button>
+                                                <button onClick={() => handleCommentEditSubmit(comment.id)} className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-blue-500 hover:bg-blue-600 transition-colors shadow-sm">수정 완료</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap mb-1.5 text-left">
+                                            {comment.content.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
+                                        </p>
+                                    )}
 
                                     <div className="flex items-center gap-3 pt-2 border-t border-gray-100/30 mt-1">
                                         <button onClick={() => handleCommentLike(comment.id, comment.likes || 0)} className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-all group/like">
@@ -268,12 +336,25 @@ export default function PostDetailPage() {
                                             <span className={`text-[11px] md:text-[12px] font-bold ${(comment.likes || 0) > 0 ? "text-red-500" : ""}`}>{comment.likes || 0}</span>
                                         </button>
                                     </div>
+
+                                    {user && comment.user_id === user.id && editingCommentId !== comment.id && (
+                                        <div className="absolute -right-1 -top-3 md:-right-2 md:-top-3 flex items-center gap-1 bg-white px-2 py-1 rounded-xl shadow-sm border border-gray-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingCommentId(comment.id);
+                                                    setEditCommentText(comment.content.replace(/<br>/g, "\n"));
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                            >
+                                                <Pencil size={12} strokeWidth={2.5} />
+                                            </button>
+                                            <div className="w-[1px] h-2.5 bg-gray-200"></div>
+                                            <button onClick={() => handleDeleteComment(comment.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                                <Trash2 size={12} strokeWidth={2.5} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                                {user && comment.user_id === user.id && (
-                                    <button onClick={() => handleDeleteComment(comment.id)} className="absolute -right-1 -top-1 md:right-0 md:top-2 text-gray-300 hover:text-red-500 bg-white md:bg-transparent rounded-full p-1.5 md:opacity-0 group-hover:opacity-100 shadow-sm md:shadow-none border md:border-none border-gray-100">
-                                        <Trash2 size={13} />
-                                    </button>
-                                )}
                             </div>
                         )) : (
                             <div className="text-center py-10 text-gray-400 font-medium text-[14px]">첫 번째 댓글의 주인공이 되어보세요! ✨</div>

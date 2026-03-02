@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, Search } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import LoginModal from "../../components/LoginModal";
+import LoginButton from "../../components/LoginButton"; // 🚀 [신규 추가] 프로필 & 알림 버튼 불러오기
 
 export default function CommunityPage() {
     const [posts, setPosts] = useState<any[]>([]);
@@ -52,7 +53,6 @@ export default function CommunityPage() {
                         authorImage: authorProfile?.avatar_url || "",
                         likes: post.likes || 0,
                         commentCount: post.comments?.length || 0,
-                        // 🚀 [수정됨] 원본 데이터(배열 혹은 문자열)를 그대로 들고 갑니다.
                         imageRaw: post.image_data,
                     };
                 }) || [];
@@ -95,13 +95,18 @@ export default function CommunityPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f9fa] selection:bg-orange-100 pb-32">
+            {/* 상단 네비게이션 바 */}
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
                 <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-1.5 text-gray-900">
                         <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                         <span className="font-bold text-xs tracking-tight">홈으로</span>
                     </Link>
-                    <span className="text-[10px] font-black tracking-[0.2em] text-gray-300 uppercase font-sans">Aparty Lounge</span>
+
+                    {/* 🚀 [신규 추가] 텍스트 대신 로그인(프로필/알림) 버튼 배치 */}
+                    <div className="flex items-center">
+                        <LoginButton compact />  {/* 👈 여기에 compact 추가! */}
+                    </div>
                 </div>
             </nav>
 
@@ -137,7 +142,6 @@ export default function CommunityPage() {
                 <div className="space-y-3">
                     {filteredPosts.length > 0 ? (
                         filteredPosts.map((post) => {
-                            // 🚀 [추가됨] 썸네일 이미지와 추가 장수 계산
                             const isArray = Array.isArray(post.imageRaw);
                             const thumbnailUrl = isArray ? post.imageRaw[0] : post.imageRaw;
                             const extraCount = isArray ? post.imageRaw.length - 1 : 0;
@@ -173,11 +177,9 @@ export default function CommunityPage() {
                                             </div>
                                         </div>
 
-                                        {/* 🚀 [수정됨] 멀티 이미지 썸네일 영역 */}
                                         {thumbnailUrl && (
                                             <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-[20px] overflow-hidden shrink-0 border border-gray-50 shadow-inner bg-gray-50">
                                                 <img src={thumbnailUrl} alt="썸네일" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                {/* 사진이 2장 이상일 때 +N 표시 */}
                                                 {extraCount > 0 && (
                                                     <div className="absolute top-1 right-1 bg-black/50 backdrop-blur-[2px] text-white text-[9px] font-black px-1.5 py-0.5 rounded-lg border border-white/20">
                                                         +{extraCount}
@@ -196,6 +198,7 @@ export default function CommunityPage() {
                     )}
                 </div>
             </div>
+            {/* 글쓰기 버튼 누를 때 로그인 안 되어 있으면 뜨는 모달 */}
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
         </main>
     );

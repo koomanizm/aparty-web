@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getNoticesFromSheet, Notice } from "../../lib/sheet";
 import { ChevronLeft, Calendar, Megaphone, Plus, Minus, Clock } from "lucide-react";
 import Link from "next/link";
+import LoginButton from "../../components/LoginButton"; // 🚀 [신규 추가]
 
 // 🚀 시간을 "N분 전", "N시간 전"으로 변환해주는 함수
 function formatTimeAgo(dateString: string) {
@@ -11,7 +12,6 @@ function formatTimeAgo(dateString: string) {
         const now = new Date();
         const noticeDate = new Date(dateString);
 
-        // 날짜 형식이 잘못되었을 경우 대비
         if (isNaN(noticeDate.getTime())) return dateString;
 
         const diffInSeconds = Math.floor((now.getTime() - noticeDate.getTime()) / 1000);
@@ -20,7 +20,6 @@ function formatTimeAgo(dateString: string) {
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}분 전`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}시간 전`;
 
-        // 하루 이상 지나면 원래 날짜 표시
         return dateString;
     } catch (e) {
         return dateString;
@@ -51,12 +50,18 @@ export default function NoticePage() {
                         <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                         <span className="font-bold text-xs tracking-tight">홈으로</span>
                     </Link>
-                    <span className="text-[10px] font-black tracking-[0.2em] text-gray-300 uppercase font-sans">Aparty Official</span>
+
+                    {/* 🚀 [신규 수정] 우측 상단에 로그인/프로필(알림) 버튼 배치 */}
+                    <div className="flex items-center justify-end w-10">
+                        <div className="-mr-2">
+                            <LoginButton compact />
+                        </div>
+                    </div>
                 </div>
             </nav>
 
             <div className="max-w-3xl mx-auto px-5 pt-10 pb-20">
-                <header className="mb-10">
+                <header className="mb-10 text-left">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="bg-orange-500 p-1.5 rounded-lg">
                             <Megaphone size={16} className="text-white" />
@@ -75,10 +80,9 @@ export default function NoticePage() {
                         ))}
                     </div>
                 ) : notices.length > 0 ? (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden text-left">
                         <div className="divide-y divide-gray-50">
                             {notices.map((notice, idx) => {
-                                // 시트에 ID가 없을 경우를 대비해 고유 ID 생성 (idx 사용)
                                 const safeId = notice.id || `notice-${idx}`;
                                 const isOpen = openId === safeId;
 
@@ -90,7 +94,6 @@ export default function NoticePage() {
                                         >
                                             <div className="flex-1 pr-4 overflow-hidden">
                                                 <div className="flex items-center gap-2 mb-1.5">
-                                                    {/* 🚀 ID(#01)를 제거하고 시간 정보를 더 강조했습니다. */}
                                                     <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">
                                                         Update
                                                     </span>
@@ -98,8 +101,7 @@ export default function NoticePage() {
                                                         <Clock size={10} className="text-gray-300" /> {formatTimeAgo(notice.date)}
                                                     </span>
                                                 </div>
-                                                <h2 className={`text-[14px] md:text-[15px] font-bold tracking-tight transition-colors truncate ${isOpen ? "text-[#4a403a]" : "text-gray-700"
-                                                    }`}>
+                                                <h2 className={`text-[14px] md:text-[15px] font-bold tracking-tight transition-colors truncate ${isOpen ? "text-[#4a403a]" : "text-gray-700"}`}>
                                                     {notice.title}
                                                 </h2>
                                             </div>
@@ -108,13 +110,11 @@ export default function NoticePage() {
                                             </div>
                                         </button>
 
-                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
-                                            }`}>
+                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
                                             <div className="px-5 pb-6 pt-1">
                                                 <div className="text-[13.5px] md:text-[14.5px] text-gray-500 leading-relaxed whitespace-pre-wrap font-medium border-t border-gray-50 pt-5">
                                                     {notice.content}
                                                 </div>
-                                                {/* 🚀 게시글 하단에 실제 작성일자 조그맣게 표시 */}
                                                 <div className="mt-6 text-[11px] text-gray-300 flex items-center gap-1">
                                                     <Calendar size={10} /> 등록일: {notice.date}
                                                 </div>

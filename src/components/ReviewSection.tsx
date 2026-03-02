@@ -1,16 +1,44 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, MessageSquare, Loader2, User, Trash2, Heart } from "lucide-react";
+import { Star, MessageSquare, Loader2, User, Trash2, Heart, Pencil, X } from "lucide-react"; // 🚀 Pencil, X 추가
 import { supabase } from "../lib/supabase";
 
 // 🚀 개별 리뷰 컴포넌트
-const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, currentUser: any, onDelete: (id: string) => void, onLike: (id: string, currentLikes: number) => void }) => {
+const ReviewItem = ({ review, currentUser, onDelete, onLike, onEdit }: { review: any, currentUser: any, onDelete: (id: string) => void, onLike: (id: string, currentLikes: number) => void, onEdit: (id: string, newContent: string, newRating: number) => void }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // 🚀 [신규 추가] 수정 모드 상태 관리
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState("");
+    const [editRating, setEditRating] = useState(5);
+    const [hoveredStar, setHoveredStar] = useState(0);
+
     const displayText = review.content || "";
     const isLongText = displayText.length > 45 || displayText.includes('<br>');
+
+    // 🚀 수정 모드 진입
+    const handleEditStart = () => {
+        setEditContent(displayText.replace(/<br>/g, "\n"));
+        setEditRating(review.rating);
+        setIsEditing(true);
+    };
+
+    // 🚀 수정 취소
+    const handleEditCancel = () => {
+        setIsEditing(false);
+        setEditContent("");
+        setHoveredStar(0);
+    };
+
+    // 🚀 수정 완료
+    const handleEditSubmit = () => {
+        if (!editContent.trim()) return;
+        const formattedContent = editContent.replace(/\n/g, "<br>");
+        onEdit(review.id, formattedContent, editRating);
+        setIsEditing(false);
+    };
 
     const handleDelete = async () => {
         if (!confirm("이 리뷰를 삭제하시겠습니까?")) return;
@@ -26,7 +54,7 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
     };
 
     return (
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col text-left">
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col text-left group/review relative">
             <div className="flex justify-between items-start mb-1">
                 <div className="flex items-center gap-2">
                     {review.profiles?.avatar_url ? (
@@ -36,7 +64,6 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
                     )}
                     <div>
                         <div className="flex items-center gap-1.5 mb-0.5">
-                            {/* 🚀 닉네임 크기 확실하게 축소! (모바일 12px, PC 13px) */}
                             <span className="font-semibold text-[#4A403A] text-[12px] md:text-[13px]">
                                 {review.profiles?.nickname || "아파티유저"}
                             </span>
@@ -44,39 +71,73 @@ const ReviewItem = ({ review, currentUser, onDelete, onLike }: { review: any, cu
                                 {new Date(review.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
                             </span>
                         </div>
-                        <div className="flex gap-0.5">
-                            {[...Array(5)].map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
-                            ))}
-                        </div>
+                        {/* 🚀 수정 모드가 아닐 때만 기존 별점 노출 */}
+                        {!isEditing && (
+                            <div className="flex gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {currentUser && currentUser.id === review.user_id && (
-                    <button onClick={handleDelete} disabled={isDeleting} className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full flex items-center gap-1">
-                        {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                    </button>
+                {/* 🚀 [신규 수정] 수정/삭제 아이콘 영역 (호버 시 노출) */}
+                {currentUser && currentUser.id === review.user_id && !isEditing && (
+                    <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 group-hover/review:opacity-100 transition-opacity bg-white px-1.5 py-1 rounded-lg border border-gray-100 shadow-sm">
+                        <button onClick={handleEditStart} className="text-gray-300 hover:text-blue-500 transition-colors p-1 rounded-md">
+                            <Pencil size={12} strokeWidth={2.5} />
+                        </button>
+                        <div className="w-[1px] h-3 bg-gray-200"></div>
+                        <button onClick={handleDelete} disabled={isDeleting} className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-md flex items-center justify-center">
+                            {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} strokeWidth={2.5} />}
+                        </button>
+                    </div>
                 )}
             </div>
 
             <div className="mt-2">
-                {/* 🚀 본문 내용 크기 확실하게 축소! (모바일 12px, PC 13px) */}
-                <p className={`text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-2" : ""}`}>
-                    {displayText.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
-                </p>
+                {/* 🚀 [신규 추가] 인라인 수정 폼 */}
+                {isEditing ? (
+                    <div className="bg-[#fcfcfc] p-3 rounded-xl border border-blue-200 shadow-inner mt-2 mb-1">
+                        <div className="flex items-center gap-1 mb-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button key={star} type="button" onMouseEnter={() => setHoveredStar(star)} onMouseLeave={() => setHoveredStar(0)} onClick={() => setEditRating(star)} className="focus:outline-none transition-transform hover:scale-110">
+                                    <Star className={`w-4 h-4 transition-colors ${star <= (hoveredStar || editRating) ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
+                                </button>
+                            ))}
+                        </div>
+                        <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="w-full px-2 py-1.5 min-h-[60px] rounded-lg border border-gray-200 focus:border-blue-400 outline-none text-[12px] bg-white resize-none"
+                            autoFocus
+                        />
+                        <div className="flex justify-end gap-1.5 mt-2">
+                            <button onClick={handleEditCancel} className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-gray-500 hover:bg-gray-100 transition-colors">취소</button>
+                            <button onClick={handleEditSubmit} className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-blue-500 hover:bg-blue-600 transition-colors shadow-sm">수정 완료</button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <p className={`text-[12px] md:text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-2" : ""}`}>
+                            {displayText.split('<br>').map((line: string, idx: number) => <span key={idx}>{line}<br /></span>)}
+                        </p>
 
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-                    <button onClick={() => onLike(review.id, review.likes || 0)} className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-all group/like">
-                        <Heart size={12} className={(review.likes || 0) > 0 ? "fill-red-500 text-red-500" : "group-hover/like:scale-110 transition-transform"} />
-                        <span className={`text-[11px] font-bold ${(review.likes || 0) > 0 ? "text-red-500" : ""}`}>{review.likes || 0}</span>
-                    </button>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                            <button onClick={() => onLike(review.id, review.likes || 0)} className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-all group/like">
+                                <Heart size={12} className={(review.likes || 0) > 0 ? "fill-red-500 text-red-500" : "group-hover/like:scale-110 transition-transform"} />
+                                <span className={`text-[11px] font-bold ${(review.likes || 0) > 0 ? "text-red-500" : ""}`}>{review.likes || 0}</span>
+                            </button>
 
-                    {isLongText && (
-                        <button onClick={() => setIsExpanded(!isExpanded)} className="text-[11px] font-bold text-[#ff6f42] hover:underline">
-                            {isExpanded ? "접기" : "자세히 보기"}
-                        </button>
-                    )}
-                </div>
+                            {isLongText && (
+                                <button onClick={() => setIsExpanded(!isExpanded)} className="text-[11px] font-bold text-[#ff6f42] hover:underline">
+                                    {isExpanded ? "접기" : "자세히 보기"}
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -153,21 +214,18 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
 
             if (error) throw error;
 
-            // 🚀 [추가됨] 포인트 지급 로직 (+50P)
             const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single();
             const currentPoints = profile?.points || 0;
 
             await Promise.all([
-                // 1. 포인트 로그 기록
-                supabase.from('point_logs').insert({ user_id: user.id, amount: 50, reason: 'review' }),
-                // 2. 유저 합계 포인트 업데이트
-                supabase.from('profiles').update({ points: currentPoints + 50 }).eq('id', user.id)
+                supabase.from('point_logs').insert({ user_id: user.id, amount: 10, reason: 'review' }),
+                supabase.from('profiles').update({ points: currentPoints + 10 }).eq('id', user.id)
             ]);
 
             setReviews([insertedReview, ...reviews]);
             setNewText("");
             setRating(5);
-            alert("정성스러운 리뷰 감사합니다! 💰 50P가 적립되었습니다.");
+            alert("정성스러운 리뷰 감사합니다! 💰 10P가 적립되었습니다.");
 
         } catch (error) {
             alert("리뷰 등록에 실패했습니다.");
@@ -175,8 +233,25 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
             setIsSubmitting(false);
         }
     };
+
     const handleDeleteReview = (deletedId: string) => {
         setReviews(reviews.filter(r => r.id !== deletedId));
+    };
+
+    // 🚀 [신규 추가] 리뷰 수정 처리 (DB 업데이트 및 화면 반영)
+    const handleEditReview = async (editId: string, newContent: string, newRating: number) => {
+        try {
+            const { error } = await supabase
+                .from('property_reviews')
+                .update({ content: newContent, rating: newRating })
+                .eq('id', editId);
+
+            if (error) throw error;
+
+            setReviews(reviews.map(r => r.id === editId ? { ...r, content: newContent, rating: newRating } : r));
+        } catch (error) {
+            alert("리뷰 수정 중 오류가 발생했습니다.");
+        }
     };
 
     const handleLikeReview = async (reviewId: string, currentLikes: number) => {
@@ -259,7 +334,14 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
                     <div className="text-center py-6 text-gray-400 text-[12px] font-bold animate-pulse">리뷰를 불러오는 중입니다...</div>
                 ) : reviews.length > 0 ? (
                     reviews.map((review) => (
-                        <ReviewItem key={review.id} review={review} currentUser={user} onDelete={handleDeleteReview} onLike={handleLikeReview} />
+                        <ReviewItem
+                            key={review.id}
+                            review={review}
+                            currentUser={user}
+                            onDelete={handleDeleteReview}
+                            onLike={handleLikeReview}
+                            onEdit={handleEditReview} // 🚀 수정 함수 전달!
+                        />
                     ))
                 ) : (
                     <div className="text-center py-8 bg-[#fcfcfc] rounded-xl border border-gray-100 border-dashed">

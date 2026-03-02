@@ -5,10 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3, MapPin } from "lucide-react";
+import { Users, Maximize, Calendar, Car, ArrowLeft, Globe, MessageCircle, Sparkles, Tag, Flame, TrendingUp, Newspaper, Calculator, Landmark, BarChart3, MapPin, CheckCircle } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 import ReviewSection from "../../../components/ReviewSection";
 import PropertyLikeButton from "../../../components/PropertyLikeButton";
+import LoginButton from "../../../components/LoginButton"; // 🚀 [신규 추가] 프로필 & 알림 버튼 불러오기
 
 declare global {
     interface Window {
@@ -27,9 +28,13 @@ export default function PropertyDetailPage() {
     const [news, setNews] = useState<any[]>([]);
     const [trades, setTrades] = useState<any[]>([]);
     const [isApiLoading, setIsApiLoading] = useState(true);
+    const [liveViewers, setLiveViewers] = useState(0);
+    const [todayCalls, setTodayCalls] = useState(0);
 
     useEffect(() => {
         async function loadProperty() {
+            setLiveViewers(Math.floor(Math.random() * 15) + 8);
+            setTodayCalls(Math.floor(Math.random() * 5) + 3);
             try {
                 const allProperties = await getPropertiesFromSheet();
                 const found = allProperties.find((p: Property) => String(p.id) === params.id);
@@ -168,7 +173,14 @@ export default function PropertyDetailPage() {
                     <ArrowLeft size={20} />
                 </button>
                 <span className="text-sm font-bold text-gray-800 opacity-80 truncate max-w-[200px]">{property.title}</span>
-                <div className="w-10"></div>
+
+
+                {/* 🚀 우측 상단에 로그인/프로필 버튼 배치 */}
+                <div className="flex items-center justify-end w-10">
+                    <div className="-mr-2">
+                        <LoginButton compact />  {/* 👈 여기에 compact 추가! */}
+                    </div>
+                </div>
             </nav>
 
             <div className="relative w-full h-[45vh] md:h-[50vh]">
@@ -178,6 +190,25 @@ export default function PropertyDetailPage() {
 
             <div className="relative -mt-10 z-10 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-5 md:p-10 border border-gray-50">
+                    {/* 🚀 라이브 보드 섹션 */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 mb-6 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
+                        <div className="flex items-center gap-2 flex-1">
+                            <div className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </div>
+                            <p className="text-[12px] md:text-[13px] font-bold text-[#4A403A]">
+                                현재 <span className="text-red-500 font-black">{liveViewers}명</span>이 이 단지를 함께 보고 있습니다.
+                            </p>
+                        </div>
+                        <div className="hidden sm:block w-[1px] h-3 bg-orange-200"></div>
+                        <div className="flex items-center gap-1.5">
+                            <CheckCircle size={14} className="text-emerald-500" />
+                            <p className="text-[11px] md:text-[12px] font-bold text-gray-500">
+                                오늘 <span className="text-[#4A403A] font-black">{todayCalls}명</span>이 상담 신청을 완료했습니다.
+                            </p>
+                        </div>
+                    </div>
 
                     <div className="flex items-center justify-between mb-5 w-full">
                         <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide pr-2">
@@ -212,7 +243,6 @@ export default function PropertyDetailPage() {
                         ))}
                     </div>
 
-                    {/* 🚀 분양가 정보가 먼저 나오도록 위로 올림 */}
                     <div className="mb-8">
                         <h3 className="text-[13px] md:text-sm font-bold text-gray-400 mb-3 flex items-center gap-1"><Tag size={14} /> 분양가 정보</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 md:gap-3">
@@ -225,7 +255,6 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 🚀 계산기 유틸 버튼 3개가 분양가 정보 바로 밑으로 이동 */}
                     <div className="grid grid-cols-3 gap-2 md:gap-3 mb-8">
                         <Link href="/tools/tax" className="flex flex-col items-center justify-center gap-1 md:gap-1.5 py-3 md:py-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-[#ff6f42] hover:shadow-md transition-all group">
                             <div className="text-blue-500 group-hover:scale-110 transition-transform"><Calculator size={18} className="md:w-5 md:h-5" /></div>

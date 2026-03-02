@@ -4,7 +4,6 @@ import Link from 'next/link';
 
 const Footer = () => {
     return (
-        // 🚀 py-12 였던 상하 여백을 py-8 로 줄여서 높이를 확 낮췄습니다.
         <footer className="bg-[#4A403A] py-8 border-t border-[#3A322D]">
             <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-6 md:gap-4">
 
@@ -23,14 +22,27 @@ const Footer = () => {
                     <p className="text-white/60 text-[12px] text-center md:text-left font-medium">
                         No.1 부동산 분양 정보 플랫폼, 아파티
                     </p>
+
+                    {/* 🚀 [추가] 면책 공고 (법적 방어막) */}
+                    <p className="hidden md:block text-white/30 text-[10px] leading-relaxed max-w-xs mt-2">
+                        아파티는 부동산 정보 제공자로서 거래의 당사자가 아니며, 모든 정보는 현장 사정에 따라 변경될 수 있으므로 반드시 견본주택을 통해 확인하시기 바랍니다.
+                    </p>
                 </div>
 
                 {/* Info Block */}
-                {/* 🚀 간격(space-y)과 글자 크기를 살짝 줄여 오밀조밀하게 배치했습니다. */}
                 <div className="flex flex-col items-center md:items-end space-y-3 text-[12px] text-white/50 mt-2 md:mt-0">
+
+                    {/* 🚀 [신규 추가] 법적 필수 링크 영역 */}
+                    <div className="flex items-center gap-4 text-white/70 mb-1 text-[13px]">
+                        <Link href="/about" className="hover:text-white transition-colors">회사소개</Link>
+                        <span className="text-white/20">|</span>
+                        <Link href="/terms" className="hover:text-white transition-colors">이용약관</Link>
+                        <span className="text-white/20">|</span>
+                        <Link href="/privacy" className="hover:text-white transition-colors font-bold text-white/90">개인정보처리방침</Link>
+                    </div>
+
                     <div className="flex flex-col items-center md:items-end gap-1 font-medium leading-relaxed text-center md:text-right">
                         <p>대표: 정규인 | 사업자등록번호: 545-74-00483</p>
-                        {/* 🚀 세 줄이던 정보를 두 줄로 합쳐서 세로 공간을 절약했습니다. */}
                         <p>주소: 부산광역시 영도구 상리로1 | 고객센터: 1688-5946</p>
                         <p>이메일: koomani.job@gmail.com</p>
                     </div>
