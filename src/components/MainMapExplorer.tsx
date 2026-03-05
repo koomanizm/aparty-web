@@ -3,47 +3,58 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Script from "next/script";
 import { Property } from "../lib/sheet";
-import { MapPin, ChevronLeft, ChevronRight, Building2, Search, Loader2 } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight, Building2, Search, Loader2, RefreshCw, Navigation, Maximize, Minimize } from "lucide-react";
 
-interface MainMapExplorerProps { properties: Property[]; }
+interface MainMapExplorerProps {
+    properties: Property[];
+    searchQuery?: string;
+    activeFilter?: string;
+}
+
 declare global { interface Window { kakao: any; } }
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
-export default function MainMapExplorer({ properties }: MainMapExplorerProps) {
+export default function MainMapExplorer({ properties, searchQuery, activeFilter = "전체" }: MainMapExplorerProps) {
     const mapRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [visibleProperties, setVisibleProperties] = useState<any[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
     const [mapItems, setMapItems] = useState<any[]>([]);
     const [isGeocoding, setIsGeocoding] = useState(false);
+    const [hasMoved, setHasMoved] = useState(false);
     const overlaysRef = useRef<any[]>([]);
 
-    // 📍 1. 사이드바 접히고 펴질 때 지도 크기 재계산 (회색 화면 방지)
     useEffect(() => {
         if (mapRef.current) {
-            // 즉시 실행
             mapRef.current.relayout();
-
-            // 애니메이션(duration-500)이 끝나는 시점에 한 번 더 실행하여 꽉 채움
             const timer = setTimeout(() => {
                 mapRef.current.relayout();
-                // 지도가 넓어질 때 중심이 틀어지지 않도록 재설정
                 const center = mapRef.current.getCenter();
                 mapRef.current.setCenter(center);
-            }, 520);
-
+            }, 320);
             return () => clearTimeout(timer);
         }
-    }, [isSidebarOpen]);
+    }, [isSidebarOpen, isFullScreen]);
 
-    // 📍 2. 마커를 그리는 함수 (현재 화면 내 매물만 번호 매겨서 그림)
+    useEffect(() => {
+        if (isFullScreen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isFullScreen]);
+
     const drawMarkers = useCallback((map: any, filteredItems: any[]) => {
         overlaysRef.current.forEach(o => o.setMap(null));
         overlaysRef.current = [];
 
         filteredItems.forEach((item) => {
             const coords = new window.kakao.maps.LatLng(item.lat, item.lng);
-            const newIndex = item.displayIndex; // 실시간 부여된 번호 사용
+            const newIndex = item.displayIndex;
+            const baseZIndex = 40 - newIndex;
 
             const status = item.status && item.status.length > 0 ? item.status[0] : "분양중";
             let bgColor = "#4A403A";
@@ -51,39 +62,59 @@ export default function MainMapExplorer({ properties }: MainMapExplorerProps) {
             else if (status.includes("마감임박")) bgColor = "#F59E0B";
             else if (status.includes("분양예정")) bgColor = "#3B82F6";
 
+            const displayPrice = item.price ? item.price.split('/')[0].replace('분양가', '').trim() : "가격문의";
+
             const content = `
-                <div onclick="window.location.href='/property/${item.id}'" style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25)); transform: translateY(-100%); transition: all 0.2s;">
-                  <div style="background: white; border-radius: 50px; display: flex; align-items: center; padding: 4px 12px 4px 4px; gap: 8px; border: 2.5px solid ${bgColor};">
-                    <span style="background: ${bgColor}; color: white; min-width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;">${newIndex}</span>
+                <style>
+                    .map-marker-container:hover .map-tooltip { display: flex !important; }
+                </style>
+                <div class="map-marker-container" 
+                     onclick="window.location.href='/property/${item.id}'" 
+                     onmouseenter="this.parentNode.style.zIndex=9999;" 
+                     onmouseleave="this.parentNode.style.zIndex=${baseZIndex};"
+                     style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2)); transform: translateY(-100%); transition: all 0.2s;">
+                  
+                  <div class="map-tooltip" style="display: none; flex-direction: column; position: absolute; bottom: 100%; margin-bottom: 6px; width: 130px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,0.25); border: 1px solid #eee; z-index: 9999;">
+                     <div style="height: 70px; width: 100%; background-image: url('${item.image || '/house1.jpg'}'); background-size: cover; background-position: center;"></div>
+                     <div style="padding: 6px 8px; display: flex; flex-direction: column; align-items: flex-start; text-align: left;">
+                        <span style="font-size: 7px; font-weight: 800; color: ${bgColor}; margin-bottom: 1px;">${status}</span>
+                        <span style="font-size: 10px; font-weight: 900; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; line-height: 1.2;">${item.title}</span>
+                        <span style="font-size: 9px; font-weight: 700; color: #666; margin-top: 2px;">${displayPrice}</span>
+                     </div>
+                  </div>
+
+                  <div style="background: white; border-radius: 30px; display: flex; align-items: center; padding: 2px 8px 2px 2px; gap: 4px; border: 1.5px solid ${bgColor};">
+                    <span style="background: ${bgColor}; color: white; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">${newIndex}</span>
                     <div style="display: flex; flex-direction: column;">
-                      <span style="color: ${bgColor}; font-size: 9px; font-weight: 800; line-height: 1;">${status}</span>
-                      <span style="color: #4A403A; font-size: 13px; font-weight: 900; white-space: nowrap; margin-top: 1px;">${item.title}</span>
+                      <span style="color: ${bgColor}; font-size: 7px; font-weight: 800; line-height: 1;">${status}</span>
+                      <span style="color: #4A403A; font-size: 9px; font-weight: 900; white-space: nowrap; margin-top: 1px;">${item.title}</span>
                     </div>
                   </div>
-                  <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid ${bgColor}; margin-top: -1px;"></div>
+                  <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid ${bgColor}; margin-top: -1px;"></div>
                 </div>
             `;
 
-            const overlay = new window.kakao.maps.CustomOverlay({ position: coords, content: content, map: map });
+            const overlay = new window.kakao.maps.CustomOverlay({
+                position: coords,
+                content: content,
+                map: map,
+                zIndex: baseZIndex
+            });
             overlaysRef.current.push(overlay);
         });
     }, []);
 
-    // 📍 3. 화면 영역 내 매물 필터링 및 번호 재할당
-    const updateVisibleItems = useCallback((map: any, allItems: any[]) => {
+    const updateVisibleItems = useCallback((map: any, allItems: any[], filter: string) => {
         if (!map || allItems.length === 0) return;
-
         const bounds = map.getBounds();
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-
         const filtered = allItems.filter((item) => {
-            return (
-                item.lat >= sw.getLat() && item.lat <= ne.getLat() &&
-                item.lng >= sw.getLng() && item.lng <= ne.getLng()
-            );
-        }).map((item, idx) => ({ ...item, displayIndex: idx + 1 })); // 🚀 실시간 순번 부여 (1번부터 시작)
-
+            const inBounds = item.lat >= sw.getLat() && item.lat <= ne.getLat() &&
+                item.lng >= sw.getLng() && item.lng <= ne.getLng();
+            const statusMatch = filter === "전체" || (item.status && item.status.includes(filter));
+            return inBounds && statusMatch;
+        }).map((item, idx) => ({ ...item, displayIndex: idx + 1 }));
         setVisibleProperties(filtered);
         drawMarkers(map, filtered);
     }, [drawMarkers]);
@@ -96,24 +127,22 @@ export default function MainMapExplorer({ properties }: MainMapExplorerProps) {
             const map = new window.kakao.maps.Map(container, options);
             mapRef.current = map;
             setIsMapLoaded(true);
-
-            window.kakao.maps.event.addListener(map, 'idle', () => {
-                setMapItems(currentItems => {
-                    updateVisibleItems(map, currentItems);
-                    return currentItems;
-                });
-            });
+            window.kakao.maps.event.addListener(map, 'idle', () => { setHasMoved(true); });
         });
     };
 
-    // 📍 4. 초기 데이터 전처리 (좌표 확보)
+    useEffect(() => {
+        if (isMapLoaded && mapRef.current && mapItems.length > 0) {
+            updateVisibleItems(mapRef.current, mapItems, activeFilter);
+            setHasMoved(false);
+        }
+    }, [activeFilter, isMapLoaded, mapItems, updateVisibleItems]);
+
     useEffect(() => {
         if (!isMapLoaded || properties.length === 0) return;
-
         const prepareData = async () => {
             setIsGeocoding(true);
             const geocoder = new window.kakao.maps.services.Geocoder();
-
             const promises = properties.map((item) => {
                 return new Promise((resolve) => {
                     if (item.coordinates && item.coordinates.includes(",")) {
@@ -128,83 +157,223 @@ export default function MainMapExplorer({ properties }: MainMapExplorerProps) {
                     }
                 });
             });
-
             const results = (await Promise.all(promises)) as any[];
             const validResults = results.filter(r => r.lat !== null);
-
             setMapItems(validResults);
             setIsGeocoding(false);
-            updateVisibleItems(mapRef.current, validResults);
+            updateVisibleItems(mapRef.current, validResults, activeFilter);
         };
-
         prepareData();
-    }, [properties, isMapLoaded, updateVisibleItems]);
+    }, [properties, isMapLoaded]);
+
+    useEffect(() => {
+        if (!isMapLoaded || !mapRef.current || !searchQuery || mapItems.length === 0) return;
+        const matchedItem = mapItems.find(item =>
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.location.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        if (matchedItem && matchedItem.lat && matchedItem.lng) {
+            const moveLatLon = new window.kakao.maps.LatLng(matchedItem.lat, matchedItem.lng);
+            mapRef.current.setLevel(5);
+            mapRef.current.panTo(moveLatLon);
+            setTimeout(() => { updateVisibleItems(mapRef.current, mapItems, activeFilter); }, 500);
+        } else {
+            const ps = new window.kakao.maps.services.Places();
+            ps.keywordSearch(searchQuery, (data: any, status: any) => {
+                if (status === window.kakao.maps.services.Status.OK) {
+                    const moveLatLon = new window.kakao.maps.LatLng(data[0].y, data[0].x);
+                    mapRef.current.setLevel(6);
+                    mapRef.current.panTo(moveLatLon);
+                    setTimeout(() => updateVisibleItems(mapRef.current, mapItems, activeFilter), 500);
+                }
+            });
+        }
+    }, [searchQuery, isMapLoaded, mapItems]);
+
+    const handleCurrentLocation = () => {
+        if (!mapRef.current) return;
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const locPosition = new window.kakao.maps.LatLng(lat, lng);
+                    mapRef.current.setLevel(6);
+                    mapRef.current.panTo(locPosition);
+                    setTimeout(() => {
+                        updateVisibleItems(mapRef.current, mapItems, activeFilter);
+                        setHasMoved(false);
+                    }, 500);
+                },
+                (error) => {
+                    console.error("GPS 오류:", error);
+                    alert("위치 정보를 가져올 수 없습니다.");
+                }
+            );
+        }
+    };
+
+    const handleReSearch = () => {
+        if (mapRef.current && mapItems.length > 0) {
+            updateVisibleItems(mapRef.current, mapItems, activeFilter);
+            setHasMoved(false);
+        }
+    };
 
     return (
-        <div className="flex flex-col md:flex-row w-full h-[600px] md:h-[750px] bg-white rounded-[40px] overflow-hidden shadow-2xl border border-gray-100 relative">
+        // 🚀 [해결 완료] fixed와 relative를 완벽하게 분리하고 width를 100vw로 강제 고정!
+        <div className={`transition-all duration-300 flex flex-col md:flex-row bg-white overflow-hidden ${isFullScreen
+                ? "fixed top-0 left-0 z-[9999] w-[100vw] h-[100vh] max-w-none rounded-none border-none m-0 p-0"
+                : "relative w-full h-[calc(100vh-180px)] min-h-[500px] md:h-[750px] rounded-lg md:rounded-xl shadow-xl border border-gray-200"
+            }`}>
             <Script strategy="afterInteractive" src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`} onLoad={initMap} />
 
             {/* 🗺️ 지도 영역 */}
-            <div className={`transition-all duration-500 relative ${isSidebarOpen ? "w-full md:w-[70%]" : "w-full"} h-full`}>
+            <div className={`transition-all duration-500 relative w-full ${isSidebarOpen ? "md:w-[70%]" : "md:w-full"} h-full`}>
                 <div id="main-map" className="w-full h-full bg-[#f8f9fa]"></div>
 
+                {/* 🚀 넓게보기 / 닫기 버튼 */}
+                <button
+                    onClick={() => setIsFullScreen(!isFullScreen)}
+                    className="absolute top-3 right-3 z-40 bg-white/95 backdrop-blur text-[#4A403A] px-3 py-2 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-100 hover:text-[#FF8C42] hover:border-orange-200 transition-all flex items-center gap-1.5 font-bold text-[10px] md:text-[12px]"
+                >
+                    {isFullScreen ? (
+                        <><Minimize size={14} className="md:w-4 md:h-4" /> 원래화면</>
+                    ) : (
+                        <><Maximize size={14} className="md:w-4 md:h-4" /> 넓게보기</>
+                    )}
+                </button>
+
+                {hasMoved && (
+                    <button
+                        onClick={handleReSearch}
+                        className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white text-[#FF8C42] px-3.5 py-2 md:px-4 md:py-2.5 rounded-full shadow-lg border border-orange-200 font-bold text-[10px] md:text-[11px] flex items-center gap-1.5 hover:bg-orange-50 transition-colors animate-in fade-in slide-in-from-bottom-2"
+                    >
+                        <RefreshCw size={12} className="md:w-3.5 md:h-3.5" /> 이 지역 재검색
+                    </button>
+                )}
+
+                <button
+                    onClick={handleCurrentLocation}
+                    className="absolute bottom-24 md:bottom-8 right-3 md:right-6 z-20 w-8 h-8 md:w-10 md:h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#4A403A] hover:text-[#FF8C42] hover:bg-orange-50 transition-all"
+                    title="내 주변 찾기"
+                >
+                    <Navigation size={14} className="md:w-5 md:h-5 opacity-80" />
+                </button>
+
                 {isGeocoding && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-orange-100 flex items-center gap-2">
-                        <Loader2 size={16} className="animate-spin text-[#FF8C42]" />
-                        <span className="text-[12px] font-bold text-[#4A403A]">정밀 위치 동기화 중...</span>
+                    <div className="absolute top-3 left-3 z-30 bg-white/90 backdrop-blur px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-lg border border-orange-100 flex items-center gap-1.5">
+                        <Loader2 size={10} className="animate-spin text-[#FF8C42] md:w-3 md:h-3" />
+                        <span className="text-[8px] md:text-[9px] font-bold text-[#4A403A]">위치 동기화 중...</span>
                     </div>
                 )}
 
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="absolute top-1/2 -right-4 md:right-0 z-20 w-10 h-16 bg-white shadow-2xl border border-gray-100 rounded-l-2xl flex items-center justify-center text-[#4A403A] hover:bg-[#FF8C42] hover:text-white transition-all"
+                    className="hidden md:flex absolute top-1/2 -right-4 md:right-0 z-20 w-8 h-12 bg-white shadow-2xl border border-gray-100 rounded-l-lg items-center justify-center text-[#4A403A] hover:bg-[#FF8C42] hover:text-white transition-all"
                     style={{ transform: "translateY(-50%)" }}
                 >
-                    {isSidebarOpen ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
+                    {isSidebarOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </button>
             </div>
 
-            {/* 📋 리스트 영역 */}
-            <div className={`transition-all duration-500 ${isSidebarOpen ? "w-full md:w-[30%] opacity-100" : "w-0 opacity-0 overflow-hidden"} h-full bg-white flex flex-col border-l border-gray-100`}>
-                <div className="p-6 bg-white border-b border-gray-50 shrink-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Search size={16} className="text-[#FF8C42]" />
-                        <h3 className="text-[16px] font-black text-[#4A403A]">현장 실시간 필터</h3>
+            {/* 📋 1. 모바일 전용: 바텀 시트 */}
+            <div
+                className={`md:hidden absolute bottom-0 left-0 w-full bg-white rounded-t-xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-30 transition-all duration-300 ease-in-out flex flex-col ${isBottomSheetOpen ? "h-[65%]" : "h-[70px]"
+                    }`}
+            >
+                <div
+                    onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}
+                    className="w-full p-3 flex flex-col items-center cursor-pointer border-b border-gray-50 shrink-0"
+                >
+                    <div className="w-8 h-1 bg-gray-200 rounded-full mb-2.5"></div>
+                    <div className="flex items-center justify-between w-full px-2">
+                        <div className="flex items-center gap-1.5">
+                            <Search size={12} className="text-[#FF8C42]" />
+                            <h3 className="text-[11px] font-black text-[#4A403A]">현재 화면 내 매물</h3>
+                        </div>
+                        <p className="text-[9px] text-gray-400 font-bold">
+                            <span className="text-[#FF8C42]">{visibleProperties.length}곳</span> 발견
+                        </p>
                     </div>
-                    <p className="text-[12px] text-gray-400 font-bold">현재 화면 내 <span className="text-[#FF8C42]">{visibleProperties.length}곳</span> 발견</p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FDFBF7]">
+                <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 bg-[#FDFBF7]">
                     {visibleProperties.map((item: any) => (
-                        <a href={`/property/${item.id}`} key={item.id} className="block p-5 bg-white rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF8C42] hover:shadow-lg transition-all group">
-                            <div className="flex items-start gap-4">
-                                <span className="w-8 h-8 rounded-xl bg-gray-50 text-[#4A403A] text-[13px] font-black flex items-center justify-center shrink-0 group-hover:bg-[#FF8C42] group-hover:text-white transition-all shadow-inner">
+                        <a href={`/property/${item.id}`} key={item.id} className="block p-3 bg-white rounded-xl shadow-sm border border-gray-50 active:scale-[0.98] transition-all">
+                            <div className="flex items-start gap-2.5">
+                                <span className="w-5 h-5 rounded-lg bg-gray-50 text-[#4A403A] text-[9px] font-black flex items-center justify-center shrink-0 shadow-inner mt-0.5">
                                     {item.displayIndex}
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <span className="px-2 py-0.5 rounded-md bg-orange-50 text-[#FF8C42] text-[9px] font-black border border-orange-100">
+                                    <div className="flex items-center gap-1 mb-1">
+                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[7px] font-black border border-orange-100">
                                             {item.status[0]}
                                         </span>
                                     </div>
-                                    <p className="text-[15px] font-black text-[#4A403A] group-hover:text-[#FF8C42] transition-colors truncate">{item.title}</p>
-                                    <p className="text-[11px] text-gray-400 font-bold truncate mt-1 leading-tight flex items-center gap-1">
-                                        <MapPin size={10} /> {item.location}
+                                    <p className="text-[11px] font-black text-[#4A403A] truncate">{item.title}</p>
+                                    <p className="text-[8px] text-gray-400 font-bold truncate mt-0.5 leading-tight flex items-center gap-1">
+                                        <MapPin size={8} /> {item.location}
                                     </p>
                                 </div>
-                                <ChevronRight size={18} className="text-gray-200 mt-5 group-hover:text-[#FF8C42] group-hover:translate-x-1 transition-all" />
+                                <ChevronRight size={12} className="text-gray-300 mt-3" />
                             </div>
                         </a>
                     ))}
                     {visibleProperties.length === 0 && !isGeocoding && (
-                        <div className="h-full flex flex-col items-center justify-center text-center py-32 opacity-40">
-                            <Building2 size={48} className="text-gray-300 mb-4" />
-                            <p className="text-[14px] font-black text-gray-400">검색된 현장이 없습니다</p>
-                            <p className="text-[12px] text-gray-400 mt-1 font-bold">지도를 이동해보세요!</p>
+                        <div className="h-full flex flex-col items-center justify-center text-center py-6 opacity-40">
+                            <Building2 size={24} className="text-gray-300 mb-2" />
+                            <p className="text-[10px] font-black text-gray-400">검색된 현장이 없습니다</p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* 📋 2. PC 전용: 우측 사이드바 리스트 */}
+            <div className={`hidden md:flex transition-all duration-500 ${isSidebarOpen ? "w-[30%] opacity-100" : "w-0 opacity-0 overflow-hidden"} h-full bg-white flex-col border-l border-gray-100`}>
+                <div className="p-4 bg-white border-b border-gray-50 shrink-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <Search size={12} className="text-[#FF8C42]" />
+                        <h3 className="text-[12px] font-black text-[#4A403A]">현장 실시간 필터</h3>
+                    </div>
+                    <p className="text-[9px] text-gray-400 font-bold">
+                        현재 화면 내 <span className="text-[#FF8C42]">{visibleProperties.length}곳</span> 발견
+                        {activeFilter !== "전체" && ` (필터: ${activeFilter})`}
+                    </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-[#FDFBF7]">
+                    {visibleProperties.map((item: any) => (
+                        <a href={`/property/${item.id}`} key={item.id} className="block p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-[#FF8C42] hover:shadow-md transition-all group animate-in fade-in slide-in-from-right-2">
+                            <div className="flex items-start gap-3">
+                                <span className="w-6 h-6 rounded-lg bg-gray-50 text-[#4A403A] text-[10px] font-black flex items-center justify-center shrink-0 group-hover:bg-[#FF8C42] group-hover:text-white transition-all shadow-inner mt-0.5">
+                                    {item.displayIndex}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1 mb-1">
+                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[7px] font-black border border-orange-100">
+                                            {item.status[0]}
+                                        </span>
+                                    </div>
+                                    <p className="text-[12px] font-black text-[#4A403A] group-hover:text-[#FF8C42] transition-colors truncate">{item.title}</p>
+                                    <p className="text-[9px] text-gray-400 font-bold truncate mt-0.5 leading-tight flex items-center gap-1">
+                                        <MapPin size={8} /> {item.location}
+                                    </p>
+                                </div>
+                                <ChevronRight size={14} className="text-gray-200 mt-3 group-hover:text-[#FF8C42] group-hover:translate-x-1 transition-all" />
+                            </div>
+                        </a>
+                    ))}
+                    {visibleProperties.length === 0 && !isGeocoding && (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-20 opacity-40">
+                            <Building2 size={32} className="text-gray-300 mb-3" />
+                            <p className="text-[11px] font-black text-gray-400">검색된 현장이 없습니다</p>
+                            <p className="text-[9px] text-gray-400 mt-1 font-bold">지도를 이동하고 '재검색'을 눌러보세요!</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
         </div>
     );
 }
