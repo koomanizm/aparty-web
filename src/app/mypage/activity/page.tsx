@@ -36,6 +36,7 @@ export default function ActivityDashboard() {
             const userId = session.user.id;
 
             // 🚀 4가지 데이터를 동시에 가져오기 (성능 최적화)
+            // 💡 point_logs 테이블로 다시 연결 완료!
             const [posts, comments, reviews, points] = await Promise.all([
                 supabase.from('posts').select('id, title, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
                 supabase.from('comments').select('id, content, post_id, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -46,22 +47,36 @@ export default function ActivityDashboard() {
             // 데이터 통합 및 가공
             const combined: ActivityItem[] = [
                 ...(posts.data?.map(p => ({
-                    id: p.id, type: 'post' as const, title: p.title,
+                    id: String(p.id), type: 'post' as const, title: p.title,
                     date: p.created_at, link: `/community/${p.id}`
                 })) || []),
                 ...(comments.data?.map(c => ({
-                    id: c.id, type: 'comment' as const, title: "댓글을 남겼습니다",
+                    id: String(c.id), type: 'comment' as const, title: "댓글을 남겼습니다",
                     content: c.content.replace(/<br>/g, " "), date: c.created_at, link: `/community/${c.post_id}`
                 })) || []),
                 ...(reviews.data?.map(r => ({
-                    id: r.id, type: 'review' as const, title: "현장 리뷰를 작성했습니다",
+                    id: String(r.id), type: 'review' as const, title: "현장 리뷰를 작성했습니다",
                     content: r.content.replace(/<br>/g, " "), date: r.created_at, link: `/property/${r.property_id}`
                 })) || []),
-                ...(points.data?.map(p => ({
-                    id: p.id, type: 'point' as const,
-                    title: p.reason === 'attendance' ? '출석 체크 적립' : p.reason === 'quiz' ? '퀴즈 정답 보너스' : p.reason === 'post' ? '게시글 작성 혜택' : p.reason === 'comment' ? '댓글 작성 혜택' : '리뷰 작성 혜택',
-                    amount: p.amount, date: p.created_at, link: '/point'
-                })) || [])
+
+                // 🚀 포인트 로그 매핑 (한글 변환 + 관리자 수동 지급/차감 대응)
+                ...(points.data?.map(p => {
+                    let displayReason = p.reason;
+                    if (p.reason === 'attendance') displayReason = '출석 체크 적립';
+                    else if (p.reason === 'quiz') displayReason = '퀴즈 정답 보너스';
+                    else if (p.reason === 'post') displayReason = '게시글 작성 혜택';
+                    else if (p.reason === 'comment') displayReason = '댓글 작성 혜택';
+                    else if (p.reason === 'review') displayReason = '리뷰 작성 혜택';
+
+                    return {
+                        id: String(p.id),
+                        type: 'point' as const,
+                        title: displayReason || '포인트 변동',
+                        amount: p.amount,
+                        date: p.created_at,
+                        link: '/point'
+                    };
+                }) || [])
             ];
 
             // 전체 날짜순 정렬
@@ -121,9 +136,9 @@ export default function ActivityDashboard() {
                                 <div className="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md active:scale-[0.98] transition-all mb-3 flex items-start gap-4">
                                     {/* 아이콘 영역 */}
                                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${item.type === 'post' ? 'bg-orange-50 text-orange-500' :
-                                            item.type === 'comment' ? 'bg-blue-50 text-blue-500' :
-                                                item.type === 'review' ? 'bg-purple-50 text-purple-500' :
-                                                    'bg-emerald-50 text-emerald-500'
+                                        item.type === 'comment' ? 'bg-blue-50 text-blue-500' :
+                                            item.type === 'review' ? 'bg-purple-50 text-purple-500' :
+                                                'bg-emerald-50 text-emerald-500'
                                         }`}>
                                         {item.type === 'post' && <MessageSquare size={18} />}
                                         {item.type === 'comment' && <MessageCircle size={18} />}
@@ -135,8 +150,12 @@ export default function ActivityDashboard() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1">
                                             <h3 className="text-[14px] font-black text-[#4A403A] truncate pr-2">{item.title}</h3>
-                                            {item.amount && (
-                                                <span className="text-[13px] font-black text-emerald-500 shrink-0">+{item.amount}P</span>
+
+                                            {/* 🚀 마이너스 포인트일 때도 예쁘게 나오도록 수정 */}
+                                            {item.amount !== undefined && (
+                                                <span className={`text-[13px] font-black shrink-0 ${item.amount > 0 ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                                    {item.amount > 0 ? '+' : ''}{item.amount.toLocaleString()}P
+                                                </span>
                                             )}
                                         </div>
                                         {item.content && (
@@ -146,7 +165,7 @@ export default function ActivityDashboard() {
                                         )}
                                         <div className="flex items-center gap-1.5 text-[11px] text-gray-300 font-bold">
                                             <Clock size={12} />
-                                            {new Date(item.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                            {new Date(item.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
                                     <ChevronRight size={16} className="text-gray-200 self-center" />

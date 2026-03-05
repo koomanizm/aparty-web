@@ -260,8 +260,21 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [p, n] = await Promise.all([getPropertiesFromSheet(), getNoticesFromSheet()]);
-        setProperties(p); setNotices(n); setFilteredProperties(p);
+        // 1. 매물 정보는 기존처럼 구글 시트에서 가져옵니다.
+        const p = await getPropertiesFromSheet();
+        setProperties(p);
+        setFilteredProperties(p);
+
+        // 2. 🚀 공지사항은 방금 만든 Supabase에서 최신 5개를 가져옵니다!
+        const { data: noticeData, error } = await supabase
+          .from('notices')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (!error && noticeData) {
+          setNotices(noticeData);
+        }
       } finally { setIsLoading(false); }
     }
     loadData();

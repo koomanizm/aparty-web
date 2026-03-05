@@ -30,7 +30,7 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
                     .select('id')
                     .eq('user_id', session.user.id)
                     .eq('property_id', String(id))
-                    .single();
+                    .maybeSingle(); // 🚀 해결! (single을 maybeSingle로 변경)
 
                 if (data) setIsLiked(true);
             }

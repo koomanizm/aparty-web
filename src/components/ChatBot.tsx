@@ -1,221 +1,189 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-// 🚀 ChevronRight 아이콘이 추가되었습니다!
-import { X, Send, MessageCircle, ChevronDown, Bot, Building2, ChevronRight } from "lucide-react";
+import { Send, MessageCircle, ChevronDown, Bot, ChevronRight, Loader2, Link as LinkIcon } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
+import Link from "next/link"; // 🚀 링크 연결을 위해 추가됨
 
 interface Message {
     role: "assistant" | "user";
     text: string;
-    options?: string[];
-    propertyOptions?: Property[];
-    selectedProperty?: Property;
 }
+
+// 🚀 [업그레이드] properties 데이터를 넘겨받아 버튼에 실제 ID를 매칭합니다.
+const renderMessageContent = (text: string, role: "assistant" | "user", properties: Property[]) => {
+    // 1. 불필요한 마크다운 기호 제거
+    const cleanText = text.replace(/## /g, "").replace(/##/g, "");
+
+    // 2. 텍스트, 단지명, 라벨, 중요포인트, 그리고 "버튼"까지 한 번에 순서대로 분리!
+    const parts = cleanText.split(/(\*\*.*?\*\*|\^\^.*?\^\^|\[.*?\]\s*:|\[버튼:.*?\])/g);
+
+    const FormattedText = parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            // 🔸 단지명
+            const content = part.slice(2, -2);
+            return <strong key={index} className={`font-extrabold text-[13px] ${role === 'assistant' ? 'text-[#FF8C42]' : 'text-white'}`}>{content}</strong>;
+        }
+        else if (part.startsWith('^^') && part.endsWith('^^')) {
+            // 🔹 중요 포인트 형광펜
+            const content = part.slice(2, -2);
+            return <span key={index} className="font-bold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded-md mx-0.5 shadow-sm">{content}</span>;
+        }
+        else if (part.match(/^\[.*?\]\s*:/)) {
+            // 🌿 항목 라벨
+            return <strong key={index} className="text-[#059669] mr-1">{part}</strong>;
+        }
+        else if (part.startsWith('[버튼:') && part.endsWith(']')) {
+            // 🚀 [핵심 포인트] 단지 상세페이지로 이동하는 링크 버튼 생성
+            const btnName = part.slice(4, -1).trim(); // "버튼:" 글자를 떼어내고 이름만 추출
+
+            if (role === 'assistant') {
+                const cleanBtnName = btnName.replace(/\s+/g, '');
+
+                // 🚀 [해결 완료] 구글 시트의 실제 컬럼명인 'title'을 정확하게 찾습니다!
+                const matchedProperty = properties.find(p => {
+                    const item = p as any;
+                    // 대표님이 말씀하신 'title' 속성에서 데이터를 꺼내옵니다.
+                    const rawName = item.title || item.Title || "";
+                    const dbName = String(rawName).replace(/\s+/g, '');
+                    return dbName === cleanBtnName;
+                });
+
+                // ID를 찾으면 /property/아이디 로 가고, 못 찾으면 임시로 검색페이지로 이동합니다.
+                const targetUrl = matchedProperty ? `/property/${matchedProperty.id}` : `/search?q=${encodeURIComponent(btnName)}`;
+
+                return (
+                    <div key={index} className="block mt-2 mb-4">
+                        <Link
+                            href={targetUrl}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-md text-[12px] font-bold hover:border-[#FF8C42] hover:text-[#FF8C42] hover:bg-orange-50 transition-colors shadow-sm group"
+                        >
+                            <span>🏢 {btnName} 보러가기</span>
+                            <ChevronRight size={12} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                    </div>
+                );
+            }
+            return null;
+        }
+
+        // 나머지 일반 텍스트 (줄바꿈도 자연스럽게 유지됨)
+        return <span key={index}>{part}</span>;
+    });
+
+    return (
+        // 🚀 leading-[1.8] 로 줄 간격을 쾌적하게 늘렸습니다.
+        <div className="whitespace-pre-wrap leading-[1.8] text-[12px] tracking-tight">
+            {FormattedText}
+        </div>
+    );
+};
 
 export default function ChatBot() {
     const [isOpen, setIsOpen] = useState(false);
     const [properties, setProperties] = useState<Property[]>([]);
-
-    const initialMessage: Message = {
-        role: "assistant",
-        text: "반가워요! 아파티(APARTY) AI 상담사입니다. ✨ \n찾으시는 아파트 이름을 말씀해 주시면 제가 꼼꼼하게 찾아드릴게요!"
-    };
-
-    const [messages, setMessages] = useState<Message[]>([initialMessage]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([
+        { role: "assistant", text: "반가워요! 아파티(APARTY) AI 상담사입니다.✨\n찾으시는 아파트나 지역을 말씀해 주시면 제가 꼼꼼하게 찾아드릴게요!" }
+    ]);
     const [inputValue, setInputValue] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
-
     const [bottomOffset, setBottomOffset] = useState(0);
 
     useEffect(() => {
+        async function loadData() {
+            setProperties(await getPropertiesFromSheet());
+        }
+        loadData();
+
         const handleScroll = () => {
-            const scrollY = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight;
-
-            const scrollBottom = documentHeight - (scrollY + windowHeight);
-
-            const footerHeight = 200;
-            if (scrollBottom < footerHeight) {
-                setBottomOffset(footerHeight - scrollBottom);
-            } else {
-                setBottomOffset(0);
-            }
+            const scrollBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+            setBottomOffset(scrollBottom < 200 ? 200 - scrollBottom : 0);
         };
-
         window.addEventListener("scroll", handleScroll);
-        handleScroll();
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     useEffect(() => {
-        async function loadData() {
-            const data = await getPropertiesFromSheet();
-            setProperties(data);
-        }
-        loadData();
-    }, []);
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }, [messages, isLoading]);
 
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages]);
-
-    const handleSearch = (query: string) => {
-        const q = query.trim().toLowerCase();
-        if (q.length < 2) {
-            setMessages(prev => [...prev, { role: "assistant", text: "검색어는 2글자 이상 입력해 주세요! 그래야 제가 더 잘 찾을 수 있어요. 😊" }]);
-            return;
-        }
-
-        const filtered = properties.filter(p => p.title.toLowerCase().includes(q));
-
-        if (filtered.length > 0) {
-            setMessages(prev => [...prev, {
-                role: "assistant",
-                text: `와우! 말씀하신 단지를 ${filtered.length}건 찾았습니다. 어떤 단지가 궁금하신가요?`,
-                propertyOptions: filtered
-            }]);
-        } else {
-            setMessages(prev => [...prev, { role: "assistant", text: "앗, 아쉽게도 일치하는 단지를 못 찾았어요. 😅 이름을 다시 한번 확인해 주시겠어요?" }]);
-        }
-    };
-
-    const selectProperty = (prop: Property) => {
-        setMessages(prev => [...prev,
-        { role: "user", text: prop.title },
-        {
-            role: "assistant",
-            text: `[${prop.title}] 현장에 대해 무엇을 알려드릴까요? 아래 메뉴에서 골라보세요! ✨`,
-            options: ["분양가 확인", "위치 정보", "세대수/규모", "현장 상세분석"],
-            selectedProperty: prop
-        }
-        ]);
-    };
-
-    const showDetailInfo = (type: string, prop: Property) => {
-        let responseText = "";
-        switch (type) {
-            case "분양가 확인": responseText = `${prop.title}의 분양가는 [${prop.price}]입니다! 예산에 잘 맞으시는지 확인해 보세요.`; break;
-            case "위치 정보": responseText = `${prop.title}는 [${prop.location}]에 위치해 있어요. 지도로 보시면 더 정확하답니다!`; break;
-            case "세대수/규모": responseText = `${prop.title}는 총 [${prop.households}] 규모로 지어지며, 면적은 [${prop.size}]입니다. 쾌적한 단지네요!`; break;
-            case "현장 상세분석": responseText = `아파티 전문가들이 분석한 이 현장의 핵심 포인트입니다!\n\n${prop.description}`; break;
-        }
-
-        setMessages(prev => [...prev,
-        { role: "user", text: type },
-        {
-            role: "assistant",
-            text: responseText,
-            options: ["다른 정보 더보기", "처음으로"],
-            selectedProperty: prop
-        }
-        ]);
-    };
-
-    const handleOptionClick = (opt: string, prop?: Property) => {
-        if (opt === "처음으로") {
-            setMessages([initialMessage]);
-        } else if (opt === "다른 정보 더보기" && prop) {
-            setMessages(prev => [...prev,
-            {
-                role: "assistant",
-                text: `알겠습니다! [${prop.title}]의 다른 정보들도 준비했어요. 무엇을 더 볼까요?`,
-                options: ["분양가 확인", "위치 정보", "세대수/규모", "현장 상세분석"],
-                selectedProperty: prop
-            }
-            ]);
-        } else if (prop) {
-            showDetailInfo(opt, prop);
-        }
-    };
-
-    const handleSend = () => {
-        if (!inputValue.trim()) return;
-        setMessages(prev => [...prev, { role: "user", text: inputValue }]);
-        handleSearch(inputValue);
+    const sendMessage = async (text: string) => {
+        if (!text.trim() || isLoading) return;
+        setMessages(prev => [...prev, { role: "user", text }]);
         setInputValue("");
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, contextData: { properties: properties.slice(0, 50) } })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setMessages(prev => [...prev, { role: "assistant", text: data.reply }]);
+            } else throw new Error(data.error);
+        } catch (error: any) {
+            setMessages(prev => [...prev, { role: "assistant", text: `연결이 원활하지 않아요. 🥲` }]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <div
-            className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100] transition-transform duration-75 ease-out"
-            style={{ transform: `translateY(-${bottomOffset}px)` }}
-        >
-            {/* 🚀 수정됨: 둥둥이 버튼을 group으로 묶고 PRO 버튼과 동일한 말풍선을 달아주었습니다! */}
+        <div className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100] transition-transform" style={{ transform: `translateY(-${bottomOffset}px)` }}>
             {!isOpen && (
-                <div className="group flex items-center justify-end">
-                    <div className="hidden md:block mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-xl">
-                        AI 상담사 연결 <ChevronRight size={12} className="inline ml-1" />
-                    </div>
-                    <button onClick={() => setIsOpen(true)} className="relative w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-[0_15px_30px_-10px_rgba(255,140,66,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white z-10">
-                        <MessageCircle size={26} fill="white" />
-                    </button>
-                </div>
+                <button onClick={() => setIsOpen(true)} className="w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+                    <MessageCircle size={26} fill="white" />
+                </button>
             )}
 
             {isOpen && (
-                <div className="w-[calc(100vw-2rem)] md:w-[360px] h-[75dvh] max-h-[600px] md:h-[550px] bg-white rounded-[24px] md:rounded-[32px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
-                    {/* Header */}
-                    <div className="bg-[#4A403A] p-5 md:p-6 text-white flex justify-between items-center shrink-0">
+                <div className="w-[calc(100vw-2rem)] md:w-[360px] h-[75dvh] max-h-[600px] bg-white rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
+                    <div className="bg-[#4A403A] p-5 text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 md:w-9 md:h-9 bg-[#FF8C42] rounded-xl flex items-center justify-center shadow-inner"><Bot size={18} strokeWidth={2.5} /></div>
-                            <h3 className="text-[14px] md:text-[15px] font-black tracking-tighter">아파티 AI 상담사</h3>
+                            <div className="w-9 h-9 bg-[#FF8C42] rounded-xl flex items-center justify-center shadow-inner"><Bot size={18} /></div>
+                            <h3 className="text-[15px] font-black tracking-tighter">아파티 AI 상담사</h3>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white transition-colors p-1"><ChevronDown size={24} /></button>
+                        <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-1"><ChevronDown size={24} /></button>
                     </div>
 
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-5 bg-[#fdfbf7] space-y-4">
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 bg-[#fdfbf7] space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                <div className={`max-w-[90%] md:max-w-[85%] p-3.5 md:p-4 rounded-2xl text-[13px] md:text-[14px] leading-relaxed font-bold shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#FF8C42] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"
+                                {/* 🚀 줄 간격 충돌을 막기 위해 leading-relaxed 제거, 텍스트 크기 13px 유지 */}
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-[12px] font-medium shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#FF8C42] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"
                                     }`}>
-                                    {msg.text}
+                                    {/* 🚀 properties 배열을 넘겨주어 단지 ID를 찾을 수 있게 연결! */}
+                                    {renderMessageContent(msg.text, msg.role, properties)}
                                 </div>
-
-                                {msg.propertyOptions && (
-                                    <div className="flex flex-wrap gap-2 mt-3 justify-start">
-                                        {msg.propertyOptions.map((p, idx) => (
-                                            <button key={idx} onClick={() => selectProperty(p)} className="px-3.5 py-2 md:px-4 md:py-2.5 bg-white border border-orange-200 text-[#FF8C42] rounded-full text-[12px] md:text-[13px] font-black hover:bg-orange-50 transition-all flex items-center gap-1.5 shadow-sm">
-                                                <Building2 size={12} /> {p.title}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {msg.options && (
-                                    <div className="grid grid-cols-2 gap-2 mt-3 w-full max-w-[280px]">
-                                        {msg.options.map((opt, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => handleOptionClick(opt, msg.selectedProperty)}
-                                                className={`px-2 py-2.5 md:px-3 md:py-3 rounded-xl text-[11px] md:text-[12px] font-black transition-all shadow-sm ${opt === "처음으로" || opt === "다른 정보 더보기"
-                                                    ? "bg-white text-gray-400 border border-gray-200 hover:border-gray-400"
-                                                    : "bg-[#4A403A] text-white hover:bg-black"
-                                                    }`}
-                                            >
-                                                {opt}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         ))}
+                        {isLoading && (
+                            <div className="flex items-start">
+                                <div className="p-4 rounded-2xl bg-white text-gray-400 border border-gray-100 flex items-center gap-2">
+                                    <Loader2 size={16} className="animate-spin text-[#FF8C42]" />
+                                    <span className="text-[13px] font-medium">아파티 데이터를 분석 중...</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="p-4 md:p-5 bg-white border-t border-gray-50 shrink-0">
-                        <div className="flex items-center gap-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-100 focus-within:ring-2 focus-within:ring-orange-100 transition-all">
+                    <div className="p-4 bg-white border-t shrink-0">
+                        <div className="flex items-center gap-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-100">
                             <input
                                 type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                placeholder="단지명을 검색해 보세요..."
-                                className="flex-1 bg-transparent border-none outline-none px-3 text-[13px] md:text-[14px] font-bold"
+                                onKeyDown={(e) => e.key === "Enter" && sendMessage(inputValue)}
+                                placeholder="단지나 인근 시세를 물어보세요!"
+                                className="flex-1 bg-transparent border-none outline-none px-3 text-[13px] font-medium"
+                                disabled={isLoading}
                             />
-                            <button onClick={handleSend} className="bg-[#4A403A] text-white p-2.5 rounded-xl hover:bg-black transition-colors shrink-0"><Send size={14} /></button>
+                            <button onClick={() => sendMessage(inputValue)} disabled={isLoading} className="bg-[#4A403A] text-white p-2.5 rounded-xl">
+                                <Send size={14} />
+                            </button>
                         </div>
                     </div>
                 </div>

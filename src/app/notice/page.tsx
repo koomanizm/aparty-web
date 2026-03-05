@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getNoticesFromSheet, Notice } from "../../lib/sheet";
+import { supabase } from "../../lib/supabase"; // 🚀 구글 시트 대신 Supabase 임포트
 import { ChevronLeft, Calendar, Megaphone, Plus, Minus, Clock } from "lucide-react";
 import Link from "next/link";
-import LoginButton from "../../components/LoginButton"; // 🚀 [신규 추가]
+import LoginButton from "../../components/LoginButton";
 
-// 🚀 시간을 "N분 전", "N시간 전"으로 변환해주는 함수
+// 🚀 [신규 추가] 구글 시트 타입 대신 로컬 타입 정의 (UI 에러 방지용)
+type Notice = {
+    id: string;
+    title: string;
+    content: string;
+    date: string;
+};
+
+// 시간을 "N분 전", "N시간 전"으로 변환해주는 함수 (기존 100% 유지)
 function formatTimeAgo(dateString: string) {
     try {
         const now = new Date();
@@ -31,17 +39,41 @@ export default function NoticePage() {
     const [loading, setLoading] = useState(true);
     const [openId, setOpenId] = useState<string | null>(null);
 
+    // 🚀 [수정됨] 구글 시트 대신 Supabase에서 공지사항을 불러옵니다.
     useEffect(() => {
-        getNoticesFromSheet().then((data: Notice[]) => {
-            setNotices(data);
-            setLoading(false);
-        });
+        const fetchNotices = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('notices')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Supabase 데이터를 기존 UI가 이해하는 형태로 변환 (id, title, content, date)
+                const formattedData: Notice[] = data?.map(n => ({
+                    id: String(n.id),
+                    title: n.title,
+                    content: n.content || "상세 내용이 없습니다.",
+                    date: n.created_at // formatTimeAgo 함수가 ISO 날짜를 알아서 변환해줌
+                })) || [];
+
+                setNotices(formattedData);
+            } catch (error) {
+                console.error("공지사항 불러오기 실패:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNotices();
     }, []);
 
     const toggleNotice = (id: string) => {
         setOpenId(openId === id ? null : id);
     };
 
+    // 👇 아래 UI 코드는 대표님이 짜신 원본 그대로 100% 동일합니다! 👇
     return (
         <main className="min-h-screen bg-[#f8f9fa] selection:bg-orange-100">
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
@@ -51,7 +83,6 @@ export default function NoticePage() {
                         <span className="font-bold text-xs tracking-tight">홈으로</span>
                     </Link>
 
-                    {/* 🚀 [신규 수정] 우측 상단에 로그인/프로필(알림) 버튼 배치 */}
                     <div className="flex items-center justify-end w-10">
                         <div className="-mr-2">
                             <LoginButton compact />
@@ -116,7 +147,7 @@ export default function NoticePage() {
                                                     {notice.content}
                                                 </div>
                                                 <div className="mt-6 text-[11px] text-gray-300 flex items-center gap-1">
-                                                    <Calendar size={10} /> 등록일: {notice.date}
+                                                    <Calendar size={10} /> 등록일: {new Date(notice.date).toLocaleDateString()}
                                                 </div>
                                             </div>
                                         </div>

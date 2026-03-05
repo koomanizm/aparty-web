@@ -28,16 +28,20 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
     if (!isOpen || !mounted) return null;
 
+    // LoginModal.tsx 안의 함수
     const handleSupabaseLogin = async (provider: 'kakao' | 'google') => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: provider as Provider,
-                options: { redirectTo: `${window.location.origin}` },
-            });
-            if (error) throw error;
-        } catch (error: any) {
-            console.error(`${provider} 에러:`, error.message);
-        }
+        console.log("🚀 버튼 눌림! 프로바이더:", provider); // 👈 이게 콘솔에 찍히는지 확인!
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: provider as Provider,
+            options: {
+                redirectTo: window.location.origin,
+                // 💡 [팁] 아래 설정을 추가하면 구글 계정 선택창이 강제로 뜹니다.
+                queryParams: { prompt: 'select_account' }
+            },
+        });
+
+        if (error) console.error("❌ 로그인 에러:", error.message);
     };
 
     const handleNaverLogin = () => {
