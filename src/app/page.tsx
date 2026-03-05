@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
+import MainMapExplorer from "../components/MainMapExplorer";
+
 
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남", "47": "경북", "43": "충북", "44": "충남", "45": "전북", "46": "전남", "50": "제주도" };
 const SGG_NAME_MAP: { [key: string]: string } = { "11680": "강남구", "11410": "용산구", "11110": "종로구", "11710": "송파구", "26440": "강서구", "26350": "해운대구", "26500": "수영구", "26230": "부산진구", "41135": "성남시 분당구", "41117": "수원시 영통구", "41590": "화성시", "28110": "인천 중구", "28260": "인천 서구", "48121": "창원시 성산구", "48170": "진주시", "48250": "김해시", "27290": "대구 달서구", "27110": "대구 중구", "27260": "대구 수성구", "47110": "포항시 남구", "47190": "구미시", "30200": "대전 유성구", "30170": "대전 서구", "29110": "광주 동구", "29200": "광주 광산구", "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시", "50130": "서귀포시" };
@@ -516,6 +518,19 @@ export default function Home() {
                 <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0"><svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg><span className="text-[10px] sm:text-[12px] md:text-[15px]">채널추가</span></Link>
               </div>
             </div>
+
+            {/* 🚀 지도로 찾는 분양 정보 섹션 */}
+            <section className="w-full max-w-6xl mb-16 md:mb-24 px-4 md:px-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-2">
+                  <MapPin className="text-orange-500" /> 지도로 보는 추천 단지
+                </h2>
+              </div>
+              <MainMapExplorer properties={properties} />
+            </section>
+
+
+
 
             <section className="w-full max-w-6xl mb-16 md:mb-24 px-6 text-left">
               <div className="flex items-center justify-between mb-6 md:mb-8"><h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-2.5"><Sparkles className="text-orange-500 w-4.5 h-4.5 md:w-6 md:h-6" />오늘의 추천 단지</h2></div>
