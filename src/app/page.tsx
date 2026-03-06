@@ -16,6 +16,11 @@ import {
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
 import MainMapExplorer from "../components/MainMapExplorer";
+// 🚀 [추가] Next.js 전용 스크립트 컴포넌트 도입
+import Script from "next/script";
+
+// 🚀 [추가] 카카오 인증키 정의
+const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남", "47": "경북", "43": "충북", "44": "충남", "45": "전북", "46": "전남", "50": "제주도" };
 const SGG_NAME_MAP: { [key: string]: string } = { "11680": "강남구", "11410": "용산구", "11110": "종로구", "11710": "송파구", "26440": "강서구", "26350": "해운대구", "26500": "수영구", "26230": "부산진구", "41135": "성남시 분당구", "41117": "수원시 영통구", "41590": "화성시", "28110": "인천 중구", "28260": "인천 서구", "48121": "창원시 성산구", "48170": "진주시", "48250": "김해시", "27290": "대구 달서구", "27110": "대구 중구", "27260": "대구 수성구", "47110": "포항시 남구", "47190": "구미시", "30200": "대전 유성구", "30170": "대전 서구", "29110": "광주 동구", "29200": "광주 광산구", "36110": "세종시", "42110": "춘천시", "42150": "강릉시", "50110": "제주시", "50130": "서귀포시" };
@@ -148,9 +153,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [activeFilter, setActiveFilter] = useState("전체");
 
-  // 🚀 [신규 추가] 필터가 한 번이라도 클릭되었는지 확인하는 상태
   const [isFilterApplied, setIsFilterApplied] = useState(false);
-
   const [viewMode, setViewMode] = useState<'gallery' | 'map'>('gallery');
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -162,9 +165,28 @@ export default function Home() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
+  // 🚀 [추가] 지도 로딩 보장용 상태값
+  const [isMapReady, setIsMapReady] = useState(false);
+
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // 🚀 [추가] 지도 엔진 로드 보장 함수
+  const handleMapLoad = useCallback(() => {
+    if (window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(() => {
+        setIsMapReady(true);
+      });
+    }
+  }, []);
+
+  // 🚀 [추가] 뒤로가기 등으로 재진입 시 이미 로드된 SDK가 있는지 체크
+  useEffect(() => {
+    if (window.kakao && window.kakao.maps) {
+      setIsMapReady(true);
+    }
+  }, []);
 
   const fetchApartmentHistory = useCallback(async (aptName: string, lawdCd: string) => {
     setIsHistoryLoading(true); setHistoryData([]); setActiveIndex(null);
@@ -318,11 +340,16 @@ export default function Home() {
   const rankingList = properties.slice(0, 6);
   const sentiment = SENTIMENT_DATA[sentimentRegion] || SENTIMENT_DATA["전국 평균"];
 
-  // 🚀 [로직 수정] 검색 중이거나, 필터가 명시적으로 클릭된 경우 탐색 모드로 진입!
   const isSearchActive = isSearching || isFilterApplied;
 
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden selection:bg-orange-100">
+      {/* 🚀 [추가] 지도 로딩 보장을 위한 Script 배치 */}
+      <Script
+        strategy="afterInteractive"
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services,clusterer&autoload=false`}
+        onLoad={handleMapLoad}
+      />
       <WelcomePopup />
       <Link href="https://pro.aparty.co.kr" target="_blank" className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] group flex items-center justify-end transition-transform duration-75 ease-out" style={{ transform: `translateY(-${bottomOffset}px)` }}>
         <div className="hidden md:block mr-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 bg-[#4A403A] text-white text-[12px] font-bold px-3 py-2 rounded-xl whitespace-nowrap shadow-xl transition-all">분양상담사 전용 <ChevronRight size={12} className="inline ml-1" /></div>
@@ -367,7 +394,7 @@ export default function Home() {
               key={filter}
               onClick={() => {
                 setActiveFilter(filter);
-                setIsFilterApplied(true); // 🚀 [핵심 수정] 필터를 누르면 무조건 탐색 모드로!
+                setIsFilterApplied(true);
               }}
               className={`shrink-0 px-4 py-1.5 md:px-5 md:py-2 rounded-full font-bold text-[11px] md:text-[12px] transition-all whitespace-nowrap ${activeFilter === filter && isFilterApplied ? "bg-[#4a403a] text-white shadow-md" : "bg-white text-gray-400 border border-gray-100 hover:text-[#FF8C42]"}`}
             >
@@ -554,7 +581,12 @@ export default function Home() {
 
           <div className="w-full min-h-[500px]">
             {viewMode === 'map' ? (
-              <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
+              // 🚀 [수정] 엔진 로드가 완료되었을 때만 컴포넌트를 렌더링
+              isMapReady ? (
+                <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
+              ) : (
+                <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-3xl text-gray-400 font-bold animate-pulse">지도를 불러오는 중...</div>
+              )
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8 animate-in fade-in slide-in-from-bottom-5 duration-500 mt-2">
                 {filteredProperties.length > 0 ? (
