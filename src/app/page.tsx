@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
@@ -11,15 +11,13 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Search, Sparkles, TrendingUp, Calculator, Landmark,
-  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map
+  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, ChevronLeft, ChevronDown, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
 import MainMapExplorer from "../components/MainMapExplorer";
-// 🚀 [추가] Next.js 전용 스크립트 컴포넌트 도입
 import Script from "next/script";
 
-// 🚀 [추가] 카카오 인증키 정의
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남", "47": "경북", "43": "충북", "44": "충남", "45": "전북", "46": "전남", "50": "제주도" };
@@ -34,6 +32,13 @@ const SENTIMENT_DATA: { [key: string]: { score: number, status: string, trend: n
   "충청/호남": { score: 75, status: "보합 전환", trend: [70, 71, 73, 72, 75], unsoldTrend: [15, 16, 14, 17, 18], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
   "강원/제주": { score: 71, status: "완만한 회복", trend: [60, 62, 65, 66, 71], unsoldTrend: [10, 11, 13, 12, 14], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
 };
+
+const REGION_GROUPS = [
+  { label: "전체", regions: ["전국"] },
+  { label: "수도권", regions: ["서울", "경기", "인천"] },
+  { label: "광역시", regions: ["부산", "대구", "광주", "대전", "울산", "세종"] },
+  { label: "지방", regions: ["강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"] }
+];
 
 const formatRealAddr = (sidoCode: string, code: string, rawSgg: string, umd: string) => {
   const sidoName = SIDO_DATA[sidoCode] || "";
@@ -153,8 +158,16 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [activeFilter, setActiveFilter] = useState("전체");
 
+  const [activeRegion, setActiveRegion] = useState("전국");
+  const [isRegionOpen, setIsRegionOpen] = useState(false);
+
   const [isFilterApplied, setIsFilterApplied] = useState(false);
   const [viewMode, setViewMode] = useState<'gallery' | 'map'>('gallery');
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // 🚀 [신규 추가] 디바이스 크기에 따라 페이지당 매물 개수를 동적으로 결정하는 상태
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
@@ -165,14 +178,38 @@ export default function Home() {
   const [tickerIndex, setTickerIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // 🚀 [추가] 지도 로딩 보장용 상태값
   const [isMapReady, setIsMapReady] = useState(false);
 
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // 🚀 [추가] 지도 엔진 로드 보장 함수
+  // 🚀 [신규 추가] 화면 크기 감지 및 ItemsPerPage 동적 조절 (모바일: 5개, PC: 8개)
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      // 768px(모바일) 미만이면 5개, 이상(태블릿/PC)이면 8개
+      setItemsPerPage(window.innerWidth < 768 ? 5 : 8);
+    };
+
+    // 초기 로드 시 1회 실행
+    updateItemsPerPage();
+
+    // 창 크기 조절 시 실시간 반응
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setSearchQuery("");
+    setActiveFilter("전체");
+    setActiveRegion("전국");
+    setIsFilterApplied(false);
+    setCurrentPage(1);
+    setViewMode('gallery');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleMapLoad = useCallback(() => {
     if (window.kakao && window.kakao.maps) {
       window.kakao.maps.load(() => {
@@ -181,7 +218,6 @@ export default function Home() {
     }
   }, []);
 
-  // 🚀 [추가] 뒤로가기 등으로 재진입 시 이미 로드된 SDK가 있는지 체크
   useEffect(() => {
     if (window.kakao && window.kakao.maps) {
       setIsMapReady(true);
@@ -329,22 +365,54 @@ export default function Home() {
 
   useEffect(() => {
     let result = properties;
-    if (activeFilter !== "전체") result = result.filter(p => p.status.includes(activeFilter));
+
+    if (activeFilter !== "전체") {
+      result = result.filter(p => p.status.includes(activeFilter));
+    }
+
+    if (activeRegion !== "전국") {
+      const regionKeywords: Record<string, string[]> = {
+        "서울": ["서울"], "경기": ["경기"], "인천": ["인천"], "부산": ["부산"],
+        "대전": ["대전"], "대구": ["대구"], "광주": ["광주"], "세종": ["세종"], "울산": ["울산"],
+        "강원": ["강원"],
+        "충북": ["충북", "충청북도"], "충남": ["충남", "충청남도"],
+        "전북": ["전북", "전라북도", "전북특별자치도"], "전남": ["전남", "전라남도"],
+        "경북": ["경북", "경상북도"], "경남": ["경남", "경상남도"],
+        "제주": ["제주"]
+      };
+      const keywords = regionKeywords[activeRegion] || [activeRegion];
+      result = result.filter(p => keywords.some(kw => p.location.includes(kw)));
+    }
+
     if (searchQuery) {
       result = result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.location.toLowerCase().includes(searchQuery.toLowerCase()));
       setIsSearching(true);
-    } else { setIsSearching(false); }
+    } else {
+      setIsSearching(false);
+    }
+
     setFilteredProperties(result);
-  }, [searchQuery, activeFilter, properties]);
+    setCurrentPage(1);
+  }, [searchQuery, activeFilter, activeRegion, properties]);
+
+  // 🚀 [신규 추가] 아이템 수나 필터가 변해서 전체 페이지가 줄어들 때, 현재 페이지 보정
+  useEffect(() => {
+    const total = Math.ceil(filteredProperties.length / itemsPerPage);
+    if (currentPage > total && total > 0) {
+      setCurrentPage(total);
+    }
+  }, [filteredProperties.length, itemsPerPage, currentPage]);
 
   const rankingList = properties.slice(0, 6);
   const sentiment = SENTIMENT_DATA[sentimentRegion] || SENTIMENT_DATA["전국 평균"];
 
-  const isSearchActive = isSearching || isFilterApplied;
+  const isSearchActive = isSearching || (isFilterApplied && activeFilter !== "전체");
+
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const currentProperties = filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <main className="min-h-screen bg-[#fdfbf7] flex flex-col items-center relative overflow-x-hidden selection:bg-orange-100">
-      {/* 🚀 [추가] 지도 로딩 보장을 위한 Script 배치 */}
       <Script
         strategy="afterInteractive"
         src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services,clusterer&autoload=false`}
@@ -360,7 +428,7 @@ export default function Home() {
       </Link>
 
       <header className="w-full max-w-6xl flex justify-between items-center mt-4 md:mt-6 mb-4 md:mb-6 px-5 md:px-6">
-        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+        <Link href="/" onClick={handleHomeClick} className="flex items-center gap-2 group cursor-pointer">
           <div className="relative w-8 h-8 md:w-10 md:h-10 shrink-0 transition-transform group-hover:scale-105 duration-300"><Image src="/logo.png" alt="아파티" fill className="object-contain" /></div>
           <div className="flex flex-col items-start justify-center">
             <h1 className="text-lg md:text-xl font-extrabold text-[#4a403a] tracking-tighter leading-none mb-0.5">APARTY</h1>
@@ -403,7 +471,7 @@ export default function Home() {
           ))}
         </div>
 
-        {!isSearchActive && (
+        {!isSearchActive && activeRegion === "전국" && (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 w-full max-w-7xl text-left mb-6 md:mb-8 px-4 items-stretch">
               <div className="md:col-span-3">
@@ -554,48 +622,147 @@ export default function Home() {
 
         <section className="w-full max-w-6xl mb-12 md:mb-24 px-4 md:px-6 mt-0 md:mt-2 text-left">
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 md:mb-4 gap-3">
-            <h2 className="text-[16px] md:text-xl font-black text-[#4a403a] flex items-center gap-2">
-              {isSearchActive ? (
-                <><Search className="text-[#FF8C42] w-4 h-4 md:w-6 md:h-6" /> {searchQuery ? `'${searchQuery}' 결과` : `#${activeFilter} 단지`} <span className="text-[#FF8C42] ml-0.5">{filteredProperties.length}건</span></>
-              ) : (
-                <><Sparkles className="text-orange-500 w-4 h-4 md:w-6 md:h-6" /> {viewMode === 'map' ? '지도로 찾는 현장' : '오늘의 추천 단지'}</>
-              )}
-            </h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-3 z-30 relative w-full">
 
-            <div className="bg-white border border-gray-200 p-1 md:p-1.5 rounded-full flex items-center shadow-sm shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
+              <h2 className="text-[15px] md:text-[18px] font-black text-[#4a403a] flex items-center gap-1.5 shrink-0 pr-2">
+                {isSearchActive && activeFilter !== "전체" && !searchQuery ? (
+                  <><Search className="text-[#FF8C42] w-4 h-4 md:w-5 md:h-5" /> #{activeFilter} 단지 <span className="text-[#FF8C42] ml-0.5">{filteredProperties.length}건</span></>
+                ) : isSearchActive && searchQuery ? (
+                  <><Search className="text-[#FF8C42] w-4 h-4 md:w-5 md:h-5" /> '{searchQuery}' 결과 <span className="text-[#FF8C42] ml-0.5">{filteredProperties.length}건</span></>
+                ) : (
+                  <><Sparkles className="text-orange-500 w-4 h-4 md:w-5 md:h-5" /> 오늘의 추천단지</>
+                )}
+              </h2>
+
+              <div className="flex items-center justify-between w-full md:w-auto gap-2">
+                {!isSearching && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setIsRegionOpen(!isRegionOpen)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md font-bold text-[11px] md:text-[12px] transition-all border ${isRegionOpen || activeRegion !== "전국" ? 'bg-[#FF8C42] text-white border-[#FF8C42] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-[#FF8C42] hover:text-[#FF8C42]'}`}
+                    >
+                      <MapPin size={13} className={isRegionOpen || activeRegion !== "전국" ? "text-white" : "text-gray-400"} />
+                      {activeRegion === "전국" ? "전국" : activeRegion.substring(0, 2)}
+                      <ChevronDown size={13} className={`transition-transform duration-200 ${isRegionOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isRegionOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsRegionOpen(false)}></div>
+                        <div className="absolute left-0 top-full mt-2 w-[85vw] max-w-[320px] md:w-[340px] bg-white rounded-[24px] shadow-2xl border border-gray-100 p-4 md:p-5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                            <span className="text-[12px] md:text-[14px] font-black text-[#4A403A]">어디를 찾으시나요?</span>
+                            <button onClick={() => setIsRegionOpen(false)} className="text-gray-400 hover:text-gray-600 bg-gray-50 p-1.5 rounded-full"><X size={14} /></button>
+                          </div>
+
+                          <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-hide pb-2">
+                            {REGION_GROUPS.map((group, idx) => (
+                              <div key={idx}>
+                                {group.label !== "전체" && <div className="text-[10px] md:text-[11px] font-bold text-gray-400 mb-2 pl-1">{group.label}</div>}
+                                <div className="flex flex-wrap gap-1.5 md:gap-2">
+                                  {group.regions.map(r => (
+                                    <button
+                                      key={r}
+                                      onClick={() => { setActiveRegion(r); setIsRegionOpen(false); }}
+                                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-[11px] md:text-[12px] font-bold transition-all border ${activeRegion === r ? 'bg-[#4A403A] text-white border-[#4A403A] shadow-md' : 'bg-white text-gray-600 border-gray-100 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF8C42]'}`}
+                                    >
+                                      {r}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className="md:hidden bg-gray-100 p-1 rounded-lg flex items-center shrink-0 shadow-inner">
+                  <button
+                    onClick={() => setViewMode('gallery')}
+                    className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
+                  >
+                    <Building size={14} /> 갤러리
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
+                  >
+                    <Map size={14} /> 지도
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden md:flex bg-gray-100 p-1.5 rounded-lg items-center shrink-0 shadow-inner">
               <button
                 onClick={() => setViewMode('gallery')}
-                className={`px-3 py-1.5 md:px-5 md:py-2 rounded-full font-black text-[11px] md:text-[13px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-400 hover:text-[#4A403A]'}`}
+                className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
               >
-                <Building size={14} className="md:w-4 md:h-4" /> 갤러리뷰
+                <Building size={14} /> 갤러리
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`px-3 py-1.5 md:px-5 md:py-2 rounded-full font-black text-[11px] md:text-[13px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-400 hover:text-[#4A403A]'}`}
+                className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
               >
-                <Map size={14} className="md:w-4 md:h-4" /> 지도뷰
+                <Map size={14} /> 지도
               </button>
             </div>
           </div>
 
           <div className="w-full min-h-[500px]">
             {viewMode === 'map' ? (
-              // 🚀 [수정] 엔진 로드가 완료되었을 때만 컴포넌트를 렌더링
               isMapReady ? (
                 <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
               ) : (
-                <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-3xl text-gray-400 font-bold animate-pulse">지도를 불러오는 중...</div>
+                <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-3xl text-gray-400 font-bold animate-pulse text-sm">지도를 불러오는 중...</div>
               )
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8 animate-in fade-in slide-in-from-bottom-5 duration-500 mt-2">
-                {filteredProperties.length > 0 ? (
-                  filteredProperties.map((p) => (<PropertyCard key={p.id} {...p} />))
-                ) : (
-                  <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-100">
-                    <Search size={40} className="text-gray-200 mb-3" />
-                    <p className="font-bold text-[14px] md:text-[16px] text-[#4A403A]">조건에 맞는 현장이 없습니다.</p>
-                    <p className="text-[11px] md:text-[13px] mt-1">다른 지역이나 단지명으로 검색해보세요.</p>
+              <div className="animate-in fade-in duration-500 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-2">
+                  {currentProperties.length > 0 ? (
+                    currentProperties.map((p) => (<PropertyCard key={p.id} {...p} />))
+                  ) : (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-100">
+                      <Search size={40} className="text-gray-200 mb-3" />
+                      <p className="font-bold text-[14px] md:text-[16px] text-[#4A403A]">조건에 맞는 현장이 없습니다.</p>
+                      <p className="text-[11px] md:text-[13px] mt-1">다른 지역이나 단지명으로 검색해보세요.</p>
+                    </div>
+                  )}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8 md:mt-12 mb-4">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[200px] sm:max-w-none px-1 py-1">
+                      {[...Array(totalPages)].map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`w-9 h-9 shrink-0 rounded-xl font-bold text-[13px] transition-all ${currentPage === i + 1 ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-[#4A403A]'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -604,7 +771,7 @@ export default function Home() {
 
         </section>
 
-        {!isSearchActive && (
+        {!isSearchActive && activeRegion === "전국" && (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
             <div className="w-full max-w-5xl mb-24 px-4 md:px-6">
               <div className="relative w-full rounded-[20px] md:rounded-[32px] overflow-hidden shadow-sm border border-orange-100 flex flex-row items-center justify-between p-3.5 sm:p-5 md:px-10 md:py-8 group text-left bg-gradient-to-r from-[#FFF5F0] to-white hover:shadow-md transition-all">

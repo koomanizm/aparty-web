@@ -4,22 +4,19 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Flame, Heart, MapPin } from "lucide-react";
-import { supabase } from "../lib/supabase"; // 🚀 경로가 ../../lib/supabase 일 수 있으니 확인해 주세요!
+import { supabase } from "../lib/supabase";
 
 const PropertyCard = ({ id, title, location, status, price, image }: any) => {
-    // 🚀 [추가됨] 찜 상태와 유저 정보
     const [isLiked, setIsLiked] = useState(false);
     const [user, setUser] = useState<any>(null);
 
-    // 1. 기존 대표님의 화려한 뱃지 스타일 로직 (유지)
     const getStatusStyle = (index: number) => {
-        const base = "relative overflow-hidden px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-sm flex items-center justify-center";
+        const base = "relative overflow-hidden px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold text-white shadow-sm flex items-center justify-center";
         const shimmerClass = index < 3 ? "aparty-shimmer-effect" : "";
         const palette = ["bg-[#ef4444]", "bg-[#3b82f6]", "bg-[#f59e0b]", "bg-[#10b981]", "bg-[#8b5cf6]"];
         return `${base} ${palette[index % palette.length]} ${shimmerClass}`;
     };
 
-    // 2. 화면 로드 시 DB에서 내 찜(하트) 기록 확인
     useEffect(() => {
         const checkLikeStatus = async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -30,7 +27,7 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
                     .select('id')
                     .eq('user_id', session.user.id)
                     .eq('property_id', String(id))
-                    .maybeSingle(); // 🚀 해결! (single을 maybeSingle로 변경)
+                    .maybeSingle();
 
                 if (data) setIsLiked(true);
             }
@@ -38,9 +35,8 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
         checkLikeStatus();
     }, [id]);
 
-    // 3. 하트 버튼 클릭 시 실시간 DB 연동
     const handleLikeClick = async (e: React.MouseEvent) => {
-        e.preventDefault(); // 카드 클릭(상세페이지 이동) 방지
+        e.preventDefault();
         e.stopPropagation();
 
         if (!user) {
@@ -49,7 +45,7 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
         }
 
         const newLikedState = !isLiked;
-        setIsLiked(newLikedState); // 즉시 색상 변경 (초고속 반응)
+        setIsLiked(newLikedState);
 
         if (newLikedState) {
             await supabase.from('likes').insert({ user_id: user.id, property_id: String(id) });
@@ -60,7 +56,6 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
 
     return (
         <div className="h-full">
-            {/* ✨ 대표님의 시그니처: 애니메이션 CSS 유지 */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @keyframes aparty-sweep { 0% { transform: translateX(-150%); } 100% { transform: translateX(150%); } }
@@ -72,54 +67,86 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
             `}} />
 
             <Link href={`/property/${id}`} className="block group h-full">
-                <div className="bg-white rounded-3xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col border border-gray-100 transform hover:-translate-y-1">
 
-                    {/* 상단 이미지 및 뱃지/하트 영역 */}
-                    <div className="h-52 w-full bg-gray-100 relative overflow-hidden shrink-0">
+                {/* 📱 모바일 뷰 */}
+                <div className="md:hidden relative w-full h-[105px] rounded-xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform">
+                    <Image src={image || "/house1.jpg"} alt={title} fill className="object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none"></div>
+
+                    <div className="absolute top-2 left-2 flex z-10">
+                        {status && status[0] && (
+                            <span className={getStatusStyle(0)}>
+                                <Flame className="w-2.5 h-2.5 mr-0.5 fill-white" /> {status[0]}
+                            </span>
+                        )}
+                    </div>
+
+                    <button onClick={handleLikeClick} className="absolute top-2 right-2 z-20 p-1.5 hover:scale-110 active:scale-90 transition-all">
+                        <Heart className={`w-[18px] h-[18px] drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] ${isLiked ? "fill-red-500 text-red-500" : "text-white"}`} strokeWidth={isLiked ? 0 : 2} />
+                    </button>
+
+                    <div className="absolute inset-0 p-2.5 flex flex-col z-10">
+                        <div className="h-4 shrink-0"></div>
+                        <div className="flex flex-col justify-center flex-1 min-w-0 pr-6">
+                            {/* 🚀 모바일 단지명 최적화 (13px, 자간 극소) */}
+                            <h3 className="font-black text-[13px] text-white truncate drop-shadow-md leading-tight mb-0.5 tracking-tighter">
+                                {title}
+                            </h3>
+                            <div className="flex items-center gap-1 text-gray-200">
+                                <MapPin className="w-2 h-2 shrink-0" />
+                                <span className="text-[8.5px] font-medium truncate drop-shadow-md">{location}</span>
+                            </div>
+                        </div>
+                        <div className="mt-auto shrink-0 flex items-end">
+                            <span className="text-[12px] font-black text-[#FFB84D] drop-shadow-md tracking-tighter">
+                                {price ? price.split('/')[0] : "가격 문의"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 💻 PC 뷰 */}
+                <div className="hidden md:flex bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden flex-col border border-gray-100 h-full transform hover:-translate-y-1">
+                    <div className="w-full h-48 lg:h-52 bg-gray-100 relative overflow-hidden shrink-0">
                         <Image src={image || "/house1.jpg"} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-
-                        {/* 🏷️ 좌측 상단: 기존 뱃지 완벽 이식 */}
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 max-w-[85%]">
                             {status?.map((tag: string, i: number) => (
                                 <span key={i} className={getStatusStyle(i)}>
-                                    {i === 0 && <Flame size={10} className="mr-1 fill-white" />} {tag}
+                                    {i === 0 && <Flame className="w-2.5 h-2.5 mr-1 fill-white" />} {tag}
                                 </span>
                             ))}
                         </div>
-
-                        {/* ❤️ 우측 상단: DB 연동 하트 버튼 */}
-                        <button
-                            onClick={handleLikeClick}
-                            className="absolute top-3 right-3 z-20 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 active:scale-90 transition-all"
-                        >
-                            <Heart size={18} className={`transition-colors duration-300 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+                        <button onClick={handleLikeClick} className="absolute top-3 right-3 z-20 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 active:scale-90 transition-all">
+                            <Heart className={`w-[18px] h-[18px] transition-colors duration-300 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
                         </button>
                     </div>
 
-                    {/* 하단 텍스트 정보 (미니멀 라이즈) */}
-                    <div className="p-5 flex flex-col flex-grow text-left">
-                        <div className="flex items-center gap-1.5 text-gray-400 mb-2">
-                            <MapPin size={14} />
-                            <span className="text-[12px] font-bold truncate">{location}</span>
+                    <div className="p-4 lg:p-5 flex flex-col flex-1 text-left justify-start min-w-0">
+                        <div className="flex flex-col gap-1 mb-auto">
+                            {/* 🚀 PC 단지명 최적화 (크기 축소 및 자간 타이트하게 조정) */}
+                            <h3 className="font-extrabold text-[13px] lg:text-[14px] text-[#4A403A] group-hover:text-[#ff5a28] tracking-tighter truncate">
+                                {title}
+                            </h3>
+                            <div className="flex items-center gap-1 text-gray-400">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="text-[10px] lg:text-[11px] font-semibold truncate tracking-tight">{location}</span>
+                            </div>
                         </div>
-                        <h3 className="font-black text-[17px] text-[#4A403A] mb-auto group-hover:text-[#ff5a28] tracking-tight leading-snug">
-                            {title}
-                        </h3>
 
-                        {/* 하단 푸터: 가격 & 상세보기 */}
-                        <div className="pt-4 mt-4 border-t border-gray-100 flex items-end justify-between shrink-0">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-400 mb-0.5">분양가</span>
-                                <span className="text-[16px] font-black text-[#ff5a28]">
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-end justify-between shrink-0">
+                            <div className="flex flex-col min-w-0 pr-1">
+                                <span className="text-[9px] font-semibold text-gray-400 mb-0.5">분양가</span>
+                                <span className="text-[14px] lg:text-[15px] font-extrabold text-[#ff5a28] truncate tracking-tighter">
                                     {price ? price.split('/')[0] : "가격 문의"}
                                 </span>
                             </div>
-                            <div className="bg-[#4a403a] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg group-hover:bg-[#ff5a28] transition-colors">
+                            <div className="bg-[#4a403a] text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg group-hover:bg-[#ff5a28] transition-colors shrink-0">
                                 상세보기 ▶
                             </div>
                         </div>
                     </div>
                 </div>
+
             </Link>
         </div>
     );
