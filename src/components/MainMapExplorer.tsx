@@ -9,22 +9,31 @@ interface MainMapExplorerProps {
     properties: Property[];
     searchQuery?: string;
     activeFilter?: string;
+    isFullScreen?: boolean;
+    onFullScreenChange?: (state: boolean) => void;
 }
 
 declare global { interface Window { kakao: any; } }
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
-export default function MainMapExplorer({ properties, searchQuery, activeFilter = "전체" }: MainMapExplorerProps) {
+export default function MainMapExplorer({ properties, searchQuery, activeFilter = "전체", isFullScreen, onFullScreenChange }: MainMapExplorerProps) {
     const mapRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [visibleProperties, setVisibleProperties] = useState<any[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-    const [isFullScreen, setIsFullScreen] = useState(false);
     const [mapItems, setMapItems] = useState<any[]>([]);
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [hasMoved, setHasMoved] = useState(false);
     const overlaysRef = useRef<any[]>([]);
+
+    const isFull = isFullScreen !== undefined ? isFullScreen : false;
+
+    const handleFullScreenToggle = () => {
+        if (onFullScreenChange) {
+            onFullScreenChange(!isFull);
+        }
+    };
 
     useEffect(() => {
         if (mapRef.current) {
@@ -36,16 +45,16 @@ export default function MainMapExplorer({ properties, searchQuery, activeFilter 
             }, 320);
             return () => clearTimeout(timer);
         }
-    }, [isSidebarOpen, isFullScreen]);
+    }, [isSidebarOpen, isFull]);
 
     useEffect(() => {
-        if (isFullScreen) {
+        if (isFull) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => { document.body.style.overflow = 'unset'; };
-    }, [isFullScreen]);
+    }, [isFull]);
 
     const drawMarkers = useCallback((map: any, filteredItems: any[]) => {
         overlaysRef.current.forEach(o => o.setMap(null));
@@ -64,11 +73,13 @@ export default function MainMapExplorer({ properties, searchQuery, activeFilter 
 
             const displayPrice = item.price ? item.price.split('/')[0].replace('분양가', '').trim() : "가격문의";
 
+            // 🚀 [추가됨] id와 data-zindex를 부여하고, .is-hovered 클래스가 붙으면 툴팁이 나오게 CSS 추가!
             const content = `
                 <style>
-                    .map-marker-container:hover .map-tooltip { display: flex !important; }
+                    .map-marker-container:hover .map-tooltip,
+                    .map-marker-container.is-hovered .map-tooltip { display: flex !important; }
                 </style>
-                <div class="map-marker-container" 
+                <div id="marker-${item.id}" class="map-marker-container" data-zindex="${baseZIndex}"
                      onclick="window.location.href='/property/${item.id}'" 
                      onmouseenter="this.parentNode.style.zIndex=9999;" 
                      onmouseleave="this.parentNode.style.zIndex=${baseZIndex};"
@@ -220,22 +231,45 @@ export default function MainMapExplorer({ properties, searchQuery, activeFilter 
         }
     };
 
+    // 🚀 [호버 기능 1] 리스트에 마우스가 올라가면 해당 마커를 찾아 강제로 활성화
+    const handleListItemMouseEnter = (id: string | number) => {
+        const markerEl = document.getElementById(`marker-${id}`);
+        if (markerEl) {
+            markerEl.classList.add('is-hovered'); // 툴팁 띄우기
+            if (markerEl.parentNode) {
+                (markerEl.parentNode as HTMLElement).style.zIndex = '9999'; // 화면 맨 위로 끌어올리기
+            }
+        }
+    };
+
+    // 🚀 [호버 기능 2] 리스트에서 마우스가 나가면 해당 마커 원래 상태로 복구
+    const handleListItemMouseLeave = (id: string | number) => {
+        const markerEl = document.getElementById(`marker-${id}`);
+        if (markerEl) {
+            markerEl.classList.remove('is-hovered'); // 툴팁 숨기기
+            const baseZ = markerEl.getAttribute('data-zindex') || '10';
+            if (markerEl.parentNode) {
+                (markerEl.parentNode as HTMLElement).style.zIndex = baseZ; // 원래 순서로 돌려놓기
+            }
+        }
+    };
+
+    const mobileBottomOffset = isBottomSheetOpen ? "bottom-[calc(60%+20px)]" : "bottom-[96px]";
+
     return (
-        // 🚀 [해결 완료] fixed와 relative를 완벽하게 분리하고 width를 100vw로 강제 고정!
         <div className={`transition-all duration-300 flex flex-col md:flex-row bg-white overflow-hidden ${isFullScreen
-                ? "fixed top-0 left-0 z-[9999] w-[100vw] h-[100vh] max-w-none rounded-none border-none m-0 p-0"
-                : "relative w-full h-[calc(100vh-180px)] min-h-[500px] md:h-[750px] rounded-lg md:rounded-xl shadow-xl border border-gray-200"
+                ? "fixed top-0 left-0 z-[99999] w-[100vw] h-[100dvh] rounded-none m-0 p-0 shadow-none border-none"
+                : "w-full h-full relative"
             }`}>
             <Script strategy="afterInteractive" src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`} onLoad={initMap} />
 
             {/* 🗺️ 지도 영역 */}
-            <div className={`transition-all duration-500 relative w-full ${isSidebarOpen ? "md:w-[70%]" : "md:w-full"} h-full`}>
-                <div id="main-map" className="w-full h-full bg-[#f8f9fa]"></div>
+            <div className={`transition-all duration-500 relative h-full ${isSidebarOpen ? "w-full md:w-[76%]" : "w-full"}`}>
+                <div id="main-map" className="w-full h-full bg-[#f8f9fa] outline-none"></div>
 
-                {/* 🚀 넓게보기 / 닫기 버튼 */}
                 <button
-                    onClick={() => setIsFullScreen(!isFullScreen)}
-                    className="absolute top-3 right-3 z-40 bg-white/95 backdrop-blur text-[#4A403A] px-3 py-2 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-100 hover:text-[#FF8C42] hover:border-orange-200 transition-all flex items-center gap-1.5 font-bold text-[10px] md:text-[12px]"
+                    onClick={handleFullScreenToggle}
+                    className="absolute top-4 right-4 z-40 bg-white/95 backdrop-blur text-[#4A403A] px-3.5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-100 hover:text-[#FF8C42] hover:border-orange-200 transition-all flex items-center gap-1.5 font-bold text-[11px] md:text-[12px]"
                 >
                     {isFullScreen ? (
                         <><Minimize size={14} className="md:w-4 md:h-4" /> 원래화면</>
@@ -247,30 +281,30 @@ export default function MainMapExplorer({ properties, searchQuery, activeFilter 
                 {hasMoved && (
                     <button
                         onClick={handleReSearch}
-                        className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white text-[#FF8C42] px-3.5 py-2 md:px-4 md:py-2.5 rounded-full shadow-lg border border-orange-200 font-bold text-[10px] md:text-[11px] flex items-center gap-1.5 hover:bg-orange-50 transition-colors animate-in fade-in slide-in-from-bottom-2"
+                        className={`absolute z-20 left-1/2 -translate-x-1/2 bg-white text-[#FF8C42] px-4 py-2.5 rounded-full shadow-lg border border-orange-200 font-bold text-[11px] flex items-center gap-1.5 hover:bg-orange-50 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 ${mobileBottomOffset} md:bottom-8`}
                     >
-                        <RefreshCw size={12} className="md:w-3.5 md:h-3.5" /> 이 지역 재검색
+                        <RefreshCw size={14} className="md:w-4 md:h-4" /> 이 지역 재검색
                     </button>
                 )}
 
                 <button
                     onClick={handleCurrentLocation}
-                    className="absolute bottom-24 md:bottom-8 right-3 md:right-6 z-20 w-8 h-8 md:w-10 md:h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#4A403A] hover:text-[#FF8C42] hover:bg-orange-50 transition-all"
+                    className={`absolute z-20 right-4 md:right-6 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#4A403A] hover:text-[#FF8C42] hover:bg-orange-50 transition-all duration-300 ${mobileBottomOffset} md:bottom-8`}
                     title="내 주변 찾기"
                 >
-                    <Navigation size={14} className="md:w-5 md:h-5 opacity-80" />
+                    <Navigation size={18} className="opacity-80" />
                 </button>
 
                 {isGeocoding && (
-                    <div className="absolute top-3 left-3 z-30 bg-white/90 backdrop-blur px-2.5 py-1 md:px-3 md:py-1.5 rounded-full shadow-lg border border-orange-100 flex items-center gap-1.5">
-                        <Loader2 size={10} className="animate-spin text-[#FF8C42] md:w-3 md:h-3" />
-                        <span className="text-[8px] md:text-[9px] font-bold text-[#4A403A]">위치 동기화 중...</span>
+                    <div className="absolute top-4 left-4 z-30 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-orange-100 flex items-center gap-1.5">
+                        <Loader2 size={12} className="animate-spin text-[#FF8C42]" />
+                        <span className="text-[10px] font-bold text-[#4A403A]">위치 동기화 중...</span>
                     </div>
                 )}
 
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="hidden md:flex absolute top-1/2 -right-4 md:right-0 z-20 w-8 h-12 bg-white shadow-2xl border border-gray-100 rounded-l-lg items-center justify-center text-[#4A403A] hover:bg-[#FF8C42] hover:text-white transition-all"
+                    className="hidden md:flex absolute top-1/2 -right-4 md:right-0 z-20 w-8 h-14 bg-white shadow-xl border border-gray-100 rounded-l-xl items-center justify-center text-[#4A403A] hover:bg-[#FF8C42] hover:text-white transition-all"
                     style={{ transform: "translateY(-50%)" }}
                 >
                     {isSidebarOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -279,96 +313,102 @@ export default function MainMapExplorer({ properties, searchQuery, activeFilter 
 
             {/* 📋 1. 모바일 전용: 바텀 시트 */}
             <div
-                className={`md:hidden absolute bottom-0 left-0 w-full bg-white rounded-t-xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-30 transition-all duration-300 ease-in-out flex flex-col ${isBottomSheetOpen ? "h-[65%]" : "h-[70px]"
-                    }`}
+                className={`md:hidden absolute bottom-0 left-0 w-full bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-30 transition-all duration-300 ease-in-out flex flex-col ${isBottomSheetOpen ? "h-[60%]" : "h-[80px]"}`}
             >
                 <div
                     onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}
-                    className="w-full p-3 flex flex-col items-center cursor-pointer border-b border-gray-50 shrink-0"
+                    className="w-full p-4 flex flex-col items-center cursor-pointer border-b border-gray-50 shrink-0"
                 >
-                    <div className="w-8 h-1 bg-gray-200 rounded-full mb-2.5"></div>
+                    <div className="w-10 h-1.5 bg-gray-200 rounded-full mb-3"></div>
                     <div className="flex items-center justify-between w-full px-2">
                         <div className="flex items-center gap-1.5">
-                            <Search size={12} className="text-[#FF8C42]" />
-                            <h3 className="text-[11px] font-black text-[#4A403A]">현재 화면 내 매물</h3>
+                            <Search size={14} className="text-[#FF8C42]" />
+                            <h3 className="text-[13px] font-black text-[#4A403A]">현재 화면 내 매물</h3>
                         </div>
-                        <p className="text-[9px] text-gray-400 font-bold">
+                        <p className="text-[10px] text-gray-400 font-bold bg-gray-50 px-2 py-1 rounded-md">
                             <span className="text-[#FF8C42]">{visibleProperties.length}곳</span> 발견
                         </p>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 bg-[#FDFBF7]">
+                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#FDFBF7] pb-10">
                     {visibleProperties.map((item: any) => (
-                        <a href={`/property/${item.id}`} key={item.id} className="block p-3 bg-white rounded-xl shadow-sm border border-gray-50 active:scale-[0.98] transition-all">
-                            <div className="flex items-start gap-2.5">
-                                <span className="w-5 h-5 rounded-lg bg-gray-50 text-[#4A403A] text-[9px] font-black flex items-center justify-center shrink-0 shadow-inner mt-0.5">
+                        <a href={`/property/${item.id}`} key={item.id} className="block p-3.5 bg-white rounded-2xl shadow-sm border border-gray-100 active:scale-[0.98] transition-all">
+                            <div className="flex items-start gap-3">
+                                <span className="w-6 h-6 rounded-lg bg-gray-50 text-[#4A403A] text-[10px] font-black flex items-center justify-center shrink-0 shadow-inner mt-0.5">
                                     {item.displayIndex}
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1 mb-1">
-                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[7px] font-black border border-orange-100">
+                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[8px] font-black border border-orange-100">
                                             {item.status[0]}
                                         </span>
                                     </div>
-                                    <p className="text-[11px] font-black text-[#4A403A] truncate">{item.title}</p>
-                                    <p className="text-[8px] text-gray-400 font-bold truncate mt-0.5 leading-tight flex items-center gap-1">
-                                        <MapPin size={8} /> {item.location}
+                                    <p className="text-[13px] font-black text-[#4A403A] truncate">{item.title}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold truncate mt-1 leading-tight flex items-center gap-1">
+                                        <MapPin size={10} /> {item.location}
                                     </p>
                                 </div>
-                                <ChevronRight size={12} className="text-gray-300 mt-3" />
+                                <ChevronRight size={14} className="text-gray-300 mt-3" />
                             </div>
                         </a>
                     ))}
                     {visibleProperties.length === 0 && !isGeocoding && (
                         <div className="h-full flex flex-col items-center justify-center text-center py-6 opacity-40">
-                            <Building2 size={24} className="text-gray-300 mb-2" />
-                            <p className="text-[10px] font-black text-gray-400">검색된 현장이 없습니다</p>
+                            <Building2 size={28} className="text-gray-300 mb-2" />
+                            <p className="text-[12px] font-black text-gray-400">검색된 현장이 없습니다</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* 📋 2. PC 전용: 우측 사이드바 리스트 */}
-            <div className={`hidden md:flex transition-all duration-500 ${isSidebarOpen ? "w-[30%] opacity-100" : "w-0 opacity-0 overflow-hidden"} h-full bg-white flex-col border-l border-gray-100`}>
-                <div className="p-4 bg-white border-b border-gray-50 shrink-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <Search size={12} className="text-[#FF8C42]" />
-                        <h3 className="text-[12px] font-black text-[#4A403A]">현장 실시간 필터</h3>
+            <div className={`hidden md:flex transition-all duration-500 ${isSidebarOpen ? "w-[24%] opacity-100" : "w-0 opacity-0 overflow-hidden"} h-full bg-white flex-col border-l border-gray-100 shrink-0`}>
+                <div className="p-5 bg-white border-b border-gray-50 shrink-0">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Search size={14} className="text-[#FF8C42]" />
+                        <h3 className="text-[14px] font-black text-[#4A403A]">현장 실시간 필터</h3>
                     </div>
-                    <p className="text-[9px] text-gray-400 font-bold">
+                    <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
                         현재 화면 내 <span className="text-[#FF8C42]">{visibleProperties.length}곳</span> 발견
-                        {activeFilter !== "전체" && ` (필터: ${activeFilter})`}
+                        {activeFilter !== "전체" && <br />}
+                        {activeFilter !== "전체" && <span className="inline-block mt-1 bg-gray-50 px-2 py-0.5 rounded text-gray-500">조건: {activeFilter}</span>}
                     </p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-[#FDFBF7]">
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#FDFBF7]">
                     {visibleProperties.map((item: any) => (
-                        <a href={`/property/${item.id}`} key={item.id} className="block p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-[#FF8C42] hover:shadow-md transition-all group animate-in fade-in slide-in-from-right-2">
+                        <a
+                            href={`/property/${item.id}`}
+                            key={item.id}
+                            // 🚀 [호버 기능 3] 여기에 마우스 오버 이벤트를 연결합니다!
+                            onMouseEnter={() => handleListItemMouseEnter(item.id)}
+                            onMouseLeave={() => handleListItemMouseLeave(item.id)}
+                            className="block p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-[#FF8C42] hover:shadow-md transition-all group animate-in fade-in slide-in-from-right-2"
+                        >
                             <div className="flex items-start gap-3">
-                                <span className="w-6 h-6 rounded-lg bg-gray-50 text-[#4A403A] text-[10px] font-black flex items-center justify-center shrink-0 group-hover:bg-[#FF8C42] group-hover:text-white transition-all shadow-inner mt-0.5">
+                                <span className="w-7 h-7 rounded-xl bg-gray-50 text-[#4A403A] text-[11px] font-black flex items-center justify-center shrink-0 group-hover:bg-[#FF8C42] group-hover:text-white transition-all shadow-inner mt-0.5">
                                     {item.displayIndex}
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1 mb-1">
-                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[7px] font-black border border-orange-100">
+                                    <div className="flex items-center gap-1 mb-1.5">
+                                        <span className="px-1.5 py-0.5 rounded text-[#FF8C42] bg-orange-50 text-[8px] font-black border border-orange-100">
                                             {item.status[0]}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] font-black text-[#4A403A] group-hover:text-[#FF8C42] transition-colors truncate">{item.title}</p>
-                                    <p className="text-[9px] text-gray-400 font-bold truncate mt-0.5 leading-tight flex items-center gap-1">
-                                        <MapPin size={8} /> {item.location}
+                                    <p className="text-[13px] font-black text-[#4A403A] group-hover:text-[#FF8C42] transition-colors truncate">{item.title}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold truncate mt-1 leading-tight flex items-center gap-1">
+                                        <MapPin size={10} /> {item.location}
                                     </p>
                                 </div>
-                                <ChevronRight size={14} className="text-gray-200 mt-3 group-hover:text-[#FF8C42] group-hover:translate-x-1 transition-all" />
                             </div>
                         </a>
                     ))}
                     {visibleProperties.length === 0 && !isGeocoding && (
                         <div className="h-full flex flex-col items-center justify-center text-center py-20 opacity-40">
-                            <Building2 size={32} className="text-gray-300 mb-3" />
-                            <p className="text-[11px] font-black text-gray-400">검색된 현장이 없습니다</p>
-                            <p className="text-[9px] text-gray-400 mt-1 font-bold">지도를 이동하고 '재검색'을 눌러보세요!</p>
+                            <Building2 size={36} className="text-gray-300 mb-3" />
+                            <p className="text-[13px] font-black text-gray-400">검색된 현장이 없습니다</p>
+                            <p className="text-[10px] text-gray-400 mt-1 font-bold">지도를 이동하고 '재검색'을 눌러보세요!</p>
                         </div>
                     )}
                 </div>

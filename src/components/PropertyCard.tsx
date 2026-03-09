@@ -8,7 +8,26 @@ import { supabase } from "../lib/supabase";
 
 const PropertyCard = ({ id, title, location, status, price, image }: any) => {
     const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
     const [user, setUser] = useState<any>(null);
+
+    const getSafeImage = (img: any) => {
+        if (!img || typeof img !== 'string') return "/house1.jpg";
+        const trimmedImg = img.trim();
+        if (trimmedImg === "") return "/house1.jpg";
+
+        if (trimmedImg.startsWith("http") || trimmedImg.startsWith("data:")) {
+            return trimmedImg;
+        }
+
+        if (trimmedImg.startsWith("/")) {
+            return trimmedImg;
+        }
+
+        return `/${trimmedImg}`;
+    };
+
+    const safeImage = getSafeImage(image);
 
     const getStatusStyle = (index: number) => {
         const base = "relative overflow-hidden px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold text-white shadow-sm flex items-center justify-center";
@@ -19,6 +38,13 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
 
     useEffect(() => {
         const checkLikeStatus = async () => {
+            const { count } = await supabase
+                .from('likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('property_id', String(id));
+
+            setLikeCount(count || 0);
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 setUser(session.user);
@@ -47,12 +73,16 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
         const newLikedState = !isLiked;
         setIsLiked(newLikedState);
 
+        setLikeCount(prev => newLikedState ? prev + 1 : Math.max(0, prev - 1));
+
         if (newLikedState) {
             await supabase.from('likes').insert({ user_id: user.id, property_id: String(id) });
         } else {
             await supabase.from('likes').delete().eq('user_id', user.id).eq('property_id', String(id));
         }
     };
+
+    if (!id || !title) return null;
 
     return (
         <div className="h-full">
@@ -68,12 +98,15 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
 
             <Link href={`/property/${id}`} className="block group h-full">
 
-                {/* 📱 모바일 뷰 */}
+                {/* ======================================================= */}
+                {/* 📱 모바일 뷰: 초슬림 파노라마 뷰 */}
+                {/* ======================================================= */}
                 <div className="md:hidden relative w-full h-[105px] rounded-xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform">
-                    <Image src={image || "/house1.jpg"} alt={title} fill className="object-cover" />
+                    <Image src={safeImage} alt={title} fill className="object-cover" />
+
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none"></div>
 
-                    <div className="absolute top-2 left-2 flex z-10">
+                    <div className="absolute top-2.5 left-2.5 flex z-10">
                         {status && status[0] && (
                             <span className={getStatusStyle(0)}>
                                 <Flame className="w-2.5 h-2.5 mr-0.5 fill-white" /> {status[0]}
@@ -81,14 +114,28 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
                         )}
                     </div>
 
-                    <button onClick={handleLikeClick} className="absolute top-2 right-2 z-20 p-1.5 hover:scale-110 active:scale-90 transition-all">
-                        <Heart className={`w-[18px] h-[18px] drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] ${isLiked ? "fill-red-500 text-red-500" : "text-white"}`} strokeWidth={isLiked ? 0 : 2} />
+                    {/* 🚀 모바일 하트 아이콘: w-[18px]로 축소 & 정열의 빨간색(#FF1E1E) 적용 */}
+                    <button
+                        onClick={handleLikeClick}
+                        className="absolute top-2 right-2 z-20 flex flex-col items-center justify-center gap-0.5 group transition-transform active:scale-95"
+                    >
+                        <Heart
+                            className={`w-[18px] h-[18px] transition-all duration-300 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${isLiked ? "fill-[#FF1E1E] text-[#FF1E1E] scale-110" : "text-white fill-black/30 group-hover:scale-110"
+                                }`}
+                            strokeWidth={isLiked ? 0 : 2}
+                        />
+                        {likeCount > 0 && (
+                            <span className={`text-[9px] font-black tracking-tighter filter drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] leading-none ${isLiked ? "text-[#FF1E1E]" : "text-white"
+                                }`}>
+                                {likeCount.toLocaleString()}
+                            </span>
+                        )}
                     </button>
 
-                    <div className="absolute inset-0 p-2.5 flex flex-col z-10">
+                    <div className="absolute inset-0 p-3 flex flex-col z-10 pointer-events-none">
                         <div className="h-4 shrink-0"></div>
-                        <div className="flex flex-col justify-center flex-1 min-w-0 pr-6">
-                            {/* 🚀 모바일 단지명 최적화 (13px, 자간 극소) */}
+
+                        <div className="flex flex-col justify-center flex-1 min-w-0 pr-6 pt-1">
                             <h3 className="font-black text-[13px] text-white truncate drop-shadow-md leading-tight mb-0.5 tracking-tighter">
                                 {title}
                             </h3>
@@ -97,6 +144,7 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
                                 <span className="text-[8.5px] font-medium truncate drop-shadow-md">{location}</span>
                             </div>
                         </div>
+
                         <div className="mt-auto shrink-0 flex items-end">
                             <span className="text-[12px] font-black text-[#FFB84D] drop-shadow-md tracking-tighter">
                                 {price ? price.split('/')[0] : "가격 문의"}
@@ -105,25 +153,44 @@ const PropertyCard = ({ id, title, location, status, price, image }: any) => {
                     </div>
                 </div>
 
-                {/* 💻 PC 뷰 */}
-                <div className="hidden md:flex bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden flex-col border border-gray-100 h-full transform hover:-translate-y-1">
+
+                {/* ======================================================= */}
+                {/* 💻 PC 뷰: 아파티 오리지널 스타일 */}
+                {/* ======================================================= */}
+                <div className="hidden md:flex bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden flex-col border border-gray-100 h-full transform hover:-translate-y-1">
+
                     <div className="w-full h-48 lg:h-52 bg-gray-100 relative overflow-hidden shrink-0">
-                        <Image src={image || "/house1.jpg"} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 max-w-[85%]">
+                        <Image src={safeImage} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 max-w-[85%] pointer-events-none">
                             {status?.map((tag: string, i: number) => (
                                 <span key={i} className={getStatusStyle(i)}>
                                     {i === 0 && <Flame className="w-2.5 h-2.5 mr-1 fill-white" />} {tag}
                                 </span>
                             ))}
                         </div>
-                        <button onClick={handleLikeClick} className="absolute top-3 right-3 z-20 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 active:scale-90 transition-all">
-                            <Heart className={`w-[18px] h-[18px] transition-colors duration-300 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+
+                        {/* 🚀 PC 하트 아이콘: w-5(20px)로 축소 & 정열의 빨간색(#FF1E1E) 적용 */}
+                        <button
+                            onClick={handleLikeClick}
+                            className="absolute top-3 right-3 z-20 flex flex-col items-center justify-center gap-0.5 group transition-transform active:scale-95"
+                        >
+                            <Heart
+                                className={`w-5 h-5 transition-all duration-300 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${isLiked ? "fill-[#FF1E1E] text-[#FF1E1E] scale-110" : "text-white fill-black/30 group-hover:scale-110"
+                                    }`}
+                                strokeWidth={isLiked ? 0 : 2}
+                            />
+                            {likeCount > 0 && (
+                                <span className={`text-[10px] font-black tracking-tighter filter drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] leading-none ${isLiked ? "text-[#FF1E1E]" : "text-white"
+                                    }`}>
+                                    {likeCount.toLocaleString()}
+                                </span>
+                            )}
                         </button>
                     </div>
 
                     <div className="p-4 lg:p-5 flex flex-col flex-1 text-left justify-start min-w-0">
                         <div className="flex flex-col gap-1 mb-auto">
-                            {/* 🚀 PC 단지명 최적화 (크기 축소 및 자간 타이트하게 조정) */}
                             <h3 className="font-extrabold text-[13px] lg:text-[14px] text-[#4A403A] group-hover:text-[#ff5a28] tracking-tighter truncate">
                                 {title}
                             </h3>

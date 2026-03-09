@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import PropertyCard from "../components/PropertyCard";
 import ChatBot from "../components/ChatBot";
 import WelcomePopup from "../components/WelcomePopup";
 import { getPropertiesFromSheet, getNoticesFromSheet, Property, Notice } from "../lib/sheet";
+import { getRealtimeRankings } from "../lib/propertyUtils";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Search, Sparkles, TrendingUp, Calculator, Landmark,
-  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, ChevronLeft, ChevronDown, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map
+  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, ChevronLeft, ChevronDown, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map, ChevronUp // 🚀 ChevronUp 추가
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
 import MainMapExplorer from "../components/MainMapExplorer";
 import Script from "next/script";
+
 
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
@@ -165,8 +167,6 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'gallery' | 'map'>('gallery');
 
   const [currentPage, setCurrentPage] = useState(1);
-
-  // 🚀 [신규 추가] 디바이스 크기에 따라 페이지당 매물 개수를 동적으로 결정하는 상태
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -183,18 +183,13 @@ export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [realtimeRankings, setRealtimeRankings] = useState<{ id: string, view_count: number }[]>([]);
 
-  // 🚀 [신규 추가] 화면 크기 감지 및 ItemsPerPage 동적 조절 (모바일: 5개, PC: 8개)
   useEffect(() => {
     const updateItemsPerPage = () => {
-      // 768px(모바일) 미만이면 5개, 이상(태블릿/PC)이면 8개
-      setItemsPerPage(window.innerWidth < 768 ? 5 : 8);
+      setItemsPerPage(window.innerWidth < 768 ? 4 : 8);
     };
-
-    // 초기 로드 시 1회 실행
     updateItemsPerPage();
-
-    // 창 크기 조절 시 실시간 반응
     window.addEventListener("resize", updateItemsPerPage);
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
@@ -210,8 +205,8 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleMapLoad = useCallback(() => {
-    if (window.kakao && window.kakao.maps) {
+  const initMapEngine = useCallback(() => {
+    if (typeof window !== "undefined" && window.kakao && window.kakao.maps) {
       window.kakao.maps.load(() => {
         setIsMapReady(true);
       });
@@ -219,10 +214,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (window.kakao && window.kakao.maps) {
-      setIsMapReady(true);
-    }
-  }, []);
+    const checkTimer = setInterval(() => {
+      if (window.kakao && window.kakao.maps) {
+        clearInterval(checkTimer);
+        initMapEngine();
+      }
+    }, 200);
+    return () => clearInterval(checkTimer);
+  }, [initMapEngine]);
 
   const fetchApartmentHistory = useCallback(async (aptName: string, lawdCd: string) => {
     setIsHistoryLoading(true); setHistoryData([]); setActiveIndex(null);
@@ -324,8 +323,11 @@ export default function Home() {
     async function loadData() {
       try {
         const p = await getPropertiesFromSheet();
-        setProperties(p);
-        setFilteredProperties(p);
+        const validProperties = p.filter((item: Property) =>
+          item && item.id !== undefined && item.id !== null && item.title && item.title.toString().trim() !== ""
+        );
+        setProperties(validProperties);
+        setFilteredProperties(validProperties);
 
         const { data: noticeData, error } = await supabase
           .from('notices')
@@ -333,12 +335,28 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(5);
 
+
+
         if (!error && noticeData) {
           setNotices(noticeData);
         }
       } finally { setIsLoading(false); }
     }
     loadData();
+  }, []);
+
+  // 🚀 실시간 랭킹 데이터를 Supabase에서 가져오는 로직
+  useEffect(() => {
+    const fetchRankings = async () => {
+      const data = await getRealtimeRankings();
+      setRealtimeRankings(data);
+    };
+
+    fetchRankings();
+
+    // (선택사항) 1분마다 자동으로 랭킹 새로고침하고 싶다면?
+    const interval = setInterval(fetchRankings, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -367,7 +385,7 @@ export default function Home() {
     let result = properties;
 
     if (activeFilter !== "전체") {
-      result = result.filter(p => p.status.includes(activeFilter));
+      result = result.filter(p => p.status && p.status.includes(activeFilter));
     }
 
     if (activeRegion !== "전국") {
@@ -381,11 +399,26 @@ export default function Home() {
         "제주": ["제주"]
       };
       const keywords = regionKeywords[activeRegion] || [activeRegion];
-      result = result.filter(p => keywords.some(kw => p.location.includes(kw)));
+      result = result.filter(p => p.location && keywords.some(kw => p.location.includes(kw)));
     }
 
+    // 🚀 [스마트 검색 + 에러 방어막 완벽 적용]
     if (searchQuery) {
-      result = result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.location.toLowerCase().includes(searchQuery.toLowerCase()));
+      // 1. 검색어를 공백 단위로 쪼개기
+      const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/);
+
+      result = result.filter(p => {
+        // 2. 혹시 모를 빈 값(null)에러를 막기 위해 강제로 문자열(String) 변환!
+        const titleStr = p.title ? String(p.title) : "";
+        const locStr = p.location ? String(p.location) : "";
+        const statusStr = Array.isArray(p.status) ? p.status.join(" ") : (p.status ? String(p.status) : "");
+
+        // 3. 제목 + 위치 + 태그를 다 합쳐서 거대한 검색용 텍스트 생성
+        const searchableText = `${titleStr} ${locStr} ${statusStr}`.toLowerCase();
+
+        // 4. 쪼갠 단어가 '전부 다' 포함되어 있는지 확인 (AND 조건)
+        return searchTerms.every(term => searchableText.includes(term));
+      });
       setIsSearching(true);
     } else {
       setIsSearching(false);
@@ -395,7 +428,6 @@ export default function Home() {
     setCurrentPage(1);
   }, [searchQuery, activeFilter, activeRegion, properties]);
 
-  // 🚀 [신규 추가] 아이템 수나 필터가 변해서 전체 페이지가 줄어들 때, 현재 페이지 보정
   useEffect(() => {
     const total = Math.ceil(filteredProperties.length / itemsPerPage);
     if (currentPage > total && total > 0) {
@@ -416,7 +448,8 @@ export default function Home() {
       <Script
         strategy="afterInteractive"
         src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services,clusterer&autoload=false`}
-        onLoad={handleMapLoad}
+        onLoad={initMapEngine}
+        onReady={initMapEngine}
       />
       <WelcomePopup />
       <Link href="https://pro.aparty.co.kr" target="_blank" className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] group flex items-center justify-end transition-transform duration-75 ease-out" style={{ transform: `translateY(-${bottomOffset}px)` }}>
@@ -473,8 +506,10 @@ export default function Home() {
 
         {!isSearchActive && activeRegion === "전국" && (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 w-full max-w-7xl text-left mb-6 md:mb-8 px-4 items-stretch">
-              <div className="md:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-[24fr_54fr_22fr] gap-4 md:gap-5 w-full max-w-7xl text-left mb-6 md:mb-8 px-4 items-stretch">
+
+              {/* 1. 부동산 종합 지표 (왼쪽: 폭 5% 축소) */}
+              <div className="w-full">
                 <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
                   <div className="p-4 md:p-5 border-b border-gray-50 flex items-center gap-2 shrink-0"><TrendingUp size={16} className="text-[#FF8C42]" strokeWidth={2.5} /><h3 className="text-[12px] md:text-[13px] font-black text-[#4A403A]">부동산 종합 지표</h3></div>
                   <div className="p-4 flex flex-col flex-1 gap-1 overflow-hidden relative justify-between">
@@ -554,7 +589,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="md:col-span-7 bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-8 flex flex-col h-full overflow-hidden">
+              {/* 2. 대시보드 (가운데: 폭 10% 축소 + 말줄임표 처리 완벽 적용) */}
+              <div className="w-full bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-8 flex flex-col h-full overflow-hidden">
                 <div className="grid grid-cols-2 md:flex bg-gray-50 rounded-xl p-1 mb-4 md:mb-5 shrink-0 gap-1">
                   <button onClick={() => setDashboardTab("transaction")} className={`w-full md:flex-1 py-2 md:py-2.5 rounded-lg text-[11px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "transaction" ? "bg-white text-[#FF8C42] shadow-sm" : "text-gray-400"}`}><Activity className="w-3.5 h-3.5 md:w-4 md:h-4" /> 실거래가</button>
                   <button onClick={() => setDashboardTab("competition")} className={`w-full md:flex-1 py-2 md:py-2.5 rounded-lg text-[11px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "competition" ? "bg-white text-blue-500 shadow-sm" : "text-gray-400"}`}><Trophy className="w-3.5 h-3.5 md:w-4 md:h-4" /> 청약경쟁률</button>
@@ -569,11 +605,14 @@ export default function Home() {
                     <div className="space-y-3 md:space-y-3.5 animate-in fade-in duration-500 flex-1">
                       {apiData.length > 0 ? apiData.map((item, idx) => (
                         <div key={idx} onClick={() => { if (item.type) setSelectedItem(item); }} className="flex justify-between items-center border-b border-gray-50 pb-2 md:pb-3 cursor-pointer hover:bg-orange-50/50 rounded-lg px-2 transition-colors">
-                          <div className="max-w-[70%] text-left">
-                            <div className="flex items-center gap-1.5 mb-0.5"><p className="text-[13px] md:text-[15px] font-bold text-[#4A403A] truncate">{item.title}</p><span className="text-[8px] md:text-[10px] text-gray-400 font-bold bg-white border border-gray-100 px-1 py-0.5 rounded shrink-0">{item.addr}</span></div>
-                            <p className="text-[10px] md:text-[11px] text-gray-400 font-medium truncate">{item.sub} {item.date && `· ${item.date}`}</p>
+                          <div className="flex-1 min-w-0 pr-3 text-left">
+                            <div className="flex items-center gap-1.5 mb-0.5 min-w-0">
+                              <p className="text-[13px] md:text-[15px] font-bold text-[#4A403A] truncate min-w-0">{item.title}</p>
+                              <span className="text-[8px] md:text-[10px] text-gray-400 font-bold bg-white border border-gray-100 px-1 py-0.5 rounded shrink-0">{item.addr}</span>
+                            </div>
+                            <p className="text-[10px] md:text-[11px] text-gray-400 font-medium truncate w-full">{item.sub} {item.date && `· ${item.date}`}</p>
                           </div>
-                          <div className="text-right shrink-0 ml-2"><p className={`text-[13px] md:text-[16px] font-black ${dashboardTab === "transaction" ? "text-[#FF8C42]" : dashboardTab === "competition" ? "text-blue-500" : dashboardTab === "calendar" ? "text-emerald-500" : "text-purple-500"}`}>{item.val}</p></div>
+                          <div className="text-right shrink-0 ml-1"><p className={`text-[13px] md:text-[16px] font-black ${dashboardTab === "transaction" ? "text-[#FF8C42]" : dashboardTab === "competition" ? "text-blue-500" : dashboardTab === "calendar" ? "text-emerald-500" : "text-purple-500"}`}>{item.val}</p></div>
                         </div>
                       )) : <p className="text-center py-20 text-xs text-gray-400 font-bold">데이터를 불러오지 못했습니다.</p>}
                     </div>
@@ -587,22 +626,123 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="md:col-span-2">
-                <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-5 flex flex-col h-full">
-                  <h3 className="text-[12px] md:text-[13px] font-black text-[#4A403A] mb-3 md:mb-4 flex items-center gap-2 border-b border-gray-50 pb-2 md:pb-3 shrink-0"><Trophy size={16} className="text-[#FF8C42]" /> 인기랭킹</h3>
-                  <div className="flex flex-col gap-3 md:gap-3.5">{rankingList.map((prop, idx) => (<Link key={idx} href={`/property/${prop.id}`} className="flex items-center gap-2 group py-0.5"><span className={`text-[11px] md:text-[13px] font-black w-3 shrink-0 ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>{idx + 1}</span><span className="text-[11px] md:text-[12px] font-bold text-[#4A403A] group-hover:text-[#FF8C42] truncate transition-colors leading-tight">{prop.title}</span></Link>))}</div>
+              {/* 3. 우측 영역: 인기랭킹 + 스마트 툴 개별 타일 박스 */}
+              <div className="w-full flex flex-col gap-4 md:gap-5 h-full">
+
+                {/* 🏆 실시간 인기순위 (서류 촤르륵! 무조건 작동 버전) */}
+                <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-5 flex flex-col h-[340px] shrink-0 overflow-hidden">
+
+                  {/* 🚀 표준 CSS 애니메이션 (모든 환경에서 작동) */}
+                  <style>
+                    {`
+      @keyframes flipPaper {
+        0% { 
+          transform: perspective(1000px) rotateX(-90deg); 
+          opacity: 0; 
+        }
+        100% { 
+          transform: perspective(1000px) rotateX(0deg); 
+          opacity: 1; 
+        }
+      }
+      .paper-animate {
+        animation: flipPaper 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.1) forwards;
+        transform-origin: top;
+      }
+    `}
+                  </style>
+
+                  <h3 className="text-[12px] md:text-[13px] font-black text-[#4A403A] mb-3 md:mb-4 flex items-center justify-between border-b border-gray-50 pb-2 md:pb-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Trophy size={16} className="text-[#FF8C42]" /> 실시간 인기순위
+                    </div>
+                    <span className="flex items-center gap-1 text-[9px] text-orange-500 font-bold">
+                      <span className="w-1 h-1 bg-orange-500 rounded-full animate-ping"></span> LIVE
+                    </span>
+                  </h3>
+
+                  {/* 🚀 key를 통해 갱신될 때마다 애니메이션을 처음부터 다시 실행 */}
+                  <div
+                    key={realtimeRankings[0]?.id || 'loading'}
+                    className="flex flex-col gap-3 md:gap-3.5 overflow-y-auto pr-1 scrollbar-hide custom-scroll"
+                  >
+                    {realtimeRankings.length > 0 ? (
+                      realtimeRankings.map((rank, idx) => {
+                        const prop = properties.find(p => String(p.id) === String(rank.id));
+                        if (!prop) return null;
+
+                        const getTrend = (id: string) => {
+                          const val = Number(id) % 5;
+                          if (val === 0) return { icon: <ChevronUp size={10} />, label: "1", color: "text-red-500" };
+                          if (val === 1) return { icon: <ChevronDown size={10} />, label: "1", color: "text-blue-500" };
+                          if (val === 2) return { icon: <ChevronUp size={10} />, label: "2", color: "text-red-500" };
+                          return { icon: <div className="w-2 h-[2px] bg-[#4A403A] rounded-full"></div>, label: "", color: "text-[#4A403A]" };
+                        };
+                        const trend = getTrend(rank.id);
+
+                        return (
+                          <Link
+                            key={rank.id}
+                            href={`/property/${rank.id}`}
+                            className="paper-animate flex items-center gap-3 group py-0.5 border-b border-gray-50/50 last:border-0 pb-2"
+                            // 🚀 1위부터 10위까지 0.08초 간격으로 촤르륵 등장
+                            style={{
+                              animationDelay: `${idx * 80}ms`,
+                              opacity: 0 // 애니메이션 시작 전에는 숨김
+                            }}
+                          >
+                            <span className={`text-[11px] md:text-[13px] font-black w-4 shrink-0 text-center ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>
+                              {idx + 1}
+                            </span>
+                            <div className="flex flex-col gap-0.5 overflow-hidden">
+                              <span className="text-[11px] md:text-[12px] font-bold text-[#4A403A] group-hover:text-[#FF8C42] truncate leading-tight transition-colors">
+                                {prop.title}
+                              </span>
+                              <div className={`flex items-center gap-0.5 ${trend.color}`}>
+                                {trend.icon}
+                                {trend.label && <span className="text-[8px] md:text-[9px] font-black">{trend.label}</span>}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-gray-300 text-[11px] animate-pulse">
+                        순위 분석 중...
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 하단: 스마트 툴 독립 타일 */}
+                <div className="grid grid-cols-3 md:grid-cols-2 gap-2.5 md:gap-4 flex-1">
+                  {[
+                    { href: "/tools/tax", icon: <Calculator size={16} className="md:w-5 md:h-5" />, label: "취득세", bg: "bg-blue-50", text: "text-blue-500" },
+                    { href: "/tools/loan", icon: <Landmark size={16} className="md:w-5 md:h-5" />, label: "대출이자", bg: "bg-emerald-50", text: "text-emerald-500" },
+                    { href: "/tools/yield", icon: <BarChart3 size={16} className="md:w-5 md:h-5" />, label: "수익률", bg: "bg-orange-50", text: "text-orange-500" },
+                    { href: "/tools/score", icon: <Trophy size={16} className="md:w-5 md:h-5" />, label: "청약가점", bg: "bg-red-50", text: "text-red-500" },
+                    { href: "/tools/convert", icon: <RefreshCcw size={16} className="md:w-5 md:h-5" />, label: "평형변환", bg: "bg-indigo-50", text: "text-indigo-500" },
+                    { href: "/tools/checklist", icon: <CalendarDays size={16} className="md:w-5 md:h-5" />, label: "체크리스트", bg: "bg-amber-50", text: "text-amber-500" }
+                  ].map((tool, i) => (
+                    <Link
+                      key={i}
+                      href={tool.href}
+                      className="flex flex-col items-center justify-center gap-1.5 p-2.5 md:p-3 bg-white border border-gray-100 rounded-[20px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all h-full"
+                    >
+                      <div className={`w-8 h-8 md:w-10 md:h-10 ${tool.bg} ${tool.text} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                        {tool.icon}
+                      </div>
+                      <span className="font-black text-[#4A403A] whitespace-nowrap overflow-hidden text-ellipsis w-full text-center tracking-tighter"
+                        style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
+                        {tool.label}
+                      </span>
+                    </Link>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 w-full max-w-6xl mb-8 md:mb-12 px-4">
-              <Link href="/tools/tax" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><Calculator size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">취득세</span></Link>
-              <Link href="/tools/loan" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><Landmark size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">대출이자</span></Link>
-              <Link href="/tools/yield" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><BarChart3 size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">수익률</span></Link>
-              <Link href="/tools/score" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><Trophy size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">청약가점</span></Link>
-              <Link href="/tools/convert" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><RefreshCcw size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">평형변환</span></Link>
-              <Link href="/tools/checklist" className="flex flex-col items-center gap-1.5 md:gap-2 p-3 md:p-4 bg-white border border-gray-100 rounded-[16px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all"><div className="w-8 h-8 md:w-10 md:h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><CalendarDays size={16} className="md:w-5 md:h-5" /></div><span className="text-[10px] md:text-[12px] font-black text-[#4A403A]">체크리스트</span></Link>
-            </div>
+
 
             <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-8 md:mb-10">
               <Link href="/notice" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden"><div className="flex items-center gap-2 md:gap-4 z-10 min-w-0"><div className="w-8 h-8 md:w-12 md:h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Megaphone size={14} /></div><div className="text-left min-w-0"><h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">공지사항</h3><p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight leading-tight">공지 확인</p></div></div><ChevronRight className="text-gray-300 group-hover:text-blue-500 transition-colors z-10 shrink-0" size={14} /><div className="absolute right-0 bottom-0 w-24 h-24 bg-blue-50/50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-blue-100/60 transition-colors"></div></Link>
@@ -613,7 +753,7 @@ export default function Home() {
               <div className="relative w-full rounded-[20px] md:rounded-[32px] overflow-hidden shadow-md md:shadow-2xl flex flex-row items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-8 group text-left bg-black">
                 <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
                 <div className="absolute inset-0 bg-black/40 z-0"></div>
-                <div className="relative z-10 flex-1 pr-3"><h3 className="text-[13px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림 🔔</h3><p className="text-[9.5px] sm:text-[12px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</p></div>
+                <div className="relative z-10 flex-1 pr-3"><h3 className="text-[13px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림</h3><p className="text-[9.5px] sm:text-[12px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</p></div>
                 <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0"><svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg><span className="text-[10px] sm:text-[12px] md:text-[15px]">채널추가</span></Link>
               </div>
             </div>
@@ -622,7 +762,7 @@ export default function Home() {
 
         <section className="w-full max-w-6xl mb-12 md:mb-24 px-4 md:px-6 mt-0 md:mt-2 text-left">
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-3 z-30 relative w-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-3 z-0 relative w-full">
 
             <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
               <h2 className="text-[15px] md:text-[18px] font-black text-[#4a403a] flex items-center gap-1.5 shrink-0 pr-2">
@@ -713,60 +853,64 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="w-full min-h-[500px]">
-            {viewMode === 'map' ? (
-              isMapReady ? (
-                <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
-              ) : (
-                <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-3xl text-gray-400 font-bold animate-pulse text-sm">지도를 불러오는 중...</div>
-              )
-            ) : (
-              <div className="animate-in fade-in duration-500 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-2">
-                  {currentProperties.length > 0 ? (
-                    currentProperties.map((p) => (<PropertyCard key={p.id} {...p} />))
-                  ) : (
-                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-100">
-                      <Search size={40} className="text-gray-200 mb-3" />
-                      <p className="font-bold text-[14px] md:text-[16px] text-[#4A403A]">조건에 맞는 현장이 없습니다.</p>
-                      <p className="text-[11px] md:text-[13px] mt-1">다른 지역이나 단지명으로 검색해보세요.</p>
-                    </div>
-                  )}
-                </div>
+          {/* 🚀 [해결] 지도/갤러리가 각자의 높이만큼만 공간을 차지하도록 분리 */}
+          <div className="w-full relative">
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8 md:mt-12 mb-4">
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-
-                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[200px] sm:max-w-none px-1 py-1">
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className={`w-9 h-9 shrink-0 rounded-xl font-bold text-[13px] transition-all ${currentPage === i + 1 ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-[#4A403A]'}`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
+            {/* 📸 갤러리 뷰 영역 */}
+            <div className={`w-full transition-opacity duration-300 ${viewMode === 'gallery' ? 'opacity-100 relative z-10 block' : 'opacity-0 absolute top-0 left-0 pointer-events-none hidden'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-2">
+                {currentProperties.length > 0 ? (
+                  currentProperties.map((p) => (<PropertyCard key={p.id} {...p} />))
+                ) : (
+                  <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-100">
+                    <Search size={40} className="text-gray-200 mb-3" />
+                    <p className="font-bold text-[14px] md:text-[16px] text-[#4A403A]">조건에 맞는 현장이 없습니다.</p>
+                    <p className="text-[11px] md:text-[13px] mt-1">다른 지역이나 단지명으로 검색해보세요.</p>
                   </div>
                 )}
               </div>
-            )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8 md:mt-12 mb-4">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[200px] sm:max-w-none px-1 py-1">
+                    {[...Array(totalPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-9 h-9 shrink-0 rounded-xl font-bold text-[13px] transition-all ${currentPage === i + 1 ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-[#4A403A]'}`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 🗺️ 지도 뷰 영역 (모바일 400px, PC 600px 반응형) */}
+            <div className={`w-full transition-opacity duration-300 rounded-[12px] shadow-sm border border-gray-100 bg-gray-50 h-[450px] md:h-[600px] ${viewMode === 'map' ? 'opacity-100 relative z-10 block' : 'opacity-0 absolute top-0 left-0 w-full pointer-events-none -z-999'}`}>
+              {isMapReady ? (
+                <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold animate-pulse text-sm">지도를 준비하는 중...</div>
+              )}
+            </div>
           </div>
 
         </section>

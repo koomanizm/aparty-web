@@ -293,3 +293,4 @@ export async function getCommentsFromSheet(postId: string): Promise<Comment[]> {
     return allComments.filter(comment => comment.postId === postId);
   } catch (error) { return []; }
 }
+
