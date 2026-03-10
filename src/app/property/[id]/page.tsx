@@ -6,13 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import {
-    Users, Maximize, Calendar, Car, ArrowLeft, Globe,
+    Users, Maximize, Calendar, Car, ArrowLeft,
     MessageCircle, Sparkles, Tag, Flame, TrendingUp,
     Newspaper, Calculator, Landmark, BarChart3, MapPin,
-    CheckCircle, ChevronRight, Crosshair, Map, ChevronDown
-} from "lucide-react"; // 👈 오타 수정 완료
+    CheckCircle, ChevronRight, Crosshair, Map, ChevronDown, Phone,
+    Monitor // 🚀 SearchPx 대신 완벽한 대칭의 Monitor 아이콘으로 교체
+} from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
-// 🚀 실시간 연동 유틸리티 (상대 경로 유지)
 import { getPropertyStats, incrementView, fetchPropertyViews } from "../../../lib/propertyUtils";
 
 import ReviewSection from "../../../components/ReviewSection";
@@ -37,9 +37,10 @@ export default function PropertyDetailPage() {
     const [trades, setTrades] = useState<any[]>([]);
     const [isApiLoading, setIsApiLoading] = useState(true);
 
-    // 🚀 실시간 데이터 상태 (기존 유지)
     const [liveViewers, setLiveViewers] = useState(0);
     const [todayCalls, setTodayCalls] = useState(0);
+
+    const [bottomOffset, setBottomOffset] = useState(0);
 
     const mapRef = useRef<any>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -50,26 +51,33 @@ export default function PropertyDetailPage() {
     const tradesScrollRef = useRef<HTMLDivElement>(null);
     const newsScrollRef = useRef<HTMLDivElement>(null);
 
-    // 🚀 상세페이지 내의 useEffect 내부 수정
-    // 상세페이지 안의 useEffect 부분
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollY = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const scrollBottom = documentHeight - (scrollY + windowHeight);
+
+            if (scrollBottom < 200) setBottomOffset(200 - scrollBottom);
+            else setBottomOffset(0);
+        };
+        window.addEventListener("scroll", handleScroll);
+        handleScroll();
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     useEffect(() => {
         async function loadProperty() {
             if (!params.id) return;
             const targetId = String(params.id);
 
             try {
-                // 1. 조회수 1 증가 (누적+오늘 동시 처리)
                 await incrementView(targetId);
-
-                // 2. DB에서 [오늘의 조회수] 읽어오기
                 const todayCount = await fetchPropertyViews(targetId);
-
-                // 3. 오늘 숫자를 바탕으로 화면 표시
                 const { watching } = getPropertyStats(todayCount);
                 setLiveViewers(watching);
                 setTodayCalls(Math.floor(todayCount / 5) + 3);
 
-                // 4. 나머지 시트 데이터 로드
                 const allProperties = await getPropertiesFromSheet();
                 const found = allProperties.find((p: Property) => String(p.id) === targetId);
                 if (found) setProperty(found);
@@ -83,7 +91,6 @@ export default function PropertyDetailPage() {
         loadProperty();
     }, [params.id]);
 
-    // --- 이후 카카오맵, 실거래가, 뉴스 로직 및 JSX 리턴문은 대표님 기존 코드와 100% 동일합니다 ---
     useEffect(() => {
         if (!property) return;
         async function fetchExternalData() {
@@ -126,7 +133,7 @@ export default function PropertyDetailPage() {
                         });
                     }
                 }
-                setTrades((p.compareApt ? tradeList.filter(t => t.aptName.includes(p.compareApt)) : tradeList).slice(0, 15));
+                setTrades((p.compareApt ? tradeList.filter((t: any) => t.aptName.includes(p.compareApt)) : tradeList).slice(0, 15));
             } catch (e) { console.error(e); } finally { setIsApiLoading(false); }
         }
         fetchExternalData();
@@ -269,7 +276,6 @@ export default function PropertyDetailPage() {
             <div className="relative -mt-10 z-20 px-4 md:px-0 max-w-4xl mx-auto">
                 <div className="bg-white rounded-[2rem] shadow-xl p-4 md:p-10 border border-gray-50">
 
-                    {/* 상단 실시간 현황 현황판 */}
                     <div className="flex items-center gap-2 mb-6 p-3 bg-orange-50/50 rounded-xl border border-orange-100 w-full overflow-hidden">
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                             <div className="relative flex h-1.5 w-1.5 md:h-2 md:w-2 shrink-0">
@@ -289,7 +295,6 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    {/* 태그 및 좋아요 */}
                     <div className="flex items-center justify-between mb-5 w-full">
                         <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide pr-2">{property.status.map((tag, i) => (<span key={i} className={getStatusStyle(i)}>{i === 0 && <Flame size={12} className="fill-white shrink-0" />} {tag}</span>))}</div>
                         <div className="shrink-0 pl-1"><PropertyLikeButton propertyId={String(property.id)} /></div>
@@ -403,13 +408,44 @@ export default function PropertyDetailPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 py-6 mb-4 border-b border-gray-100">
-                        <Link href={property.link || "#"} target="_blank" className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border-2 border-[#2d2d2d] text-[#2d2d2d] rounded-xl font-bold text-[13px] shadow-sm hover:bg-gray-50 active:scale-95 transition-all"><Globe size={16} /> 홈페이지 방문</Link>
-                        <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FEE500] text-[#3c1e1e] rounded-xl font-black text-[13px] shadow-sm hover:bg-[#F4DC00] active:scale-95 transition-all"><MessageCircle size={16} fill="currentColor" /> 상담 및 예약</Link>
-                    </div>
-
                     <div className="mt-8"><ReviewSection propertyId={String(property.id)} /></div>
                 </div>
+            </div>
+
+            {/* 🚀 Step 1-B. 우측 하단 플로팅 3단 확장형 캡슐 버튼 (Monitor 아이콘 보정 및 틀 확장) */}
+            <div
+                className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] flex flex-col gap-2.5 items-end transition-transform duration-75 ease-out"
+                style={{ transform: `translateY(-${bottomOffset}px)` }}
+            >
+                {/* 1. 홈페이지 (Monitor 아이콘으로 완벽 대칭 보정) */}
+                <Link href={property.link || "#"} target="_blank" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-white border border-gray-200 text-[#2d2d2d] rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition-all duration-300 overflow-hidden">
+                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
+                        <Monitor size={20} className="md:w-[24px] md:h-[24px] text-blue-500" />
+                    </div>
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
+                        홈페이지
+                    </span>
+                </Link>
+
+                {/* 2. 전화 상담 */}
+                <a href="tel:1566-0000" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-[#10B981] text-white rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-[#059669] transition-all duration-300 overflow-hidden">
+                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
+                        <Phone size={18} className="md:w-[22px] md:h-[22px]" />
+                    </div>
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
+                        전화 상담
+                    </span>
+                </a>
+
+                {/* 3. 카카오톡 문의 (너비 130px/160px 확장) */}
+                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[130px] md:hover:w-[160px] bg-[#FEE500] text-[#191919] rounded-full shadow-[0_4px_16px_rgba(254,229,0,0.4)] hover:bg-[#F4DC00] transition-all duration-300 overflow-hidden">
+                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
+                        <MessageCircle size={19} fill="currentColor" className="md:w-[23px] md:h-[23px]" />
+                    </div>
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
+                        카카오톡 문의
+                    </span>
+                </Link>
             </div>
         </main>
     );
