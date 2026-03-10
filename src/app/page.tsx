@@ -12,7 +12,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Search, Sparkles, TrendingUp, Calculator, Landmark,
-  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, ChevronLeft, ChevronDown, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map, ChevronUp // 🚀 ChevronUp 추가
+  BarChart3, Activity, Trophy, CalendarDays, Users2, RefreshCcw, ChevronRight, ChevronLeft, ChevronDown, X, Building, MapPin, Phone, Info, Megaphone, MessageSquare, Gift, Map, ChevronUp, ChevronDown as ChevronDownIcon,
+  Maximize2, Minimize2
 } from "lucide-react";
 import NewsSection from "../components/NewsSection";
 import LoginButton from "../components/LoginButton";
@@ -166,6 +167,9 @@ export default function Home() {
   const [isFilterApplied, setIsFilterApplied] = useState(false);
   const [viewMode, setViewMode] = useState<'gallery' | 'map'>('gallery');
 
+  // 🚀 전체화면 스위치
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
@@ -187,7 +191,7 @@ export default function Home() {
 
   useEffect(() => {
     const updateItemsPerPage = () => {
-      setItemsPerPage(window.innerWidth < 768 ? 4 : 8);
+      setItemsPerPage(window.innerWidth < 768 ? 5 : 8);
     };
     updateItemsPerPage();
     window.addEventListener("resize", updateItemsPerPage);
@@ -202,6 +206,7 @@ export default function Home() {
     setIsFilterApplied(false);
     setCurrentPage(1);
     setViewMode('gallery');
+    setIsFullScreen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -335,8 +340,6 @@ export default function Home() {
           .order('created_at', { ascending: false })
           .limit(5);
 
-
-
         if (!error && noticeData) {
           setNotices(noticeData);
         }
@@ -345,16 +348,12 @@ export default function Home() {
     loadData();
   }, []);
 
-  // 🚀 실시간 랭킹 데이터를 Supabase에서 가져오는 로직
   useEffect(() => {
     const fetchRankings = async () => {
       const data = await getRealtimeRankings();
       setRealtimeRankings(data);
     };
-
     fetchRankings();
-
-    // (선택사항) 1분마다 자동으로 랭킹 새로고침하고 싶다면?
     const interval = setInterval(fetchRankings, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -402,21 +401,13 @@ export default function Home() {
       result = result.filter(p => p.location && keywords.some(kw => p.location.includes(kw)));
     }
 
-    // 🚀 [스마트 검색 + 에러 방어막 완벽 적용]
     if (searchQuery) {
-      // 1. 검색어를 공백 단위로 쪼개기
       const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/);
-
       result = result.filter(p => {
-        // 2. 혹시 모를 빈 값(null)에러를 막기 위해 강제로 문자열(String) 변환!
         const titleStr = p.title ? String(p.title) : "";
         const locStr = p.location ? String(p.location) : "";
         const statusStr = Array.isArray(p.status) ? p.status.join(" ") : (p.status ? String(p.status) : "");
-
-        // 3. 제목 + 위치 + 태그를 다 합쳐서 거대한 검색용 텍스트 생성
         const searchableText = `${titleStr} ${locStr} ${statusStr}`.toLowerCase();
-
-        // 4. 쪼갠 단어가 '전부 다' 포함되어 있는지 확인 (AND 조건)
         return searchTerms.every(term => searchableText.includes(term));
       });
       setIsSearching(true);
@@ -506,9 +497,10 @@ export default function Home() {
 
         {!isSearchActive && activeRegion === "전국" && (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
-            <div className="grid grid-cols-1 md:grid-cols-[24fr_54fr_22fr] gap-4 md:gap-5 w-full max-w-7xl text-left mb-6 md:mb-8 px-4 items-stretch">
+            {/* 🚀 [수정] 1. 그리드 폭 조절 (실거래 58fr, 랭킹 19fr, 왼쪽 23fr) */}
+            <div className="grid grid-cols-1 md:grid-cols-[23fr_58fr_26fr] gap-4 md:gap-5 w-full max-w-7xl text-left mb-6 md:mb-8 px-4 items-stretch">
 
-              {/* 1. 부동산 종합 지표 (왼쪽: 폭 5% 축소) */}
+              {/* 1. 부동산 종합 지표 */}
               <div className="w-full">
                 <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
                   <div className="p-4 md:p-5 border-b border-gray-50 flex items-center gap-2 shrink-0"><TrendingUp size={16} className="text-[#FF8C42]" strokeWidth={2.5} /><h3 className="text-[12px] md:text-[13px] font-black text-[#4A403A]">부동산 종합 지표</h3></div>
@@ -589,7 +581,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 2. 대시보드 (가운데: 폭 10% 축소 + 말줄임표 처리 완벽 적용) */}
+              {/* 2. 대시보드 (가운데: 폭 더 넓어짐) */}
               <div className="w-full bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-8 flex flex-col h-full overflow-hidden">
                 <div className="grid grid-cols-2 md:flex bg-gray-50 rounded-xl p-1 mb-4 md:mb-5 shrink-0 gap-1">
                   <button onClick={() => setDashboardTab("transaction")} className={`w-full md:flex-1 py-2 md:py-2.5 rounded-lg text-[11px] md:text-[13px] font-black flex items-center justify-center gap-1.5 transition-all ${dashboardTab === "transaction" ? "bg-white text-[#FF8C42] shadow-sm" : "text-gray-400"}`}><Activity className="w-3.5 h-3.5 md:w-4 md:h-4" /> 실거래가</button>
@@ -627,31 +619,38 @@ export default function Home() {
               </div>
 
               {/* 3. 우측 영역: 인기랭킹 + 스마트 툴 개별 타일 박스 */}
-              <div className="w-full flex flex-col gap-4 md:gap-5 h-full">
+              <div className="w-full flex flex-col gap-4 md:gap-5 h-full min-w-0">
 
-                {/* 🏆 실시간 인기순위 (서류 촤르륵! 무조건 작동 버전) */}
+                {/* 🚀 [수정] 2. 실시간 인기순위 (폭 축소 + 단방향 롤링 + 동그란 아이콘 + 주소 제거) */}
+                {/* 🏆 실시간 인기순위 (화살표 제거 + 스마트 조건부 롤링 적용) */}
                 <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-sm border border-gray-100 p-4 md:p-5 flex flex-col h-[340px] shrink-0 overflow-hidden">
-
-                  {/* 🚀 표준 CSS 애니메이션 (모든 환경에서 작동) */}
                   <style>
                     {`
-      @keyframes flipPaper {
-        0% { 
-          transform: perspective(1000px) rotateX(-90deg); 
-          opacity: 0; 
-        }
-        100% { 
-          transform: perspective(1000px) rotateX(0deg); 
-          opacity: 1; 
-        }
-      }
-      .paper-animate {
-        animation: flipPaper 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.1) forwards;
-        transform-origin: top;
-      }
-    `}
+                      @keyframes flipPaper {
+                        0% { transform: perspective(1000px) rotateX(-90deg); opacity: 0; }
+                        100% { transform: perspective(1000px) rotateX(0deg); opacity: 1; }
+                      }
+                      .paper-animate {
+                        animation: flipPaper 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.1) forwards;
+                        transform-origin: top;
+                      }
+                      
+                      /* 🚀 [마법의 CSS] 부모 컨테이너 기준 설정 */
+                      .scroll-container {
+                        container-type: inline-size;
+                      }
+                      /* 🚀 글자 길이(100%)가 부모 박스(100cqw)보다 클 때만 움직임! 짧으면 0px이라 안 움직임! */
+                      @keyframes smartScroll {
+                        0%, 20% { transform: translateX(0); }
+                        80%, 100% { transform: translateX(calc(-1 * max(0px, 100% - 100cqw))); }
+                      }
+                      .rolling-text-smart {
+                        display: inline-block;
+                        white-space: nowrap;
+                        animation: smartScroll 4s linear infinite; 
+                      }
+                    `}
                   </style>
-
                   <h3 className="text-[12px] md:text-[13px] font-black text-[#4A403A] mb-3 md:mb-4 flex items-center justify-between border-b border-gray-50 pb-2 md:pb-3 shrink-0">
                     <div className="flex items-center gap-2">
                       <Trophy size={16} className="text-[#FF8C42]" /> 실시간 인기순위
@@ -660,61 +659,42 @@ export default function Home() {
                       <span className="w-1 h-1 bg-orange-500 rounded-full animate-ping"></span> LIVE
                     </span>
                   </h3>
-
-                  {/* 🚀 key를 통해 갱신될 때마다 애니메이션을 처음부터 다시 실행 */}
-                  <div
-                    key={realtimeRankings[0]?.id || 'loading'}
-                    className="flex flex-col gap-3 md:gap-3.5 overflow-y-auto pr-1 scrollbar-hide custom-scroll"
-                  >
+                  <div key={realtimeRankings[0]?.id || 'loading'} className="flex flex-col gap-3 md:gap-3.5 overflow-y-auto pr-1 scrollbar-hide custom-scroll">
                     {realtimeRankings.length > 0 ? (
                       realtimeRankings.map((rank, idx) => {
                         const prop = properties.find(p => String(p.id) === String(rank.id));
                         if (!prop) return null;
 
-                        const getTrend = (id: string) => {
+                        const getTrendIcon = (id: string) => {
                           const val = Number(id) % 5;
-                          if (val === 0) return { icon: <ChevronUp size={10} />, label: "1", color: "text-red-500" };
-                          if (val === 1) return { icon: <ChevronDown size={10} />, label: "1", color: "text-blue-500" };
-                          if (val === 2) return { icon: <ChevronUp size={10} />, label: "2", color: "text-red-500" };
-                          return { icon: <div className="w-2 h-[2px] bg-[#4A403A] rounded-full"></div>, label: "", color: "text-[#4A403A]" };
+                          if (val === 0 || val === 2) return <div className="w-4 h-4 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0"><ChevronUp size={11} strokeWidth={3} /></div>;
+                          if (val === 1) return <div className="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0"><ChevronDown size={11} strokeWidth={3} /></div>;
+                          return <div className="w-4 h-4 rounded-full bg-gray-50 flex items-center justify-center text-[#4A403A] shrink-0"><div className="w-1.5 h-[2px] bg-[#4A403A] rounded-full"></div></div>;
                         };
-                        const trend = getTrend(rank.id);
+                        const trendIcon = getTrendIcon(rank.id);
 
                         return (
-                          <Link
-                            key={rank.id}
-                            href={`/property/${rank.id}`}
-                            className="paper-animate flex items-center gap-3 group py-0.5 border-b border-gray-50/50 last:border-0 pb-2"
-                            // 🚀 1위부터 10위까지 0.08초 간격으로 촤르륵 등장
-                            style={{
-                              animationDelay: `${idx * 80}ms`,
-                              opacity: 0 // 애니메이션 시작 전에는 숨김
-                            }}
-                          >
-                            <span className={`text-[11px] md:text-[13px] font-black w-4 shrink-0 text-center ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>
-                              {idx + 1}
-                            </span>
-                            <div className="flex flex-col gap-0.5 overflow-hidden">
-                              <span className="text-[11px] md:text-[12px] font-bold text-[#4A403A] group-hover:text-[#FF8C42] truncate leading-tight transition-colors">
+                          <Link key={rank.id} href={`/property/${rank.id}`} className="paper-animate flex items-center gap-2 group py-0.5 border-b border-gray-50/50 last:border-0 pb-2" style={{ animationDelay: `${idx * 80}ms`, opacity: 0 }}>
+                            {/* 순위 & 기호 */}
+                            <div className="flex items-center gap-2 shrink-0 w-[38px] justify-between pl-1">
+                              <span className={`text-[13px] md:text-[14px] font-black w-4 text-center ${idx < 3 ? 'text-[#FF8C42]' : 'text-gray-300'}`}>
+                                {idx + 1}
+                              </span>
+                              {trendIcon}
+                            </div>
+                            {/* 🚀 단지명 (스크롤 컨테이너 적용 - 화살표 제거됨) */}
+                            <div className="flex-1 overflow-hidden relative ml-1 scroll-container min-w-0">
+                              <span className="rolling-text-smart text-[11px] md:text-[12px] font-bold text-[#4A403A] group-hover:text-[#FF8C42] transition-colors pr-2">
                                 {prop.title}
                               </span>
-                              <div className={`flex items-center gap-0.5 ${trend.color}`}>
-                                {trend.icon}
-                                {trend.label && <span className="text-[8px] md:text-[9px] font-black">{trend.label}</span>}
-                              </div>
                             </div>
+                            {/* ❌ 여기에 있던 ChevronRight 화살표 삭제 완료! */}
                           </Link>
                         );
                       })
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-gray-300 text-[11px] animate-pulse">
-                        순위 분석 중...
-                      </div>
-                    )}
+                    ) : (<div className="h-full flex items-center justify-center text-gray-300 text-[11px] animate-pulse py-10">순위 분석 중...</div>)}
                   </div>
                 </div>
-
-                {/* 하단: 스마트 툴 독립 타일 */}
                 <div className="grid grid-cols-3 md:grid-cols-2 gap-2.5 md:gap-4 flex-1">
                   {[
                     { href: "/tools/tax", icon: <Calculator size={16} className="md:w-5 md:h-5" />, label: "취득세", bg: "bg-blue-50", text: "text-blue-500" },
@@ -724,46 +704,53 @@ export default function Home() {
                     { href: "/tools/convert", icon: <RefreshCcw size={16} className="md:w-5 md:h-5" />, label: "평형변환", bg: "bg-indigo-50", text: "text-indigo-500" },
                     { href: "/tools/checklist", icon: <CalendarDays size={16} className="md:w-5 md:h-5" />, label: "체크리스트", bg: "bg-amber-50", text: "text-amber-500" }
                   ].map((tool, i) => (
-                    <Link
-                      key={i}
-                      href={tool.href}
-                      className="flex flex-col items-center justify-center gap-1.5 p-2.5 md:p-3 bg-white border border-gray-100 rounded-[20px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all h-full"
-                    >
-                      <div className={`w-8 h-8 md:w-10 md:h-10 ${tool.bg} ${tool.text} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                        {tool.icon}
-                      </div>
-                      <span className="font-black text-[#4A403A] whitespace-nowrap overflow-hidden text-ellipsis w-full text-center tracking-tighter"
-                        style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>
-                        {tool.label}
-                      </span>
+                    <Link key={i} href={tool.href} className="flex flex-col items-center justify-center gap-1.5 p-2.5 md:p-3 bg-white border border-gray-100 rounded-[20px] md:rounded-[24px] shadow-sm group hover:border-orange-200 transition-all h-full">
+                      <div className={`w-8 h-8 md:w-10 md:h-10 ${tool.bg} ${tool.text} rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>{tool.icon}</div>
+                      <span className="font-black text-[#4A403A] whitespace-nowrap overflow-hidden text-ellipsis w-full text-center tracking-tighter" style={{ fontSize: 'clamp(9px, 2.5vw, 12px)' }}>{tool.label}</span>
                     </Link>
                   ))}
                 </div>
               </div>
             </div>
 
-
-
             <div className="grid grid-cols-2 gap-2 md:gap-5 w-full max-w-6xl px-4 mb-8 md:mb-10">
               <Link href="/notice" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden"><div className="flex items-center gap-2 md:gap-4 z-10 min-w-0"><div className="w-8 h-8 md:w-12 md:h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><Megaphone size={14} /></div><div className="text-left min-w-0"><h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">공지사항</h3><p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight leading-tight">공지 확인</p></div></div><ChevronRight className="text-gray-300 group-hover:text-blue-500 transition-colors z-10 shrink-0" size={14} /><div className="absolute right-0 bottom-0 w-24 h-24 bg-blue-50/50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-blue-100/60 transition-colors"></div></Link>
               <Link href="/community" className="bg-white p-3 md:p-6 rounded-[16px] md:rounded-[24px] shadow-sm border border-gray-100 hover:border-[#FF5A00] hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden"><div className="flex items-center gap-2 md:gap-4 z-10 min-w-0"><div className="w-8 h-8 md:w-12 md:h-12 bg-orange-50 text-[#FF5A00] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><MessageSquare size={14} /></div><div className="text-left min-w-0"><h3 className="text-[12px] md:text-[16px] font-black text-[#4A403A] mb-0.5 tracking-tight truncate">라운지</h3><p className="text-[9px] md:text-[13px] text-gray-400 font-bold tracking-tight leading-tight">소통 공간</p></div></div><ChevronRight className="text-gray-300 group-hover:text-[#FF5A00] transition-colors z-10 shrink-0" size={14} /><div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-50 rounded-full blur-2xl -mr-10 -mb-10 pointer-events-none group-hover:bg-orange-100 transition-colors"></div></Link>
             </div>
-
-            <div className="w-full max-w-5xl mb-6 md:mb-12 px-4 md:px-6">
-              <div className="relative w-full rounded-[20px] md:rounded-[32px] overflow-hidden shadow-md md:shadow-2xl flex flex-row items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-8 group text-left bg-black">
-                <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60 md:opacity-80"><source src="/vip-bg.mp4" type="video/mp4" /></video>
-                <div className="absolute inset-0 bg-black/40 z-0"></div>
-                <div className="relative z-10 flex-1 pr-3"><h3 className="text-[13px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림</h3><p className="text-[9.5px] sm:text-[12px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.</p></div>
-                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0"><svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6"><path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" /></svg><span className="text-[10px] sm:text-[12px] md:text-[15px]">채널추가</span></Link>
-              </div>
-            </div>
           </div>
         )}
 
+        {/* 🏆 VIP 영상 배너 (백업본 기반 정렬/모서리 완벽 수정) */}
+        <div className="w-full max-w-5xl mx-auto -mt-6 md:mt-0 mb-6 md:mb-12 px-4 md:px-6">
+          {/* 🚀 mx-auto 추가로 중앙 정렬 해결, rounded-md로 모서리 각지게 수정 */}
+          <div className="relative w-full rounded-[10px] md:rounded-[20px] overflow-hidden shadow-md md:shadow-2xl flex flex-row items-center justify-between px-4 sm:px-6 md:px-12 py-3.5 md:py-8 group text-left bg-black">
+            <video autoPlay loop muted playsInline className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-60 md:opacity-80">
+              <source src="/vip-bg.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-black/40 z-0"></div>
+            <div className="relative z-10 flex-1 pr-3">
+              <h3 className="text-[10px] sm:text-[16px] md:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tighter">
+                누구보다 빠른 <span className="text-[#FF8C42]">선착순 분양</span> 알림
+              </h3>
+              <p className="text-[8px] sm:text-[11px] md:text-[15px] text-white/70 font-bold mt-0.5 md:mt-1.5 leading-tight">
+                로얄동·로얄층 마감 전 정보를 실시간으로 받아보세요.
+              </p>
+            </div>
+            <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="relative z-10 bg-[#FEE500] text-[#191919] font-black px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-7 md:py-3.5 rounded-lg md:rounded-[16px] shadow-lg hover:scale-105 transition-all flex items-center gap-1 md:gap-2 shrink-0">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 md:w-6 md:h-6">
+                <path d="M12 3c-5.523 0-10 3.535-10 7.896 0 2.827 1.83 5.304 4.582 6.643-.207.697-.996 3.498-1.026 3.612-.036.14.032.28.163.303.11.018.35.008 1.15-.347 0 0 2.29-1.523 3.256-2.188A10.74 10.74 0 0012 18.79c5.523 0 10-3.535 10-7.895C22 6.535 17.523 3 12 3z" />
+              </svg>
+              <span className="text-[10px] sm:text-[12px] md:text-[15px]">채널추가</span>
+            </Link>
+          </div>
+        </div>
+
+
+
+
         <section className="w-full max-w-6xl mb-12 md:mb-24 px-4 md:px-6 mt-0 md:mt-2 text-left">
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-3 z-0 relative w-full">
-
+          {/* 🚀 [수정] 4. 필터 버튼 레이어 우선순위 강화 (z-0 -> z-20) */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-3 z-20 relative w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
               <h2 className="text-[15px] md:text-[18px] font-black text-[#4a403a] flex items-center gap-1.5 shrink-0 pr-2">
                 {isSearchActive && activeFilter !== "전체" && !searchQuery ? (
@@ -778,15 +765,11 @@ export default function Home() {
               <div className="flex items-center justify-between w-full md:w-auto gap-2">
                 {!isSearching && (
                   <div className="relative shrink-0">
-                    <button
-                      onClick={() => setIsRegionOpen(!isRegionOpen)}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md font-bold text-[11px] md:text-[12px] transition-all border ${isRegionOpen || activeRegion !== "전국" ? 'bg-[#FF8C42] text-white border-[#FF8C42] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-[#FF8C42] hover:text-[#FF8C42]'}`}
-                    >
+                    <button onClick={() => setIsRegionOpen(!isRegionOpen)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-md font-bold text-[11px] md:text-[12px] transition-all border ${isRegionOpen || activeRegion !== "전국" ? 'bg-[#FF8C42] text-white border-[#FF8C42] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-[#FF8C42] hover:text-[#FF8C42]'}`}>
                       <MapPin size={13} className={isRegionOpen || activeRegion !== "전국" ? "text-white" : "text-gray-400"} />
                       {activeRegion === "전국" ? "전국" : activeRegion.substring(0, 2)}
                       <ChevronDown size={13} className={`transition-transform duration-200 ${isRegionOpen ? 'rotate-180' : ''}`} />
                     </button>
-
                     {isRegionOpen && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setIsRegionOpen(false)}></div>
@@ -795,18 +778,13 @@ export default function Home() {
                             <span className="text-[12px] md:text-[14px] font-black text-[#4A403A]">어디를 찾으시나요?</span>
                             <button onClick={() => setIsRegionOpen(false)} className="text-gray-400 hover:text-gray-600 bg-gray-50 p-1.5 rounded-full"><X size={14} /></button>
                           </div>
-
                           <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-hide pb-2">
                             {REGION_GROUPS.map((group, idx) => (
                               <div key={idx}>
                                 {group.label !== "전체" && <div className="text-[10px] md:text-[11px] font-bold text-gray-400 mb-2 pl-1">{group.label}</div>}
                                 <div className="flex flex-wrap gap-1.5 md:gap-2">
                                   {group.regions.map(r => (
-                                    <button
-                                      key={r}
-                                      onClick={() => { setActiveRegion(r); setIsRegionOpen(false); }}
-                                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-[11px] md:text-[12px] font-bold transition-all border ${activeRegion === r ? 'bg-[#4A403A] text-white border-[#4A403A] shadow-md' : 'bg-white text-gray-600 border-gray-100 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF8C42]'}`}
-                                    >
+                                    <button key={r} onClick={() => { setActiveRegion(r); setIsRegionOpen(false); }} className={`px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-[11px] md:text-[12px] font-bold transition-all border ${activeRegion === r ? 'bg-[#4A403A] text-white border-[#4A403A] shadow-md' : 'bg-white text-gray-600 border-gray-100 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF8C42]'}`}>
                                       {r}
                                     </button>
                                   ))}
@@ -819,44 +797,28 @@ export default function Home() {
                     )}
                   </div>
                 )}
-
                 <div className="md:hidden bg-gray-100 p-1 rounded-lg flex items-center shrink-0 shadow-inner">
-                  <button
-                    onClick={() => setViewMode('gallery')}
-                    className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
-                  >
+                  <button onClick={() => setViewMode('gallery')} className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}>
                     <Building size={14} /> 갤러리
                   </button>
-                  <button
-                    onClick={() => setViewMode('map')}
-                    className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
-                  >
+                  <button onClick={() => setViewMode('map')} className={`px-3 py-1 rounded-md font-black text-[11px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}>
                     <Map size={14} /> 지도
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="hidden md:flex bg-gray-100 p-1.5 rounded-lg items-center shrink-0 shadow-inner">
-              <button
-                onClick={() => setViewMode('gallery')}
-                className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
-              >
+            <div className="hidden md:flex bg-gray-100 p-1.5 rounded-lg items-center shrink-0 shadow-inner gap-1">
+              <button onClick={() => { setViewMode('gallery'); setIsFullScreen(false); }} className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'gallery' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}>
                 <Building size={14} /> 갤러리
               </button>
-              <button
-                onClick={() => setViewMode('map')}
-                className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}
-              >
+              <button onClick={() => setViewMode('map')} className={`px-4 py-1.5 rounded-md font-black text-[12px] transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#4A403A] shadow-sm' : 'text-gray-400 hover:text-[#4A403A]'}`}>
                 <Map size={14} /> 지도
               </button>
             </div>
           </div>
 
-          {/* 🚀 [해결] 지도/갤러리가 각자의 높이만큼만 공간을 차지하도록 분리 */}
           <div className="w-full relative">
-
-            {/* 📸 갤러리 뷰 영역 */}
             <div className={`w-full transition-opacity duration-300 ${viewMode === 'gallery' ? 'opacity-100 relative z-10 block' : 'opacity-0 absolute top-0 left-0 pointer-events-none hidden'}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-2">
                 {currentProperties.length > 0 ? (
@@ -865,56 +827,73 @@ export default function Home() {
                   <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-100">
                     <Search size={40} className="text-gray-200 mb-3" />
                     <p className="font-bold text-[14px] md:text-[16px] text-[#4A403A]">조건에 맞는 현장이 없습니다.</p>
-                    <p className="text-[11px] md:text-[13px] mt-1">다른 지역이나 단지명으로 검색해보세요.</p>
                   </div>
                 )}
               </div>
+              {/* 🚀 스마트 페이지네이션: 최대 5개까지만 롤링되게 표시 */}
+              {totalPages > 1 && (() => {
+                const maxPageButtons = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
+                let endPage = startPage + maxPageButtons - 1;
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8 md:mt-12 mb-4">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
+                if (endPage > totalPages) {
+                  endPage = totalPages;
+                  startPage = Math.max(1, endPage - maxPageButtons + 1);
+                }
+                const visiblePageNumbers = Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, i) => startPage + i);
 
-                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[200px] sm:max-w-none px-1 py-1">
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`w-9 h-9 shrink-0 rounded-xl font-bold text-[13px] transition-all ${currentPage === i + 1 ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-[#4A403A]'}`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
+                return (
+                  <div className="flex items-center justify-center gap-2 mt-8 md:mt-12 mb-4">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+
+                    <div className="flex items-center gap-1.5 px-1 py-1">
+                      {visiblePageNumbers.map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 shrink-0 rounded-xl font-bold text-[13px] transition-all ${currentPage === pageNum ? 'bg-[#4A403A] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 hover:text-[#4A403A]'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
-            {/* 🗺️ 지도 뷰 영역 (모바일 400px, PC 600px 반응형) */}
-            <div className={`w-full transition-opacity duration-300 rounded-[12px] shadow-sm border border-gray-100 bg-gray-50 h-[450px] md:h-[600px] ${viewMode === 'map' ? 'opacity-100 relative z-10 block' : 'opacity-0 absolute top-0 left-0 w-full pointer-events-none -z-999'}`}>
+            {/* 🚀 [해결] isFullScreen일 때 강제로 !z-[99999]를 줘서 다른 모든 버튼들 위로 덮어버림 */}
+            <div className={`w-full transition-all duration-500 rounded-[12px] shadow-sm border border-gray-100 bg-gray-50 ${isFullScreen ? 'h-[75vh] !z-[99999]' : 'h-[450px] md:h-[600px]'} ${viewMode === 'map' ? 'opacity-100 relative z-10 block' : 'opacity-0 absolute top-0 left-0 w-full pointer-events-none -z-99999'}`}>
               {isMapReady ? (
-                <MainMapExplorer properties={properties} searchQuery={searchQuery} activeFilter={activeFilter} />
+                <MainMapExplorer
+                  properties={properties}
+                  searchQuery={searchQuery}
+                  activeFilter={activeFilter}
+                  isFullScreen={isFullScreen}
+                  onFullScreenChange={setIsFullScreen}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold animate-pulse text-sm">지도를 준비하는 중...</div>
               )}
             </div>
           </div>
-
         </section>
 
+        {/* 🚀 [수정] 3. 하단 배너 영역 완벽 보존 (누락되었던 부분 복구 완료) */}
         {!isSearchActive && activeRegion === "전국" && (
           <div className="animate-in fade-in duration-500 w-full flex flex-col items-center">
             <div className="w-full max-w-5xl mb-24 px-4 md:px-6">
