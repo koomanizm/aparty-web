@@ -10,7 +10,7 @@ import {
     MessageCircle, Sparkles, Tag, Flame, TrendingUp,
     Newspaper, Calculator, Landmark, BarChart3, MapPin,
     CheckCircle, ChevronRight, Crosshair, Map, ChevronDown, Phone,
-    Monitor // 🚀 SearchPx 대신 완벽한 대칭의 Monitor 아이콘으로 교체
+    ArrowUpRight, Building2, GraduationCap, Train
 } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 import { getPropertyStats, incrementView, fetchPropertyViews } from "../../../lib/propertyUtils";
@@ -257,6 +257,33 @@ export default function PropertyDetailPage() {
     const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
     const fillPath = `${linePath} L 100 100 L 0 100 Z`;
 
+    // 🚀 Step 2: 팩트 태그 자동 생성 로직 (시트 데이터 분석)
+    const factTags = (() => {
+        const tags = [];
+
+        // 1. 세대수 팩트
+        const householdsMatch = property.households?.match(/[\d,]+/);
+        if (householdsMatch && parseInt(householdsMatch[0].replace(/,/g, ''), 10) >= 1000) {
+            tags.push({ icon: Building2, label: "1,000세대 이상 대단지", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" });
+        }
+
+        // 2. 주차 팩트 (🚀 대표님 지시대로 1.4대 이상으로 상향 조정)
+        const parkingMatch = property.parking?.match(/[\d.]+/);
+        if (parkingMatch && parseFloat(parkingMatch[0]) >= 1.4) {
+            tags.push({ icon: Car, label: "여유로운 주차 공간", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" });
+        }
+
+        // 3. 입지 팩트
+        if (property.description) {
+            if (property.description.includes('초등') || property.description.includes('학교')) {
+                tags.push({ icon: GraduationCap, label: "도보 안심 학세권", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" });
+            } else if (property.description.includes('역') || property.description.includes('출구')) {
+                tags.push({ icon: Train, label: "초역세권 프리미엄", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" });
+            }
+        }
+        return tags;
+    })();
+
     return (
         <main className="min-h-screen bg-[#f8f9fa] pb-32">
             <Script strategy="afterInteractive" src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`} onLoad={initMap} />
@@ -302,7 +329,20 @@ export default function PropertyDetailPage() {
 
                     <div className="mb-6 border-b border-gray-100 pb-6 overflow-hidden">
                         <h1 className="text-[18px] sm:text-[22px] md:text-3xl font-black text-[#2d2d2d] leading-tight mb-1 truncate block w-full tracking-tighter">{property.title}</h1>
-                        <p className="text-gray-400 font-medium text-[11px] md:text-sm flex items-center gap-1 truncate"><MapPin size={12} /> {property.location}</p>
+
+                        {/* 🚀 Step 2: 자동 생성된 팩트 태그 영역 렌더링 */}
+                        {factTags.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 md:gap-2 my-3">
+                                {factTags.map((tag, i) => (
+                                    <span key={i} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold border ${tag.bg} ${tag.color} ${tag.border}`}>
+                                        <tag.icon size={12} className="shrink-0" />
+                                        {tag.label}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        <p className="text-gray-400 font-medium text-[11px] md:text-sm flex items-center gap-1 mt-1 truncate"><MapPin size={12} /> {property.location}</p>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
@@ -412,39 +452,29 @@ export default function PropertyDetailPage() {
                 </div>
             </div>
 
-            {/* 🚀 Step 1-B. 우측 하단 플로팅 3단 확장형 캡슐 버튼 (Monitor 아이콘 보정 및 틀 확장) */}
             <div
                 className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] flex flex-col gap-2.5 items-end transition-transform duration-75 ease-out"
                 style={{ transform: `translateY(-${bottomOffset}px)` }}
             >
-                {/* 1. 홈페이지 (Monitor 아이콘으로 완벽 대칭 보정) */}
-                <Link href={property.link || "#"} target="_blank" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-white border border-gray-200 text-[#2d2d2d] rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition-all duration-300 overflow-hidden">
-                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
-                        <Monitor size={20} className="md:w-[24px] md:h-[24px] text-blue-500" />
+                <Link href={property.link || "#"} target="_blank" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-white border border-gray-200 text-[#2d2d2d] rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition-all duration-300 overflow-hidden relative">
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">홈페이지</span>
+                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-white rounded-full">
+                        <ArrowUpRight size={20} className="md:w-[24px] md:h-[24px] text-blue-500" />
                     </div>
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
-                        홈페이지
-                    </span>
                 </Link>
 
-                {/* 2. 전화 상담 */}
-                <a href="tel:1566-0000" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-[#10B981] text-white rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-[#059669] transition-all duration-300 overflow-hidden">
-                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
-                        <Phone size={18} className="md:w-[22px] md:h-[22px]" />
+                <a href="tel:1566-0000" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-[#10B981] text-white rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-[#059669] transition-all duration-300 overflow-hidden relative">
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">전화 상담</span>
+                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-[#10B981] rounded-full">
+                        <Phone size={18} className="md:w-[22px] md:h-[22px] fill-white" />
                     </div>
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
-                        전화 상담
-                    </span>
                 </a>
 
-                {/* 3. 카카오톡 문의 (너비 130px/160px 확장) */}
-                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="group flex items-center flex-row-reverse justify-start h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[130px] md:hover:w-[160px] bg-[#FEE500] text-[#191919] rounded-full shadow-[0_4px_16px_rgba(254,229,0,0.4)] hover:bg-[#F4DC00] transition-all duration-300 overflow-hidden">
-                    <div className="w-[38px] h-[38px] md:w-14 md:h-14 shrink-0 flex items-center justify-center">
-                        <MessageCircle size={19} fill="currentColor" className="md:w-[23px] md:h-[23px]" />
+                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[130px] md:hover:w-[160px] bg-[#FEE500] text-[#191919] rounded-full shadow-[0_4px_16px_rgba(254,229,0,0.4)] hover:bg-[#F4DC00] transition-all duration-300 overflow-hidden relative">
+                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">카카오톡 문의</span>
+                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-[#FEE500] rounded-full">
+                        <MessageCircle size={19} className="md:w-[23px] md:h-[23px] fill-black" />
                     </div>
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-5 pr-1">
-                        카카오톡 문의
-                    </span>
                 </Link>
             </div>
         </main>

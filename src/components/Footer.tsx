@@ -44,7 +44,7 @@ const Footer = () => {
                     <div className="flex flex-col items-center md:items-end gap-1 font-medium leading-relaxed text-center md:text-right">
                         <p>대표: 정규인 | 사업자등록번호: 545-74-00483</p>
                         <p>주소: 부산광역시 영도구 상리로1 | 고객센터: 1688-5946</p>
-                        <p>이메일: koomani.job@gmail.com</p>
+                        <p>이메일: contact@aparty.co.kr</p>
                     </div>
 
                     <div className="flex items-center gap-4 pt-1">
