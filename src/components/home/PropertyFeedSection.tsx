@@ -91,7 +91,7 @@ export default function PropertyFeedSection({
             {/* 헤더 영역 */}
             <div className="flex flex-col gap-4 mb-6 px-1 md:px-0">
                 <h2 className="text-[18px] md:text-[22px] font-extrabold text-[#4A403A] tracking-tighter flex items-center gap-1.5">
-                    <Sparkles size={20} className="text-[#FF8C42] md:w-[22px]" /> 오늘의 추천단지
+                    <Sparkles size={20} className="text-[#FF8C42] md:w-[22px]" /> 전체 분양 현장 탐색
                 </h2>
 
                 <div className="flex justify-between items-center w-full">
