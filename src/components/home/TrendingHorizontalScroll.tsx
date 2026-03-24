@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bell, MapPin, ChevronLeft, ChevronRight } from "lucide-react"; // Bell(알림) 및 화살표 아이콘 추가
+import { Bell, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { Property } from "../../lib/sheet";
 
 interface TrendingProps {
@@ -11,7 +11,6 @@ interface TrendingProps {
 }
 
 export default function TrendingHorizontalScroll({ properties }: TrendingProps) {
-    // 🚀 노출 개수를 10개로 유지
     const trendingItems = properties.slice(0, 10);
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -22,10 +21,33 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
     const [scrollLeftState, setScrollLeftState] = useState(0);
     const [dragged, setDragged] = useState(false);
 
-    // 🚀 플로팅 버튼 관련 상태
+    // 플로팅 버튼 관련 상태
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(false);
 
+    // 스크롤 위치 감지 함수
+    const checkScrollPosition = () => {
+        if (!scrollRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        setShowLeftArrow(scrollLeft > 10);
+        setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    };
+
+    // 🚀 [해결 포인트] 모든 Hook(useEffect 포함)은 Early Return(return null)보다 무조건 위에 있어야 합니다!
+    useEffect(() => {
+        const currentRef = scrollRef.current;
+        if (currentRef) {
+            checkScrollPosition();
+            currentRef.addEventListener("scroll", checkScrollPosition);
+        }
+        return () => {
+            if (currentRef) {
+                currentRef.removeEventListener("scroll", checkScrollPosition);
+            }
+        };
+    }, [trendingItems]);
+
+    // 🚀 모든 리액트 Hook이 선언된 이후에 '데이터 없음' 처리를 합니다.
     if (trendingItems.length === 0) return null;
 
     const getSafeImage = (img: any) => {
@@ -44,28 +66,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
         return status[0] || "신규오픈";
     };
 
-    // 🚀 스크롤 위치 감지 함수 (플로팅 버튼 유무 결정)
-    const checkScrollPosition = () => {
-        if (!scrollRef.current) return;
-        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-        setShowLeftArrow(scrollLeft > 10);
-        setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-    };
-
-    useEffect(() => {
-        const currentRef = scrollRef.current;
-        if (currentRef) {
-            checkScrollPosition(); // 초기 렌더링 시 체크
-            currentRef.addEventListener("scroll", checkScrollPosition);
-        }
-        return () => {
-            if (currentRef) {
-                currentRef.removeEventListener("scroll", checkScrollPosition);
-            }
-        };
-    }, [trendingItems]);
-
-    // 🚀 플로팅 버튼 클릭 시 스크롤 함수
     const scrollLeftBtn = () => {
         if (!scrollRef.current) return;
         scrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
@@ -76,7 +76,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
         scrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
     };
 
-    // Grab & Drag 스크롤 핸들러
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!scrollRef.current) return;
         setIsDragging(true);
@@ -112,15 +111,12 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
     };
 
     return (
-        // 🚀 버튼 및 제목 크기 조정을 위해 w-full py-5 select-none 유지
         <div className="w-full py-5 select-none group/main relative">
             <div className="flex items-center gap-1.5 px-2 mb-3 md:mb-4">
-                {/* Bell 아이콘으로 교체, 제목 크기(16px) 및 굵기(bold) 축소 */}
                 <Bell size={17} className="text-[#FF7A2F] fill-[#FF7A2F]/10 shrink-0" />
                 <h3 className="text-[15px] md:text-[16px] font-bold text-[#1E293B] tracking-tight">신규등록 단지</h3>
             </div>
 
-            {/* 🚀 플로팅 버튼 (박스 없이 아이콘만) - PC화면 호버시에만 나타남 */}
             {showLeftArrow && (
                 <button
                     onClick={scrollLeftBtn}
@@ -153,8 +149,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
                         href={`/property/${item.id}`}
                         key={item.id}
                         onClick={handleLinkClick}
-                        // 🚀 호버 효과 강화: border border-black/5 를 border-2 border-transparent 로 미리 잡아두어 호버 시 튕김 방지
-                        // group-hover:border-[#FF7A2F] group-hover:border-2 추가
                         className="relative flex-none w-[190px] md:w-[220px] h-[116px] md:h-[130px] rounded-[16px] overflow-hidden group shadow-sm hover:shadow-[0_8px_20px_rgba(255,122,47,0.15)] transition-all duration-300 border-2 border-transparent group-hover:border-[#FF7A2F]"
                     >
                         <Image
@@ -167,7 +161,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
 
                         <div className="absolute inset-0 bg-gradient-to-t from-[#1A100B]/90 via-[#1A100B]/30 to-black/5 z-10" />
 
-                        {/* 🚀 뱃지 및 뱃지 텍스트 크기 10% 축소 (기존 7.5px/8px -> 6.75px/7.2px 로 조정, 시각적 밸런스 고려) */}
                         <div className="absolute top-2.5 left-2.5 z-20 flex gap-1.5">
                             <span className="text-[6.75px] md:text-[7.2px] font-black text-white bg-[#FF7A2F] px-1 py-0.5 rounded shadow-sm tracking-tighter leading-none flex items-center h-[12px]">
                                 {getBadgeText(idx, item.status)}
