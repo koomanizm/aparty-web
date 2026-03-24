@@ -7,10 +7,10 @@ import Link from "next/link";
 import Script from "next/script";
 import {
     Users, Maximize, Calendar, Car, ArrowLeft,
-    MessageCircle, Sparkles, Tag, Flame, TrendingUp,
+    Sparkles, Tag, Flame, TrendingUp,
     Newspaper, Calculator, Landmark, BarChart3, MapPin,
     CheckCircle, ChevronRight, Crosshair, Map, ChevronDown, Phone,
-    ArrowUpRight
+    Building2
 } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 import { getPropertyStats, incrementView, fetchPropertyViews } from "../../../lib/propertyUtils";
@@ -41,6 +41,10 @@ export default function PropertyDetailPage() {
     const [todayCalls, setTodayCalls] = useState(0);
 
     const [bottomOffset, setBottomOffset] = useState(0);
+
+    // 🚀 추천 단지 관련 상태 & 임시 로그인 상태
+    const [recommendedProperties, setRecommendedProperties] = useState<Property[]>([]);
+    const [isLoggedIn, setIsLoggedIn] = useState(false); // 추후 Supabase 연동 시 실제 Auth 상태로 교체
 
     const mapRef = useRef<any>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +84,24 @@ export default function PropertyDetailPage() {
 
                 const allProperties = await getPropertiesFromSheet();
                 const found = allProperties.find((p: Property) => String(p.id) === targetId);
-                if (found) setProperty(found);
+
+                if (found) {
+                    setProperty(found);
+
+                    // 🚀 추천 단지 필터링 로직 (현재 지역 기반)
+                    const currentRegion = found.location ? found.location.split(' ').slice(0, 2).join(' ') : "";
+
+                    let filteredRecs = allProperties.filter((p: Property) =>
+                        p.id !== found.id && p.location?.includes(currentRegion)
+                    );
+
+                    if (filteredRecs.length < 3) {
+                        const extraRecs = allProperties.filter((p: Property) => p.id !== found.id);
+                        filteredRecs = extraRecs;
+                    }
+
+                    setRecommendedProperties(filteredRecs.slice(0, 6));
+                }
 
             } catch (error) {
                 console.error("상세페이지 연동 실패:", error);
@@ -234,26 +255,12 @@ export default function PropertyDetailPage() {
 
     if (isLoading || !property) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold bg-[#f8f9fa]">정보를 불러오는 중...</div>;
 
-    // 🚀 데이터 커스텀 변수 (새로운 시트 칼럼 연동)
     const p = property as any;
     const depositPct = p.deposit_pct || "10";
     const initialDeposit = p.initial_deposit;
     const loanCondition = p.loan_condition || "조건 확인 필요";
     const financialNote = p.financial_note || "";
 
-    // 🚀 분양가 정보 파싱 로직 (최소/최대 키워드 대응)
-    const priceList = property.price.split('/').filter(p => p.trim() !== '').map(item => {
-        const typePart = item.split(':')[0]?.trim() || "타입";
-        const minMatch = item.match(/최소:\s*([\d,]+)/);
-        const maxMatch = item.match(/최대:\s*([\d,]+)/);
-        return {
-            type: typePart,
-            min: minMatch ? minMatch[1].trim() : "상담문의",
-            max: maxMatch ? maxMatch[1].trim() : ""
-        };
-    });
-
-    // 🚀 최소 진입 자금 계산기 (정액제 우선)
     const getDepositAmount = () => {
         if (initialDeposit) {
             const val = parseInt(String(initialDeposit).replace(/,/g, ''), 10);
@@ -270,10 +277,14 @@ export default function PropertyDetailPage() {
         return "- ";
     };
 
-    const repType = property.size ? property.size.split(',')[0].trim() : '대표 타입';
+    const dummyTypes = [
+        { type: "084.9754A", area: 115.90, count: 34, minPrice: "5억 5,800", maxPrice: "5억 7,500" },
+        { type: "084.9765B", area: 115.68, count: 35, minPrice: "5억 5,300", maxPrice: "5억 7,500" },
+        { type: "103.9511", area: 139.57, count: 70, minPrice: "6억 7,000", maxPrice: "6억 9,800" }
+    ];
 
     return (
-        <main className="min-h-screen bg-[#f8f9fa] pb-32">
+        <main className="min-h-screen bg-[#f8f9fa] pb-24 md:pb-32">
             <Script strategy="afterInteractive" src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`} onLoad={initMap} />
             <style dangerouslySetInnerHTML={{ __html: `@keyframes sweep { 0% { left: -150%; } 100% { left: 150%; } } .shimmer-effect::after { content: ""; position: absolute; top: 0; width: 50px; height: 100%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent); transform: skewX(-20deg); animation: sweep 3s infinite; }` }} />
 
@@ -316,8 +327,10 @@ export default function PropertyDetailPage() {
                     </div>
 
                     <div className="mb-6 border-b border-gray-100 pb-6 overflow-hidden">
-                        <h1 className="text-[18px] sm:text-[22px] md:text-3xl font-black text-[#2d2d2d] leading-tight mb-1 truncate block w-full tracking-tighter">{property.title}</h1>
-                        <p className="text-gray-400 font-medium text-[11px] md:text-sm flex items-center gap-1 mt-1 mb-4 truncate"><MapPin size={12} /> {property.location}</p>
+                        {/* 🚀 단지명 텍스트 크기 구간별 2px 축소 적용 */}
+                        <h1 className="text-[16px] sm:text-[20px] md:text-[28px] font-black text-[#2d2d2d] leading-tight mb-1 truncate block w-full tracking-tighter">{property.title}</h1>
+                        {/* 🚀 주소 아이콘 색상 진한 주황(#ff6f42) 적용 */}
+                        <p className="text-gray-400 font-medium text-[11px] md:text-sm flex items-center gap-1 mt-1 mb-4 truncate"><MapPin size={12} className="text-[#ff6f42]" /> {property.location}</p>
 
                         <div className="bg-[#FF8C42]/5 border border-[#FF8C42]/20 rounded-xl p-4 md:p-5">
                             <div className="flex justify-between items-center mb-1">
@@ -341,73 +354,131 @@ export default function PropertyDetailPage() {
                         ))}
                     </div>
 
-                    {/* 🚀 분양가 정보 섹션 (버튼형 UI 및 상하 정렬 완결판) */}
-                    <div className="mb-8">
-                        <div className="flex flex-col mb-4">
-                            <h3 className="text-[12px] md:text-[13px] font-bold text-gray-400 flex items-center gap-1">
-                                <Tag size={12} /> 분양가 정보
+                    <div className="mb-10">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-[14px] md:text-[16px] font-bold text-[#2d2d2d] flex items-center gap-2">
+                                <Tag className="text-[#ff6f42] w-4 h-4" /> 공급 대상 및 분양가
                             </h3>
-                            <p className="text-[clamp(9px,2.5vw,11px)] text-gray-400 font-medium mt-0.5 ml-1 italic opacity-80">
-                                * 기준층 및 타입별 세부 조건에 따라 금액은 달라질 수 있습니다.
-                            </p>
                         </div>
-                        <div className="flex flex-col gap-3">
-                            {priceList.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3.5 sm:p-4 bg-[#fdfbf7] rounded-2xl border border-orange-100 shadow-sm transition-all hover:border-orange-200 overflow-hidden">
-                                    <span className="text-[clamp(10px,3vw,13px)] font-black text-gray-700 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shrink-0 mr-3 shadow-sm">
-                                        {item.type}
-                                    </span>
 
-                                    <div className="flex flex-col gap-2 min-w-0">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <span className="px-1.5 py-0.5 rounded md:rounded-md bg-blue-50 text-blue-600 text-[9px] md:text-[10px] font-black border border-blue-100 shadow-inner shrink-0">최소</span>
-                                            <span className="text-[clamp(12px,4vw,16px)] font-black text-[#4A403A] whitespace-nowrap tracking-tight">{item.min}</span>
-                                        </div>
-                                        {item.max && (
-                                            <div className="flex items-center justify-end gap-2">
-                                                <span className="px-1.5 py-0.5 rounded md:rounded-md bg-orange-50 text-orange-600 text-[9px] md:text-[10px] font-black border border-orange-100 shadow-inner shrink-0">최대</span>
-                                                <span className="text-[clamp(11px,3.5vw,14px)] font-extrabold text-gray-400 whitespace-nowrap tracking-tight">{item.max}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="w-full overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white scrollbar-hide">
+                            <table className="w-full min-w-[600px] text-[12px] md:text-[13px] text-center whitespace-nowrap">
+                                <thead className="bg-[#F8F9FA] border-b border-gray-200 text-gray-600">
+                                    <tr>
+                                        <th className="py-3 px-4 font-bold border-r border-gray-100">주택형</th>
+                                        <th className="py-3 px-4 font-bold border-r border-gray-100">공급면적 (㎡/평)</th>
+                                        <th className="py-3 px-4 font-bold border-r border-gray-100">세대수</th>
+                                        <th className="py-3 px-4 font-bold border-r border-gray-100">최저가</th>
+                                        <th className="py-3 px-4 font-bold">최고가</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-gray-700">
+                                    {dummyTypes.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                                            <td className="py-3 px-4 border-r border-gray-100 font-bold text-[#2d2d2d]">
+                                                {item.type.replace(/^0+/, '').replace(/\.\d+/, '')}
+                                            </td>
+                                            <td className="py-3 px-4 border-r border-gray-100">
+                                                {item.area} <span className="text-gray-400">({Math.round(item.area / 3.3058)}평)</span>
+                                            </td>
+                                            <td className="py-3 px-4 border-r border-gray-100">{item.count}</td>
+                                            <td className="py-3 px-4 border-r border-gray-100 text-right pr-4 md:pr-6 font-medium">
+                                                {item.minPrice}<span className="text-[11px] text-gray-500 ml-0.5">만원</span>
+                                            </td>
+                                            <td className="py-3 px-4 text-right pr-4 md:pr-6 font-medium">
+                                                {item.maxPrice}<span className="text-[11px] text-gray-500 ml-0.5">만원</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
+                        <p className="text-[11px] text-gray-400 mt-2 text-right flex items-center justify-end gap-1">
+                            * 세부 층별, 동별 정확한 분양가는 모집공고 및 상담을 통해 확인 바랍니다.
+                        </p>
                     </div>
 
-                    {/* 🚀 [수술완료] 자금 조달 흐름: 진짜 현장 데이터 기반 브리핑 */}
-                    <div className="mb-8 bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                        <h2 className="text-[14px] md:text-[15px] font-black text-[#4A403A] mb-5 flex items-center gap-2">
-                            <Landmark size={16} className="text-orange-500" /> 자금 조달 흐름 한눈에 보기
-                        </h2>
-                        <div className="relative pl-6 border-l-2 border-gray-200 ml-3 space-y-8">
-                            <div className="relative">
-                                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-[#FF8C42] border-4 border-[#f8f9fa] shadow-sm"></div>
-                                <h3 className="text-[13px] md:text-[14px] font-black text-gray-800">
-                                    Step 1. 계약 진행 {initialDeposit && <span className="text-orange-500 ml-1">(정액제)</span>}
-                                </h3>
-                                <p className="text-[11px] md:text-[12px] text-gray-500 mt-1 leading-relaxed">
-                                    {initialDeposit
-                                        ? `당장 ${getDepositAmount()}만원으로 동호수 우선 지정 계약이 가능합니다.`
-                                        : `분양가의 ${depositPct}% 금액으로 정계약 체결이 진행됩니다.`}
-                                    {financialNote && <span className="block text-blue-600 font-bold mt-1">✓ {financialNote}</span>}
-                                </p>
-                            </div>
-                            <div className="relative">
-                                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-[#f8f9fa] shadow-sm"></div>
-                                <h3 className="text-[13px] md:text-[14px] font-black text-emerald-600">Step 2. 중도금 ({loanCondition})</h3>
-                                <p className="text-[11px] md:text-[12px] text-gray-500 mt-1 leading-relaxed">
-                                    {loanCondition === "무이자"
-                                        ? "입주 전까지 중도금 이자 부담이 전혀 없는 혜택 현장입니다."
-                                        : "중도금 대출 조건 및 이자 지원 여부는 상담을 통해 확인 가능합니다."}
-                                </p>
-                            </div>
-                            <div className="relative">
-                                <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-gray-300 border-4 border-[#f8f9fa] shadow-sm"></div>
-                                <h3 className="text-[13px] md:text-[14px] font-black text-gray-800">Step 3. 입주 및 잔금 납부</h3>
-                                <p className="text-[11px] md:text-[12px] text-gray-500 mt-1 leading-relaxed">
-                                    입주 지정 기간 내 잔금 납부 및 소유권 이전이 진행됩니다. (담보대출 전환 가능)
-                                </p>
+                    {/* 🚀 자금 조달 흐름 섹션 */}
+                    <div className="mb-10">
+                        <h3 className="text-[15px] md:text-[16px] font-bold text-[#2d2d2d] flex items-center gap-2 mb-3">
+                            <Landmark className="text-[#ff6f42] w-4 h-4" /> 자금 조달 흐름 한눈에 보기
+                        </h3>
+                        <div className="bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-100">
+                            <div className="relative pl-3 md:pl-4">
+                                <div className="absolute left-[17px] md:left-[21px] top-2 bottom-2 w-0.5 bg-gray-200"></div>
+
+                                <div className="space-y-6">
+                                    <div className="relative flex items-start gap-4 md:gap-5">
+                                        <div className="relative z-10 w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-[#FF8C42] border-[3px] border-gray-50 mt-1 shrink-0"></div>
+                                        <div className="flex flex-col w-full">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-orange-100 text-orange-600 border border-orange-200">계약시</span>
+                                                <h3 className="text-[13px] md:text-[14px] font-bold text-gray-800">
+                                                    {initialDeposit ? "1차 계약금" : "계약금"}
+                                                </h3>
+                                            </div>
+                                            <p className="text-[14px] md:text-[15px] font-black text-[#FF8C42] mb-1">
+                                                {initialDeposit ? `${getDepositAmount()}만원 (정액제)` : `분양가의 ${depositPct}%`}
+                                            </p>
+                                            <p className="text-[11px] md:text-[12px] text-gray-500 leading-relaxed">
+                                                {initialDeposit ? "부담 없는 금액으로 동호수 우선 지정 계약이 진행됩니다." : "정계약 체결을 위한 초기 자금입니다."}
+                                                {financialNote && <span className="block text-blue-600 font-bold mt-0.5">✓ {financialNote}</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {initialDeposit && (
+                                        <div className="relative flex items-start gap-4 md:gap-5">
+                                            <div className="relative z-10 w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-orange-300 border-[3px] border-gray-50 mt-1 shrink-0"></div>
+                                            <div className="flex flex-col w-full">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gray-200 text-gray-600 border border-gray-300">계약 후 지정일</span>
+                                                    <h3 className="text-[13px] md:text-[14px] font-bold text-gray-800">2차 계약금</h3>
+                                                </div>
+                                                <p className="text-[14px] md:text-[15px] font-black text-gray-700 mb-1">
+                                                    나머지 잔여 계약금
+                                                </p>
+                                                <p className="text-[11px] md:text-[12px] text-gray-500 leading-relaxed">
+                                                    1차 계약금을 제외한 나머지 계약금을 납부합니다. (대출 알선 등 조건 확인 필요)
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="relative flex items-start gap-4 md:gap-5">
+                                        <div className="relative z-10 w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-emerald-500 border-[3px] border-gray-50 mt-1 shrink-0"></div>
+                                        <div className="flex flex-col w-full">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-600 border border-emerald-200">공사 진행중</span>
+                                                <h3 className="text-[13px] md:text-[14px] font-bold text-gray-800">중도금</h3>
+                                            </div>
+                                            <p className="text-[14px] md:text-[15px] font-black text-emerald-600 mb-1">
+                                                {loanCondition}
+                                            </p>
+                                            <p className="text-[11px] md:text-[12px] text-gray-500 leading-relaxed">
+                                                {loanCondition.includes("무이자")
+                                                    ? "입주 전까지 중도금 이자 부담이 전혀 발생하지 않습니다."
+                                                    : "중도금 대출 이자 조건 등은 상세 상담을 통해 안내해 드립니다."}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative flex items-start gap-4 md:gap-5">
+                                        <div className="relative z-10 w-3 h-3 md:w-3.5 md:h-3.5 rounded-full bg-gray-400 border-[3px] border-gray-50 mt-1 shrink-0"></div>
+                                        <div className="flex flex-col w-full">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gray-200 text-gray-600 border border-gray-300">입주 지정일</span>
+                                                <h3 className="text-[13px] md:text-[14px] font-bold text-gray-800">잔금 납부</h3>
+                                            </div>
+                                            <p className="text-[14px] md:text-[15px] font-black text-gray-700 mb-1">
+                                                분양대금 잔액
+                                            </p>
+                                            <p className="text-[11px] md:text-[12px] text-gray-500 leading-relaxed">
+                                                잔금 납부 후 소유권 이전이 진행됩니다. (주택담보대출 전환 가능)
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -459,7 +530,7 @@ export default function PropertyDetailPage() {
                                             <div key={idx} onClick={() => handleTradeClick(t, idx)} className={`flex flex-col p-2.5 rounded-xl cursor-pointer transition-all border ${active ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-transparent hover:border-orange-100/50'}`}>
                                                 <div className="flex justify-between items-center w-full">
                                                     <div>
-                                                        <div className={`font-bold text-[12px] md:text-[13px] flex items-center gap-1.5 ${active ? 'text-blue-600' : 'text-[#4A403A]'}`}>{t.aptName} {active && <Map size={10} className="text-blue-500 animate-bounce" />}</div>
+                                                        <div className={`font-bold text-[12px] md:text-[13px] flex items-center gap-1.5 ${active ? 'text-blue-600' : 'text-[#4A403A]'}`}>{t.aptName} {active && <Map size={10} className="text-blue-500" />}</div>
                                                         <div className={`text-[9px] md:text-[10px] mt-0.5 ${active ? 'text-blue-400' : 'text-gray-400'}`}>전용 {t.area}㎡ · {t.dealDay}일 거래</div>
                                                     </div>
                                                     <div className="text-right">
@@ -473,7 +544,7 @@ export default function PropertyDetailPage() {
                             </div>
                             {trades.length > 4 && (
                                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#fdfbf7] via-[#fdfbf7]/90 to-transparent pointer-events-none rounded-b-2xl border-b border-[#efeadd] flex items-end justify-center pb-3 z-10">
-                                    <button onClick={() => tradesScrollRef.current?.scrollBy({ top: 250, behavior: 'smooth' })} className="pointer-events-auto bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-500 text-[10px] md:text-[11px] font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1 hover:text-[#ff6f42] hover:border-orange-200 hover:bg-orange-50/30 active:scale-95 transition-all">더보기 <ChevronDown size={14} className="text-[#ff6f42] animate-bounce" /></button>
+                                    <button onClick={() => tradesScrollRef.current?.scrollBy({ top: 250, behavior: 'smooth' })} className="pointer-events-auto bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-500 text-[10px] md:text-[11px] font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1 hover:text-[#ff6f42] hover:border-orange-200 hover:bg-orange-50/30 active:scale-95 transition-all">더보기 <ChevronDown size={14} className="text-[#ff6f42]" /></button>
                                 </div>
                             )}
                         </div>
@@ -493,7 +564,45 @@ export default function PropertyDetailPage() {
                             </div>
                             {news.length > 4 && (
                                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f8f9fa] via-[#f8f9fa]/90 to-transparent pointer-events-none flex items-end justify-center pb-3 z-10">
-                                    <button onClick={() => newsScrollRef.current?.scrollBy({ top: 250, behavior: 'smooth' })} className="pointer-events-auto bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-500 text-[10px] md:text-[11px] font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1 hover:text-[#ff6f42] hover:border-orange-200 hover:bg-orange-50/30 active:scale-95 transition-all">더보기 <ChevronDown size={14} className="text-[#ff6f42] animate-bounce" /></button>
+                                    <button onClick={() => newsScrollRef.current?.scrollBy({ top: 250, behavior: 'smooth' })} className="pointer-events-auto bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-500 text-[10px] md:text-[11px] font-bold px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1 hover:text-[#ff6f42] hover:border-orange-200 hover:bg-orange-50/30 active:scale-95 transition-all">더보기 <ChevronDown size={14} className="text-[#ff6f42]" /></button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-12 mb-2 border-t border-gray-100 pt-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-[15px] md:text-[16px] font-bold text-[#2d2d2d] flex items-center gap-2">
+                                <Building2 className="text-[#ff6f42] w-4 h-4 md:w-5 md:h-5" />
+                                {isLoggedIn ? "나의 관심지역 추천 단지" : "이 지역 다른 추천 단지"}
+                            </h3>
+                            <Link href="/properties" className="text-[11px] md:text-[12px] text-gray-400 font-bold hover:text-[#ff6f42] flex items-center transition-colors">
+                                더보기 <ChevronRight size={14} />
+                            </Link>
+                        </div>
+
+                        <div className="flex overflow-x-auto scrollbar-hide gap-3 pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+                            {recommendedProperties.length > 0 ? recommendedProperties.map((rec) => (
+                                <Link href={`/property/${rec.id}`} key={rec.id} className="w-[140px] md:w-[180px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-[#ff6f42] hover:shadow-md transition-all group overflow-hidden flex flex-col">
+                                    <div className="relative w-full h-[100px] md:h-[120px] bg-gray-100 overflow-hidden">
+                                        <Image src={getSafeImage(rec.image)} alt={rec.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/20">
+                                            {rec.status?.[0] || "분양중"}
+                                        </div>
+                                    </div>
+                                    <div className="p-3 flex flex-col flex-1 justify-between bg-white">
+                                        <div>
+                                            <h4 className="text-[12px] md:text-[13px] font-black text-[#2d2d2d] line-clamp-1 group-hover:text-[#ff6f42] transition-colors">{rec.title}</h4>
+                                            <p className="text-[10px] md:text-[11px] text-gray-500 mt-1 line-clamp-1 flex items-center gap-0.5">
+                                                <MapPin size={10} className="text-gray-400" /> {rec.location.split(' ').slice(0, 2).join(' ')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            )) : (
+                                <div className="w-full text-center py-8 text-[12px] text-gray-400 bg-gray-50 rounded-xl border border-gray-100">
+                                    현재 지역에 추천해 드릴 다른 단지가 없습니다.
                                 </div>
                             )}
                         </div>
@@ -503,30 +612,27 @@ export default function PropertyDetailPage() {
                 </div>
             </div>
 
+            {/* 🚀 하단 고정 CTA 바 */}
             <div
-                className="fixed right-4 md:right-10 bottom-[92px] md:bottom-[115px] z-[90] flex flex-col gap-2.5 items-end transition-transform duration-75 ease-out"
+                className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-100 px-4 py-2.5 md:py-3 pb-[calc(env(safe-area-inset-bottom,12px)+10px)] md:pb-3 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] transition-transform duration-75 ease-out"
                 style={{ transform: `translateY(-${bottomOffset}px)` }}
             >
-                <Link href={property.link || "#"} target="_blank" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-white border border-gray-200 text-[#2d2d2d] rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:bg-gray-50 transition-all duration-300 overflow-hidden relative">
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">홈페이지</span>
-                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-white rounded-full">
-                        <ArrowUpRight size={20} className="md:w-[24px] md:h-[24px] text-blue-500" />
-                    </div>
-                </Link>
+                <div className="max-w-[480px] mx-auto flex items-center justify-center gap-2.5">
+                    <Link
+                        href={property.link || "#"}
+                        target="_blank"
+                        className="flex-1 h-[46px] md:h-[48px] flex items-center justify-center bg-[#1E293B] text-white font-bold rounded-xl text-[14px] md:text-[15px] shadow-sm hover:bg-[#0F172A] transition-all active:scale-[0.98]"
+                    >
+                        홈페이지
+                    </Link>
 
-                <a href="tel:1566-0000" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[110px] md:hover:w-[140px] bg-[#10B981] text-white rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-[#059669] transition-all duration-300 overflow-hidden relative">
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">전화 상담</span>
-                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-[#10B981] rounded-full">
-                        <Phone size={18} className="md:w-[22px] md:h-[22px] fill-white" />
-                    </div>
-                </a>
-
-                <Link href="http://pf.kakao.com/_EbnAX" target="_blank" className="group flex items-center flex-row h-[38px] w-[38px] md:h-14 md:w-14 hover:w-[130px] md:hover:w-[160px] bg-[#FEE500] text-[#191919] rounded-full shadow-[0_4px_16px_rgba(254,229,0,0.4)] hover:bg-[#F4DC00] transition-all duration-300 overflow-hidden relative">
-                    <span className="font-bold text-[11px] md:text-[13px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-4 md:pl-6 pointer-events-none">카카오톡 문의</span>
-                    <div className="absolute right-0 top-0 w-[38px] h-[38px] md:w-14 md:h-14 flex items-center justify-center bg-[#FEE500] rounded-full">
-                        <MessageCircle size={19} className="md:w-[23px] md:h-[23px] fill-black" />
-                    </div>
-                </Link>
+                    <a
+                        href="tel:1566-0000"
+                        className="flex-1 h-[46px] md:h-[48px] flex items-center justify-center bg-[#FF6F42] text-white font-bold rounded-xl text-[14px] md:text-[15px] shadow-sm hover:bg-[#e55a2f] transition-all active:scale-[0.98]"
+                    >
+                        <Phone size={16} className="mr-1.5 fill-white" /> 전화 상담하기
+                    </a>
+                </div>
             </div>
         </main>
     );

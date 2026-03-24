@@ -7,7 +7,13 @@ export interface Property {
   title: string;
   location: string;
   status: string[];
+  signals: string[];
+  propertyType: string;
+  category?: string;
   price: string;
+  pyeongPrice?: string;
+  views?: number;
+  deadlineOrder?: number;
   image: string;
   description: string;
   households: string;
@@ -20,11 +26,11 @@ export interface Property {
   searchKeyword: string;
   mapAddress?: string;
   coordinates?: string;
-  // 🚀 [신규 추가] 금융 디테일 항목
   deposit_pct?: string;
   initial_deposit?: string;
   loan_condition?: string;
   financial_note?: string;
+  adGrade?: string; // 🚀 영문 프리미엄 등급 속성 추가!
 }
 
 export interface TickerMessage {
@@ -60,7 +66,6 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
     const lines = csvData.split('\n');
     if (lines.length < 2) return [];
 
-    // 🚀 [지능형 매핑] 첫 줄(헤더)을 분석해서 이름표의 위치를 자동으로 찾습니다.
     const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
 
     const getVal = (cols: string[], name: string) => {
@@ -74,12 +79,22 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
       const title = getVal(cols, 'title');
       const location = getVal(cols, 'location');
 
+      const rawStatus = getVal(cols, 'status');
+      const rawSignals = getVal(cols, 'signals') || getVal(cols, 'badges');
+      const rawType = getVal(cols, 'propertyType') || getVal(cols, 'category');
+
       return {
         id: getVal(cols, 'id'),
         title: title,
         location: location,
-        status: getVal(cols, 'status') ? getVal(cols, 'status').split(/[,/]/).map(s => s.trim()).filter(Boolean) : [],
+        status: rawStatus ? rawStatus.split(/[,/]/).map(s => s.trim()).filter(Boolean) : [],
+        signals: rawSignals ? rawSignals.split(/[,/]/).map(s => s.trim()).filter(Boolean) : [],
+        propertyType: rawType || "아파트",
+        category: rawType || "아파트",
         price: getVal(cols, 'price'),
+        pyeongPrice: getVal(cols, 'pyeongPrice') || getVal(cols, 'pyeong_price'),
+        views: parseInt(getVal(cols, 'views')) || 0,
+        deadlineOrder: parseInt(getVal(cols, 'deadlineOrder')) || 999,
         image: getVal(cols, 'image'),
         description: getVal(cols, 'description'),
         households: getVal(cols, 'households') || "-",
@@ -92,11 +107,11 @@ export async function getPropertiesFromSheet(): Promise<Property[]> {
         searchKeyword: getVal(cols, 'searchKeyword') || (title ? `${title} 호재` : ""),
         mapAddress: getVal(cols, 'mapAddress'),
         coordinates: getVal(cols, 'coordinates'),
-        // 🚀 이제 이 4개는 시트 어디에 있든 이름만 맞으면 가져옵니다.
         deposit_pct: getVal(cols, 'deposit_pct'),
         initial_deposit: getVal(cols, 'initial_deposit'),
         loan_condition: getVal(cols, 'loan_condition'),
         financial_note: getVal(cols, 'financial_note'),
+        adGrade: getVal(cols, 'adGrade'), // 🚀 완벽하게 영문 헤더 'adGrade'를 읽어옵니다!
       } as Property;
     });
 
