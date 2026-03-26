@@ -5,27 +5,29 @@ import { Search, Bell, Monitor, Smartphone, Filter, ChevronRight, CheckCircle2, 
 
 export default function SpinoffPlayground() {
     const themes = [
-        // ⚡ [NEW] 비비드 하이엔드 (쨍하고 선명한 전기감)
+        // ☁️ [NEW] 완벽한 조화와 숨통, 하늘색 계열
         {
-            id: "electric-iris", name: "NEW: Electric Iris ⚡ (강력 추천)", category: "비비드 하이엔드",
-            primary: "#5B4DFF", primaryHover: "#4E41EB", accent: "#7A5CFF", accentSoft: "#EFEAFF", blueAccent: "#3A8BFF", blueSoft: "#E8F1FF",
-            bg: "#F8F9FF", surface: "#FFFFFF", border: "#DCDFFF", textMain: "#1E2240", textSub: "#6A7193",
-            desc: "탁함 Zero! 쨍하지만 싸 보이지 않는 완벽한 밸런스. 브랜드는 퍼플로, 데이터는 블루로 꽂힙니다.",
-            badges: { brand: { bg: "#EFEAFF", text: "#5B4DFF", label: "APARTY 추천" }, info: { bg: "#E8F1FF", text: "#3A8BFF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#5B4DFF", label: "인기단지" } }
+            id: "aero-sky", name: "NEW: Aero Sky ✈️", category: "조화로운 스카이",
+            primary: "#0EA5E9", primaryHover: "#0284C7", accent: "#38BDF8", accentSoft: "#E0F2FE", blueAccent: "#0EA5E9", blueSoft: "#F0F9FF",
+            bg: "#F4FAFF", surface: "#FFFFFF", border: "#BAE6FD", textMain: "#0F172A", textSub: "#64748B",
+            desc: "청명하고 시원한 가을 하늘색. 화면이 넓어 보이고, 데이터와 가장 이질감 없이 조화롭게 스며듭니다.",
+            badges: { brand: { bg: "#E0F2FE", text: "#0EA5E9", label: "APARTY 추천" }, info: { bg: "#F0F9FF", text: "#0284C7", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#0EA5E9", label: "인기단지" } }
         },
         {
-            id: "neon-indigo", name: "NEW: Neon Indigo 💎", category: "비비드 하이엔드",
-            primary: "#4F46FF", primaryHover: "#4238e5", accent: "#765BFF", accentSoft: "#EEF0FF", blueAccent: "#2F8CFF", blueSoft: "#E6EEFF",
-            bg: "#F7F8FF", surface: "#FFFFFF", border: "#D9DEFF", textMain: "#1A1C33", textSub: "#686b8c",
-            desc: "블루의 시원함이 더 강한 버전. 정보 플랫폼과 검색/필터 UI에서 미친 가독성을 자랑합니다.",
-            badges: { brand: { bg: "#EEF0FF", text: "#4F46FF", label: "APARTY 추천" }, info: { bg: "#E6EEFF", text: "#2F8CFF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#4F46FF", label: "인기단지" } }
+            id: "soft-powder", name: "NEW: Soft Powder ☁️", category: "조화로운 스카이",
+            primary: "#6B9DF2", primaryHover: "#5084DB", accent: "#8BB6FF", accentSoft: "#ECF2FF", blueAccent: "#6B9DF2", blueSoft: "#F4F8FF",
+            bg: "#F8FBFF", surface: "#FFFFFF", border: "#DCE6F7", textMain: "#1B2433", textSub: "#6C7C93",
+            desc: "구름처럼 부드럽고 포근한 파우더 블루. 시각적 피로도가 0에 가까운 궁극의 편안함을 줍니다.",
+            badges: { brand: { bg: "#ECF2FF", text: "#6B9DF2", label: "APARTY 추천" }, info: { bg: "#F4F8FF", text: "#5084DB", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#6B9DF2", label: "인기단지" } }
         },
+
+        // 💎 [이전] 퓨어 원색 라인업
         {
-            id: "bright-royal-violet", name: "NEW: Bright Royal Violet ✨", category: "비비드 하이엔드",
-            primary: "#6A4DFF", primaryHover: "#5b3ce5", accent: "#8A63FF", accentSoft: "#F1ECFF", blueAccent: "#4C86FF", blueSoft: "#e8f0ff",
-            bg: "#F9F8FF", surface: "#FFFFFF", border: "#E5E0FF", textMain: "#221A40", textSub: "#706399",
-            desc: "퍼플의 존재감을 최대로 끌어올려 감각적이고 독보적인 브랜드 인상을 남깁니다.",
-            badges: { brand: { bg: "#F1ECFF", text: "#6A4DFF", label: "APARTY 추천" }, info: { bg: "#e8f0ff", text: "#4C86FF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#6A4DFF", label: "인기단지" } }
+            id: "pure-cobalt", name: "이전: Pure Cobalt Blue 💎", category: "극강의 퓨어 원색",
+            primary: "#0055FF", primaryHover: "#0044CC", accent: "#00D1FF", accentSoft: "#E5F0FF", blueAccent: "#0055FF", blueSoft: "#E5F0FF",
+            bg: "#F4F7FF", surface: "#FFFFFF", border: "#D1E0FF", textMain: "#0A1128", textSub: "#5C6B8A",
+            desc: "탁함이 1%도 없는 가장 맑고 쨍한 코발트 블루. 압도적인 속도감과 신뢰.",
+            badges: { brand: { bg: "#E5F0FF", text: "#0055FF", label: "APARTY 추천" }, info: { bg: "#E0F7FA", text: "#00BCD4", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#0055FF", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#0055FF", label: "인기단지" } }
         },
 
         // 🏢 [초격차 중간지대]
@@ -36,20 +38,6 @@ export default function SpinoffPlayground() {
             desc: "차갑고 똑똑한 프롭테크 감성. 흔한 블루를 탈피한 포털형 차별화.",
             badges: { brand: { bg: "#EEF1FA", text: "#4E5875", label: "APARTY 추천" }, info: { bg: "#EEF1FA", text: "#6C78C9", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#6C78C9", label: "인기단지" } }
         },
-        {
-            id: "ink-plum", name: "이전: Ink Plum (브랜드형)", category: "초격차 중간지대",
-            primary: "#5B4B6E", primaryHover: "#4a3c59", accent: "#7A68A6", accentSoft: "#F3EFF8", blueAccent: "#7A68A6", blueSoft: "#F3EFF8",
-            bg: "#FAF9FC", surface: "#FFFFFF", border: "#E8E1F0", textMain: "#2A2333", textSub: "#8A7B9C",
-            desc: "조용한 럭셔리. 부동산 포털의 뻔함을 버린 브랜드형 프리미엄.",
-            badges: { brand: { bg: "#F3EFF8", text: "#5B4B6E", label: "APARTY 프리미엄" }, info: { bg: "#F3EFF8", text: "#7A68A6", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#7A68A6", label: "인기단지" } }
-        },
-        {
-            id: "deep-rose-slate", name: "이전: Deep Rose Slate", category: "초격차 중간지대",
-            primary: "#6A5563", primaryHover: "#54434e", accent: "#8D6E84", accentSoft: "#F7F2F5", blueAccent: "#8D6E84", blueSoft: "#F7F2F5",
-            bg: "#FCFAFB", surface: "#FFFFFF", border: "#EDE4E9", textMain: "#2F2730", textSub: "#9B8592",
-            desc: "가장 흔하지 않은 무드. 극강의 브랜드 인상을 주지만 호불호가 갈릴 수 있음.",
-            badges: { brand: { bg: "#F7F2F5", text: "#6A5563", label: "APARTY 추천" }, info: { bg: "#F7F2F5", text: "#8D6E84", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#8D6E84", label: "인기단지" } }
-        },
 
         // 👑 [하이엔드 딥 라인업]
         {
@@ -59,43 +47,8 @@ export default function SpinoffPlayground() {
             desc: "가장 진하고 무게감 있는 프리미엄. 압도적인 존재감을 뿜어냄.",
             badges: { brand: { bg: "#ECE8FF", text: "#3F329C", label: "APARTY 프리미엄" }, info: { bg: "#E0EDFF", text: "#4378F0", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#5446D4", label: "인기단지" } }
         },
-        {
-            id: "ai-royal-indigo", name: "이전: Royal Indigo 🤖", category: "하이엔드 딥",
-            primary: "#2D2852", primaryHover: "#231F40", accent: "#6C5CE7", accentSoft: "#EAE6F9", blueAccent: "#2563EB", blueSoft: "#DBEAFE",
-            bg: "#F8F8FA", surface: "#FFFFFF", border: "#E2E0EB", textMain: "#191824", textSub: "#6B687A",
-            desc: "블랙에 가까운 인디고 구조감 + 쨍한 블루 데이터. PB 수준의 초고급 밸런스.",
-            badges: { brand: { bg: "#EAE6F9", text: "#2D2852", label: "APARTY 프리미엄" }, info: { bg: "#DBEAFE", text: "#2563EB", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#2563EB", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#6C5CE7", label: "인기단지" } }
-        },
-        {
-            id: "deep-violet", name: "이전: Deep Violet", category: "하이엔드 딥",
-            primary: "#4B3FB3", primaryHover: "#41379C", accent: "#5C4FE1", accentSoft: "#ECE9FF", blueAccent: "#4A7BFF", blueSoft: "#E7F0FF",
-            bg: "#F6F5FF", surface: "#FFFFFF", border: "#DDD8F8", textMain: "#211C43", textSub: "#6B6791",
-            desc: "블루 기운이 살짝 남아있는 무거운 퍼플.",
-            badges: { brand: { bg: "#ECE9FF", text: "#4B3FB3", label: "APARTY 프리미엄" }, info: { bg: "#E7F0FF", text: "#4A7BFF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#5C4FE1", label: "인기단지" } }
-        },
-        {
-            id: "hyper-violet", name: "이전: Hyper Violet", category: "하이엔드 딥",
-            primary: "#6257FF", primaryHover: "#564BEF", accent: "#7A5CFF", accentSoft: "#ECE9FF", blueAccent: "#4B8DFF", blueSoft: "#E7F0FF",
-            bg: "#F7F8FF", surface: "#FFFFFF", border: "#DDDDF8", textMain: "#1F2140", textSub: "#6C6F93",
-            desc: "디지털하고 영리한 플랫폼 느낌이 강한 하이퍼 퍼플.",
-            badges: { brand: { bg: "#ECE9FF", text: "#6257FF", label: "APARTY 추천" }, info: { bg: "#E7F0FF", text: "#4B8DFF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#7A5CFF", label: "인기단지" } }
-        },
-        {
-            id: "violet-expert", name: "이전: Dusty Violet", category: "하이엔드 딥",
-            primary: "#5A54A8", primaryHover: "#4E4996", accent: "#7A6BFF", accentSoft: "#EEEAFE", blueAccent: "#5A54A8", blueSoft: "#EEEAFE",
-            bg: "#F8F7FE", surface: "#FFFFFF", border: "#E8E5F7", textMain: "#26233A", textSub: "#6F6A86",
-            desc: "화이트 80 + 은은한 바이올렛 20. 차분한 무드.",
-            badges: { brand: { bg: "#EEEAFE", text: "#5A54A8", label: "APARTY 추천" }, info: { bg: "#EEEAFE", text: "#5A54A8", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4B6BCE", label: "신규등록" }, imminent: { bg: "#FFF1F1", text: "#D95C5C", label: "마감임박" }, popular: { bg: "#F4EEFF", text: "#7A59D1", label: "인기단지" } }
-        },
 
-        // 🔄 [기존 비교군]
-        {
-            id: "ice-slate", name: "비교군: Ice Slate (블루)", category: "기존 비교군",
-            primary: "#31475E", primaryHover: "#26384C", accent: "#4DA3FF", accentSoft: "#E8F4FF", blueAccent: "#4DA3FF", blueSoft: "#E8F4FF",
-            bg: "#F8FBFC", surface: "#FFFFFF", border: "#E5EDF3", textMain: "#25313D", textSub: "#73808C",
-            desc: "호갱노노, 분양24 느낌의 정석적이고 안전한 블루.",
-            badges: { brand: { bg: "#E8F4FF", text: "#31475E", label: "APARTY 추천" }, info: { bg: "#E8F4FF", text: "#4DA3FF", label: "데이터분석" }, new: { bg: "#EEF4FF", text: "#4DA3FF", label: "신규등록" }, imminent: { bg: "#FEE2E2", text: "#B91C1C", label: "마감임박" }, popular: { bg: "#F3E8FF", text: "#7E22CE", label: "인기단지" } }
-        },
+        // 🔄 [기존 대조군]
         {
             id: "original-orange", name: "비교군: 오렌지 오리지널", category: "기존 비교군",
             primary: "#FF7A2F", primaryHover: "#E66A26", accent: "#FF5722", accentSoft: "#FFF0E8", blueAccent: "#3B82F6", blueSoft: "#DBEAFE",
@@ -119,9 +72,9 @@ export default function SpinoffPlayground() {
             <div className="w-full max-w-[1024px] bg-white p-6 rounded-2xl shadow-lg mb-8 border border-gray-300 sticky top-4 z-50">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div>
-                        <h2 className="text-xl font-black text-gray-900 mb-1 tracking-tight">APARTY 마스터 컬러 컬렉션 (최종) 🎨</h2>
+                        <h2 className="text-xl font-black text-gray-900 mb-1 tracking-tight">APARTY 마스터 컬러 컬렉션 (조화/숨통) ☁️</h2>
                         <p className="text-sm text-gray-600">
-                            <strong>비비드 하이엔드 (Electric Iris)</strong>가 드디어 추가되었습니다! 흐릿함 없이 쨍하게 꽂히는 브랜드 감성을 확인하세요.
+                            이질감을 없애고 화면에 자연스럽게 스며드는 <strong>[Aero Sky]</strong>와 <strong>[Soft Powder]</strong>를 확인해 보세요.
                         </p>
                     </div>
                     <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0">
@@ -151,7 +104,7 @@ export default function SpinoffPlayground() {
                 </div>
             </div>
 
-            {/* 🖥️ 📱 시뮬레이터 (레이아웃 에러 완벽 수정) */}
+            {/* 🖥️ 📱 시뮬레이터 */}
             <div
                 className={`w-full shadow-2xl overflow-y-auto no-scrollbar relative transition-all duration-500 ease-in-out ${viewMode === 'mobile' ? 'max-w-[420px] h-[850px] border-x border-t rounded-t-3xl' : 'max-w-[1024px] min-h-[800px] rounded-2xl border'}`}
                 style={{ backgroundColor: activeTheme.bg, borderColor: activeTheme.border }}
@@ -187,7 +140,6 @@ export default function SpinoffPlayground() {
                     </div>
                 </header>
 
-                {/* 🚀 바텀 탭 공간을 위한 하단 패딩(pb-24) 추가 */}
                 <div className={`p-4 md:p-8 flex flex-col gap-6 ${viewMode === 'mobile' ? 'pb-32' : ''}`}>
 
                     {/* 2. 데이터 패널 */}
