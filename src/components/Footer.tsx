@@ -4,7 +4,8 @@ import Link from 'next/link';
 
 const Footer = () => {
     return (
-        <footer className="bg-[#1E293B] py-8 border-t border-[#0F172A]">
+        <footer className="bg-[#172554] py-8 border-t border-[#0F172A]">
+            {/* 🚀 푸터 배경: 기존 차분한 남색 유지 */}
             <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-6 md:gap-4">
 
                 {/* Brand Block */}
@@ -23,7 +24,7 @@ const Footer = () => {
                         No.1 부동산 분양 정보 플랫폼, 아파티
                     </p>
 
-                    {/* 면책 공고 (법적 방어막) */}
+                    {/* 면책 공고 */}
                     <p className="hidden md:block text-white/30 text-[10px] leading-relaxed max-w-xs mt-2">
                         아파티는 부동산 정보 제공자로서 거래의 당사자가 아니며, 모든 정보는 현장 사정에 따라 변경될 수 있으므로 반드시 견본주택을 통해 확인하시기 바랍니다.
                     </p>
@@ -48,13 +49,14 @@ const Footer = () => {
                     </div>
 
                     <div className="flex items-center gap-4 pt-1">
+                        {/* 🚀 카카오톡 오리지널 컬러 적용 (배경: 카카오 옐로우, 텍스트/아이콘: 초코 브라운) */}
                         <Link
                             href="http://pf.kakao.com/_EbnAX"
                             target="_blank"
-                            className="inline-flex items-center gap-1.5 bg-[#FF8C42] text-white px-3 py-1.5 rounded-lg font-bold text-[11px] hover:bg-[#ff7a28] hover:scale-105 transition-all shadow-sm"
+                            className="inline-flex items-center gap-1.5 bg-[#FEE500] text-[#3A1D1D] px-3 py-1.5 rounded-lg font-black text-[11px] hover:scale-105 transition-all shadow-sm"
                         >
-                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 3C6.47715 3 2 6.35786 2 10.5C2 13.2664 3.76357 15.7143 6.46429 17.0714L5.35714 21L9.64286 18.1429C10.4046 18.3025 11.1917 18.3857 12 18.3857C17.5228 18.3857 22 15.0279 22 10.8857C22 6.74357 17.5228 3.38571 12 3V3Z" fill="white" />
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3C6.47715 3 2 6.35786 2 10.5C2 13.2664 3.76357 15.7143 6.46429 17.0714L5.35714 21L9.64286 18.1429C10.4046 18.3025 11.1917 18.3857 12 18.3857C17.5228 18.3857 22 15.0279 22 10.8857C22 6.74357 17.5228 3.38571 12 3V3Z" fill="#3A1D1D" />
                             </svg>
                             카카오톡 상담
                         </Link>

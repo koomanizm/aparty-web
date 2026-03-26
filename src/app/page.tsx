@@ -136,7 +136,7 @@ export default function Home() {
 
     return (
         <main
-            className="min-h-screen bg-[#FDFDFD] flex flex-col items-center relative overflow-x-hidden selection:bg-orange-100"
+            className="min-h-screen bg-bg-base flex flex-col items-center relative overflow-x-hidden selection:bg-accent-action/20"
             style={{ zoom: PAGE_SCALE } as any}
         >
             <Script
@@ -147,7 +147,7 @@ export default function Home() {
             <WelcomePopup />
             <FloatingProButton bottomOffset={ui.bottomOffset} />
 
-            <header className="w-full bg-white flex flex-col items-center z-50 sticky top-0 shadow-sm border-b border-gray-100">
+            <header className="w-full bg-surface flex flex-col items-center z-50 sticky top-0 shadow-sm border-b border-border-light">
                 {!isSearchActive && data.activeRegion === "전국" && (
                     <TrustRibbonBanner />
                 )}
@@ -158,8 +158,9 @@ export default function Home() {
                             <Image src="/logo.png" alt="아파티" width={40} height={40} className="object-contain" />
                         </div>
                         <div className="hidden md:flex flex-col items-start justify-center">
-                            <h1 className="text-xl font-extrabold text-[#1E293B] tracking-tighter leading-none mb-0.5">APARTY</h1>
-                            <span className="text-[10px] font-medium text-gray-400 leading-none">No.1 분양 플랫폼</span>
+                            {/* 로고는 묵직한 뼈대 네이비 유지 */}
+                            <h1 className="text-xl font-extrabold text-primary tracking-tighter leading-none mb-0.5">APARTY</h1>
+                            <span className="text-[10px] font-medium text-text-sub leading-none">No.1 분양 플랫폼</span>
                         </div>
                     </Link>
 
@@ -167,7 +168,7 @@ export default function Home() {
                         <input
                             type="text"
                             placeholder={searchPlaceholders[placeholderIdx]}
-                            className="w-full h-[44px] md:h-[48px] pl-5 pr-12 rounded-full border border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-[14px] md:text-[15px] font-bold outline-none transition-all placeholder:text-gray-400 placeholder:font-medium transition-placeholder duration-500"
+                            className="w-full h-[44px] md:h-[48px] pl-5 pr-12 rounded-full border border-border-light bg-gray-50 focus:bg-surface focus:border-accent-action focus:ring-2 focus:ring-accent-action/20 text-[14px] md:text-[15px] font-bold outline-none transition-all placeholder:text-gray-400 placeholder:font-medium transition-placeholder duration-500"
                             value={data.searchQuery}
                             onChange={(e) => data.setSearchQuery(e.target.value)}
                             onFocus={() => setIsSearchFocused(true)}
@@ -176,11 +177,11 @@ export default function Home() {
                         {data.searchQuery ? (
                             <button onClick={() => data.setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded-full"><X size={16} /></button>
                         ) : (
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none"><Search size={18} strokeWidth={2.5} /></div>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-action pointer-events-none"><Search size={18} strokeWidth={2.5} /></div>
                         )}
 
                         {isSearchFocused && !data.searchQuery && (
-                            <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 p-4 animate-in fade-in slide-in-from-top-2">
+                            <div className="absolute top-full left-0 w-full mt-2 bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-border-light p-4 animate-in fade-in slide-in-from-top-2">
                                 <p className="text-[11px] font-bold text-gray-400 mb-2.5 px-1">어떤 분양을 찾으시나요?</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {[
@@ -192,7 +193,7 @@ export default function Home() {
                                         <div key={idx}>
                                             <button
                                                 onMouseDown={(e) => { e.preventDefault(); handleQuickSearch(tag.q); }}
-                                                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-[10px] text-[12px] font-bold text-[#1E293B] hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF7A2F] transition-colors"
+                                                className="px-3 py-1.5 bg-gray-50 border border-border-light rounded-[10px] text-[12px] font-bold text-text-main hover:bg-[#EEF2FF] hover:border-accent-action/30 hover:text-accent-action transition-colors"
                                             >
                                                 {tag.label}
                                             </button>
@@ -205,41 +206,43 @@ export default function Home() {
 
                     <div className="flex items-center gap-3 md:gap-4 shrink-0">
                         <LoginButton />
-                        <button className="md:hidden p-1.5 text-[#1E293B] hover:text-[#FF7A2F] transition-colors focus:outline-none">
+                        <button className="md:hidden p-1.5 text-text-main hover:text-accent-action transition-colors focus:outline-none">
                             <Menu size={24} strokeWidth={2.5} />
                         </button>
                     </div>
                 </div>
 
-                <div className="w-full border-t border-gray-100 bg-white flex justify-center">
+                <div className="w-full border-t border-border-light bg-surface flex justify-center">
                     <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center justify-between h-[48px] md:h-[52px] px-5 md:px-6`}>
                         <div className="flex items-center justify-start h-full overflow-x-auto no-scrollbar gap-5 md:gap-7 whitespace-nowrap">
-                            <Link href="/" onClick={handleHomeClick} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${!isSearchActive ? 'font-black text-[#FF7A2F]' : 'font-bold text-gray-500 hover:text-[#1E293B]'}`}>
+
+                            {/* 🚀 활성화 & 호버 상태를 가볍고 쨍한 accent-action(#4F46FF)으로 변경! */}
+                            <Link href="/" onClick={handleHomeClick} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${!isSearchActive ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 홈
-                                {!isSearchActive && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#FF7A2F] rounded-t-md"></span>}
+                                {!isSearchActive && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </Link>
 
-                            <button onClick={() => scrollToFeed("gallery")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${isSearchActive && ui.viewMode === 'gallery' ? 'font-black text-[#FF7A2F]' : 'font-bold text-gray-500 hover:text-[#1E293B]'}`}>
+                            <button onClick={() => scrollToFeed("gallery")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${isSearchActive && ui.viewMode === 'gallery' ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 단지로보기
-                                {isSearchActive && ui.viewMode === 'gallery' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#FF7A2F] rounded-t-md"></span>}
+                                {isSearchActive && ui.viewMode === 'gallery' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => scrollToFeed("map")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${isSearchActive && ui.viewMode === 'map' ? 'font-black text-[#FF7A2F]' : 'font-bold text-gray-500 hover:text-[#1E293B]'}`}>
+                            <button onClick={() => scrollToFeed("map")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${isSearchActive && ui.viewMode === 'map' ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 지도로보기
-                                {isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#FF7A2F] rounded-t-md"></span>}
+                                {isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            <Link href="/subscription" className="relative text-[14px] md:text-[15px] font-bold text-gray-500 hover:text-[#1E293B] transition-colors h-full flex items-center">
+                            <Link href="/subscription" className="relative text-[14px] md:text-[15px] font-bold text-text-sub hover:text-accent-action transition-colors h-full flex items-center">
                                 청약정보
-                                <span className="absolute top-[12px] -right-3.5 bg-orange-500 text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
+                                <span className="absolute top-[12px] -right-3.5 bg-accent-action text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
                             </Link>
-                            <Link href="/price" className="text-[14px] md:text-[15px] font-bold text-gray-500 hover:text-[#1E293B] transition-colors h-full flex items-center">실거래가</Link>
+                            <Link href="/price" className="text-[14px] md:text-[15px] font-bold text-text-sub hover:text-accent-action transition-colors h-full flex items-center">실거래가</Link>
 
-                            <div className="w-px h-3.5 bg-gray-200 mx-1 hidden md:block"></div>
+                            <div className="w-px h-3.5 bg-border-light mx-1 hidden md:block"></div>
 
-                            <Link href="/notice" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1E293B] transition-colors h-full flex items-center hidden lg:flex">공지사항</Link>
-                            <Link href="/lounge" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1E293B] transition-colors h-full flex items-center hidden lg:flex">라운지</Link>
-                            <Link href="/column" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1E293B] transition-colors h-full flex items-center hidden lg:flex">칼럼</Link>
+                            <Link href="/notice" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">공지사항</Link>
+                            <Link href="/lounge" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">라운지</Link>
+                            <Link href="/column" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">칼럼</Link>
                         </div>
 
                         <div className="hidden md:flex shrink-0 w-[300px] lg:w-[400px] ml-4 h-full items-center justify-end opacity-90 hover:opacity-100 transition-opacity">

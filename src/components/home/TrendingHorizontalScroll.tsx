@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bell, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight } from "lucide-react"; // 🚀 Bell 아이콘 제거
 import { Property } from "../../lib/sheet";
 
 interface TrendingProps {
@@ -113,7 +113,8 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
     return (
         <div className="w-full py-5 select-none group/main relative">
             <div className="flex items-center gap-1.5 px-2 mb-3 md:mb-4">
-                <Bell size={17} className="text-[#FF7A2F] fill-[#FF7A2F]/10 shrink-0" />
+                {/* 🚀 기존 Bell 아이콘 삭제 후 newbutton.png 로 교체 */}
+                <Image src="/newbutton.png" alt="신규버튼" width={18} height={18} className="shrink-0 object-contain" />
                 <h3 className="text-[15px] md:text-[16px] font-bold text-[#1E293B] tracking-tight">신규등록 단지</h3>
             </div>
 

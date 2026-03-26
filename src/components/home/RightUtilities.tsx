@@ -38,11 +38,12 @@ const MarqueeText = ({ text }: { text: string }) => {
     return (
         <div ref={containerRef} className={`flex-1 overflow-hidden whitespace-nowrap relative w-full ${isOverflow ? 'marquee-mask' : ''}`}>
             <div className={`inline-flex w-max ${isOverflow ? 'is-overflowing' : ''}`}>
-                <span ref={textRef} className={`text-[12px] font-semibold text-gray-700 group-hover:text-orange-600 transition-colors ${isOverflow ? 'pr-8' : 'truncate'}`}>
+                {/* 🚀 텍스트 호버: 오렌지 대신 쨍한 행동 인디고(accent-action) 적용! */}
+                <span ref={textRef} className={`text-[12px] font-semibold text-text-main group-hover:text-accent-action transition-colors ${isOverflow ? 'pr-8' : 'truncate'}`}>
                     {text}
                 </span>
                 {isOverflow && (
-                    <span className="text-[12px] font-semibold text-gray-700 group-hover:text-orange-600 transition-colors pr-8">
+                    <span className="text-[12px] font-semibold text-text-main group-hover:text-accent-action transition-colors pr-8">
                         {text}
                     </span>
                 )}
@@ -121,20 +122,23 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
             </style>
 
             <div className="flex flex-col w-full gap-3 z-10 relative">
-                <div className="w-full bg-white border border-gray-100 rounded-[20px] shadow-sm p-4 xl:p-5 flex flex-col hover:shadow-md transition-shadow duration-300 relative">
+                {/* 🚀 카드 보더와 그림자를 시스템 변수에 맞게 미세 조정 */}
+                <div className="w-full bg-surface border border-border-light rounded-[20px] shadow-sm p-4 xl:p-5 flex flex-col hover:shadow-md transition-shadow duration-300 relative">
                     <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
-                        <div className="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center">
-                            <Flame size={14} className="text-orange-500" />
+                        {/* 🚀 불꽃 아이콘 배경 & 색상: 행동 포인트 블루(accent-action)로 교체 */}
+                        <div className="w-7 h-7 rounded-full bg-accent-action/10 flex items-center justify-center">
+                            <Flame size={14} className="text-accent-action" />
                         </div>
-                        <span className="text-[14px] font-extrabold text-gray-900 tracking-tight">실시간 인기 분양</span>
+                        <span className="text-[14px] font-extrabold text-primary tracking-tight">실시간 인기 분양</span>
                     </div>
 
                     <div className="relative w-full">
                         {showTopArrow && (
                             <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
+                                {/* 🚀 화살표 호버: 오렌지 -> 인디고 */}
                                 <button
                                     onClick={scrollUp}
-                                    className="p-1 flex items-center justify-center text-gray-300 hover:text-orange-500 transition-colors drop-shadow-sm"
+                                    className="p-1 flex items-center justify-center text-gray-300 hover:text-accent-action transition-colors drop-shadow-sm"
                                 >
                                     <ChevronUp size={16} strokeWidth={3} />
                                 </button>
@@ -152,9 +156,11 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
                                     <div
                                         key={idx}
                                         onClick={() => setSearchQuery && setSearchQuery(rankName)}
-                                        className="flex items-center gap-2 group cursor-pointer hover:bg-orange-50/50 py-1.5 px-2 rounded-xl transition-colors w-full overflow-hidden shrink-0"
+                                        // 🚀 리스트 호버 배경: 오렌지톤 -> 투명하고 시원한 연블루(#EEF2FF)
+                                        className="flex items-center gap-2 group cursor-pointer hover:bg-[#EEF2FF] py-1.5 px-2 rounded-xl transition-colors w-full overflow-hidden shrink-0"
                                     >
-                                        <span className={`text-[12px] font-black w-4 text-center shrink-0 ${idx < 3 ? 'text-orange-500' : 'text-gray-400'}`}>{idx + 1}</span>
+                                        {/* 🚀 1~3위 숫자 색상: 오렌지 -> 인디고(accent-action) */}
+                                        <span className={`text-[12px] font-black w-4 text-center shrink-0 ${idx < 3 ? 'text-accent-action' : 'text-gray-400'}`}>{idx + 1}</span>
                                         <div className="shrink-0">{getTrendIcon(rank.id || String(idx))}</div>
                                         <MarqueeText text={rankName} />
                                     </div>
@@ -164,9 +170,10 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
 
                         {showBottomArrow && displayRankings.length > 5 && (
                             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-20">
+                                {/* 🚀 화살표 호버: 오렌지 -> 인디고 */}
                                 <button
                                     onClick={scrollDown}
-                                    className="p-1 flex items-center justify-center text-gray-300 hover:text-orange-500 transition-colors drop-shadow-sm"
+                                    className="p-1 flex items-center justify-center text-gray-300 hover:text-accent-action transition-colors drop-shadow-sm"
                                 >
                                     <ChevronDown size={16} strokeWidth={3} />
                                 </button>
@@ -174,10 +181,10 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
                         )}
 
                         {showBottomArrow && displayRankings.length > 5 && (
-                            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
+                            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-surface to-transparent pointer-events-none z-10" />
                         )}
                         {showTopArrow && (
-                            <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white to-transparent pointer-events-none z-10" />
+                            <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-surface to-transparent pointer-events-none z-10" />
                         )}
                     </div>
                 </div>
