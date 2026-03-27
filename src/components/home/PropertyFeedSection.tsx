@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { LayoutGrid, Map as MapIcon, ChevronLeft, ChevronRight, MapPin, ChevronDown, ChevronUp, Sparkles, Grid, Search, Filter, RefreshCw } from "lucide-react";
+import { LayoutGrid, Map as MapIcon, ChevronLeft, ChevronRight, MapPin, ChevronDown, ChevronUp, Grid, Search, Filter, RefreshCw } from "lucide-react";
+import Image from "next/image";
 import PropertyCard from "../PropertyCard";
 import MainMapExplorer from "../MainMapExplorer";
 
@@ -171,13 +172,12 @@ export default function PropertyFeedSection({
                 </div>
             )}
 
-            {/* 📱 모바일 헤더 영역 */}
             <div className="md:hidden flex flex-col w-full px-2">
                 <div className="flex flex-col gap-4 mb-5">
-                    {/* 🚀 레퍼런스(15/18px Bold)에 맞춘 초슬림 제목 */}
                     {!isSearchActive && (
                         <h2 className="text-[15px] md:text-[18px] font-bold text-gray-900 tracking-tight flex items-center gap-1.5 mb-2 transition-all duration-300">
-                            <Sparkles size={16} className="text-orange-500" /> 맞춤 분양 현장 탐색
+                            <Image src="/search.png" alt="아이콘" width={22} height={22} className="object-contain shrink-0" />
+                            맞춤 분양 현장 탐색
                         </h2>
                     )}
 
@@ -221,10 +221,11 @@ export default function PropertyFeedSection({
 
                         <div className="flex bg-gray-100 p-1 rounded-[10px] shrink-0">
                             <button onClick={() => setViewMode("gallery")} className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-bold transition-all ${viewMode === "gallery" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
-                                <LayoutGrid size={14} /> 갤러리
+                                <Image src="/galery.png" alt="갤러리" width={16} height={16} className="object-contain" /> 갤러리
                             </button>
                             <button onClick={() => setViewMode("map")} className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[11px] font-bold transition-all ${viewMode === "map" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
-                                <MapIcon size={14} /> 지도
+                                {/* 🚀 map.png 크기 조정 (모바일): 16 -> 17 */}
+                                <Image src="/map.png" alt="지도" width={17} height={17} className="object-contain" /> 지도
                             </button>
                         </div>
                     </div>
@@ -253,14 +254,13 @@ export default function PropertyFeedSection({
                 )}
             </div>
 
-            {/* 💻 PC 헤더 및 필터 영역 */}
             <div className="hidden md:block w-full mx-auto relative z-10">
                 {!isMapFullScreen && (
                     <>
-                        {/* 🚀 레퍼런스(PC 18px Bold)에 맞춘 컴팩트 제목 */}
                         {!isSearchActive && (
                             <div className="flex items-center justify-between mb-5 transition-all duration-300">
                                 <h2 className="text-[15px] md:text-[18px] font-bold tracking-tight text-gray-900 leading-none flex items-center gap-2">
+                                    <Image src="/search.png" alt="아이콘" width={24} height={24} className="object-contain shrink-0" />
                                     조건별 전체 분양 탐색
                                 </h2>
                                 <Link href="/properties" className="inline-flex items-center gap-1 text-[13px] font-bold text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-50">
@@ -332,8 +332,13 @@ export default function PropertyFeedSection({
                                 </div>
 
                                 <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-[10px] shrink-0 relative z-10">
-                                    <button onClick={() => setViewMode("gallery")} className={`flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[12px] font-bold transition-all ${viewMode === "gallery" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}><Grid size={14} strokeWidth={2.5} /> 갤러리</button>
-                                    <button onClick={() => setViewMode("map")} className={`flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[12px] font-bold transition-all ${viewMode === "map" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}><MapIcon size={14} strokeWidth={2.5} /> 지도</button>
+                                    <button onClick={() => setViewMode("gallery")} className={`flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[12px] font-bold transition-all ${viewMode === "gallery" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
+                                        <Image src="/galery.png" alt="갤러리" width={16} height={16} className="object-contain" /> 갤러리
+                                    </button>
+                                    <button onClick={() => setViewMode("map")} className={`flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[12px] font-bold transition-all ${viewMode === "map" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>
+                                        {/* 🚀 map.png 크기 조정 (PC): 16 -> 17 */}
+                                        <Image src="/map.png" alt="지도" width={17} height={17} className="object-contain" /> 지도
+                                    </button>
                                 </div>
                             </div>
                         </div>

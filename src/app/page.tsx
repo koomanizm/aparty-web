@@ -136,7 +136,8 @@ export default function Home() {
 
     return (
         <main
-            className="min-h-screen bg-bg-base flex flex-col items-center relative overflow-x-hidden selection:bg-accent-action/20"
+            /* 🚀 기존 bg-bg-base (푸른빛 회색) 삭제하고, 완벽한 화이트(bg-white)로 교체! */
+            className="min-h-screen bg-white flex flex-col items-center relative overflow-x-hidden selection:bg-accent-action/20"
             style={{ zoom: PAGE_SCALE } as any}
         >
             <Script
@@ -158,7 +159,6 @@ export default function Home() {
                             <Image src="/logo.png" alt="아파티" width={40} height={40} className="object-contain" />
                         </div>
                         <div className="hidden md:flex flex-col items-start justify-center">
-                            {/* 로고는 묵직한 뼈대 네이비 유지 */}
                             <h1 className="text-xl font-extrabold text-primary tracking-tighter leading-none mb-0.5">APARTY</h1>
                             <span className="text-[10px] font-medium text-text-sub leading-none">No.1 분양 플랫폼</span>
                         </div>
@@ -216,7 +216,6 @@ export default function Home() {
                     <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center justify-between h-[48px] md:h-[52px] px-5 md:px-6`}>
                         <div className="flex items-center justify-start h-full overflow-x-auto no-scrollbar gap-5 md:gap-7 whitespace-nowrap">
 
-                            {/* 🚀 활성화 & 호버 상태를 가볍고 쨍한 accent-action(#4F46FF)으로 변경! */}
                             <Link href="/" onClick={handleHomeClick} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${!isSearchActive ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 홈
                                 {!isSearchActive && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}

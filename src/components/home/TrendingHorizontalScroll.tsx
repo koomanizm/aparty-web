@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, ChevronLeft, ChevronRight } from "lucide-react"; // 🚀 Bell 아이콘 제거
+import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { Property } from "../../lib/sheet";
 
 interface TrendingProps {
@@ -33,7 +33,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
         setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
     };
 
-    // 🚀 [해결 포인트] 모든 Hook(useEffect 포함)은 Early Return(return null)보다 무조건 위에 있어야 합니다!
     useEffect(() => {
         const currentRef = scrollRef.current;
         if (currentRef) {
@@ -47,7 +46,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
         };
     }, [trendingItems]);
 
-    // 🚀 모든 리액트 Hook이 선언된 이후에 '데이터 없음' 처리를 합니다.
     if (trendingItems.length === 0) return null;
 
     const getSafeImage = (img: any) => {
@@ -113,7 +111,6 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
     return (
         <div className="w-full py-5 select-none group/main relative">
             <div className="flex items-center gap-1.5 px-2 mb-3 md:mb-4">
-                {/* 🚀 기존 Bell 아이콘 삭제 후 newbutton.png 로 교체 */}
                 <Image src="/newbutton.png" alt="신규버튼" width={18} height={18} className="shrink-0 object-contain" />
                 <h3 className="text-[15px] md:text-[16px] font-bold text-[#1E293B] tracking-tight">신규등록 단지</h3>
             </div>
@@ -146,11 +143,12 @@ export default function TrendingHorizontalScroll({ properties }: TrendingProps) 
                 className={`flex overflow-x-auto gap-3 md:gap-4 pb-4 no-scrollbar pl-2 pr-4 z-10 relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             >
                 {trendingItems.map((item, idx) => (
+                    /* 🚀 에러 안 나게 주석 위치 수정 완료! */
                     <Link
                         href={`/property/${item.id}`}
                         key={item.id}
                         onClick={handleLinkClick}
-                        className="relative flex-none w-[190px] md:w-[220px] h-[116px] md:h-[130px] rounded-[16px] overflow-hidden group shadow-sm hover:shadow-[0_8px_20px_rgba(255,122,47,0.15)] transition-all duration-300 border-2 border-transparent group-hover:border-[#FF7A2F]"
+                        className="relative flex-none w-[190px] md:w-[220px] h-[116px] md:h-[130px] rounded-[16px] overflow-hidden group shadow-sm hover:shadow-[0_4px_12px_rgba(47,140,255,0.15)] transition-all duration-300 border-2 border-transparent group-hover:border-[#2F8CFF]"
                     >
                         <Image
                             src={getSafeImage(item.image)}
