@@ -21,9 +21,6 @@ export default function CenterRecommend({
     properties: Property[];
     userName?: string | null;
 }) {
-    // ==========================================
-    // 기존 로직 완벽 보존
-    // ==========================================
     const allItems = properties || [];
     const len = allItems.length;
 
@@ -91,40 +88,8 @@ export default function CenterRecommend({
         return () => clearInterval(timer);
     }, [isHovered, isPaused, len, isAnimating]);
 
-    const getSafeImageUrl = (imgStr?: string) => {
-        if (!imgStr || typeof imgStr !== "string") return "/house1.jpg";
-        const trimmed = imgStr.trim();
-        if (!trimmed) return "/house1.jpg";
-        if (trimmed.startsWith("http") || trimmed.startsWith("data:")) return trimmed;
-        if (trimmed.startsWith("/")) return trimmed;
-        return `/${trimmed}`;
-    };
-
-    const getRegionLabel = (location?: string) => {
-        if (!location) return "관심지역";
-        const first = location.split(" ")[0]?.trim();
-        return first || "관심지역";
-    };
-
-    const getReasonChips = (item?: Property) => {
-        if (!item) return [];
-        const chips = [
-            getRegionLabel(item.location),
-            ...(Array.isArray(item.status) ? item.status.slice(0, 2) : []),
-        ];
-        return [...new Set(chips)].slice(0, 3);
-    };
-
-    let displayIndex = currentIndex;
-    if (len > 0) {
-        if (currentIndex === 0) displayIndex = len;
-        else if (currentIndex === len + 1) displayIndex = 1;
-    }
-
-    if (len === 0) return null;
-
     // ==========================================
-    // 데이터 추적 & 타이핑 효과
+    // 💡 Hooks(useRef, useEffect)를 위로 끌어올린 안전한 구조
     // ==========================================
     let realIndex = currentIndex;
     if (len > 0) {
@@ -163,7 +128,31 @@ export default function CenterRecommend({
         }, 150);
 
         return () => clearTimeout(delayTimer);
-    }, [realIndex]);
+    }, [realIndex, activeItem]);
+
+    const getSafeImageUrl = (imgStr?: string) => {
+        if (!imgStr || typeof imgStr !== "string") return "/house1.jpg";
+        const trimmed = imgStr.trim();
+        if (!trimmed) return "/house1.jpg";
+        if (trimmed.startsWith("http") || trimmed.startsWith("data:")) return trimmed;
+        if (trimmed.startsWith("/")) return trimmed;
+        return `/${trimmed}`;
+    };
+
+    const getRegionLabel = (location?: string) => {
+        if (!location) return "관심지역";
+        const first = location.split(" ")[0]?.trim();
+        return first || "관심지역";
+    };
+
+    let displayIndex = currentIndex;
+    if (len > 0) {
+        if (currentIndex === 0) displayIndex = len;
+        else if (currentIndex === len + 1) displayIndex = 1;
+    }
+
+    // 🚨 렌더링 중단(Early Return)은 반드시 모든 Hook이 선언된 이후인 이 위치에 있어야 합니다!
+    if (len === 0) return null;
 
     // ==========================================
     // UI 렌더링
@@ -193,7 +182,7 @@ export default function CenterRecommend({
                 onTouchStart={handleDragStart}
                 onTouchEnd={handleDragEnd}
             >
-                {/* 1번 위젯: 메인 이미지 박스 */}
+                {/* 1번 위젯: 메인 이미지 박스 (높이 270px 버전) */}
                 <div className="relative w-full overflow-hidden rounded-[24px]">
                     <div
                         className={`flex w-full ${isTransitioning ? "transition-transform duration-500 ease-out" : ""}`}
@@ -203,7 +192,6 @@ export default function CenterRecommend({
                         {extendedItems.map((item, idx) => (
                             <div key={`${item.id}-${idx}`} className="w-full flex-shrink-0">
                                 <Link href={`/property/${item.id || idx}`} className="block w-full">
-                                    {/* ✅ 💡 높이를 h-[280px]에서 h-[270px]로 소폭 줄였습니다. */}
                                     <div className="relative w-full h-[270px] rounded-[24px] overflow-hidden bg-gray-100 group">
                                         <Image
                                             src={getSafeImageUrl(item.image)}
@@ -235,7 +223,6 @@ export default function CenterRecommend({
                                                 <p className="text-[15px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">가격 문의</p>
                                             )}
                                         </div>
-
                                     </div>
                                 </Link>
                             </div>
@@ -245,7 +232,6 @@ export default function CenterRecommend({
                     {/* 화살표 오버레이 */}
                     {len > 1 && (
                         <>
-                            {/* ✅ 💡 화살표 버튼 위치도 이미지 높이에 맞춰 top-[135px]로 소폭 올렸습니다. */}
                             <button
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrevMain(); }}
                                 className="absolute left-2 top-[135px] -translate-y-1/2 p-2 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] hover:text-gray-200 transition-colors z-20 active:scale-90"
