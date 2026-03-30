@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Flame, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react"; // Flame 아이콘 제거
 import ToolShortcutGrid from "./ToolShortcutGrid";
 
 const FALLBACK_RANKINGS = [
@@ -38,7 +38,6 @@ const MarqueeText = ({ text }: { text: string }) => {
     return (
         <div ref={containerRef} className={`flex-1 overflow-hidden whitespace-nowrap relative w-full ${isOverflow ? 'marquee-mask' : ''}`}>
             <div className={`inline-flex w-max ${isOverflow ? 'is-overflowing' : ''}`}>
-                {/* 🚀 텍스트 호버: 오렌지 대신 쨍한 행동 인디고(accent-action) 적용! */}
                 <span ref={textRef} className={`text-[12px] font-semibold text-text-main group-hover:text-accent-action transition-colors ${isOverflow ? 'pr-8' : 'truncate'}`}>
                     {text}
                 </span>
@@ -122,20 +121,17 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
             </style>
 
             <div className="flex flex-col w-full gap-3 z-10 relative">
-                {/* 🚀 카드 보더와 그림자를 시스템 변수에 맞게 미세 조정 */}
-                <div className="w-full bg-surface border border-border-light rounded-[20px] shadow-sm p-4 xl:p-5 flex flex-col hover:shadow-md transition-shadow duration-300 relative">
-                    <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
-                        {/* 🚀 불꽃 아이콘 배경 & 색상: 행동 포인트 블루(accent-action)로 교체 */}
-                        <div className="w-7 h-7 rounded-full bg-accent-action/10 flex items-center justify-center">
-                            <Flame size={14} className="text-accent-action" />
-                        </div>
+                {/* ✅ 전체 패딩을 살짝 줄임 (p-4 -> p-3.5, xl:p-5 -> xl:p-4) */}
+                <div className="w-full bg-surface border border-border-light rounded-[20px] shadow-sm p-3.5 xl:p-4 flex flex-col hover:shadow-md transition-shadow duration-300 relative">
+
+                    {/* ✅ 이모티콘 삭제 및 하단 여백 대폭 축소 (mb-2 pb-3 -> mb-1 pb-2) */}
+                    <div className="flex items-center gap-2 mb-1 pb-2 border-b border-gray-50">
                         <span className="text-[14px] font-extrabold text-primary tracking-tight">실시간 인기 분양</span>
                     </div>
 
                     <div className="relative w-full">
                         {showTopArrow && (
                             <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
-                                {/* 🚀 화살표 호버: 오렌지 -> 인디고 */}
                                 <button
                                     onClick={scrollUp}
                                     className="p-1 flex items-center justify-center text-gray-300 hover:text-accent-action transition-colors drop-shadow-sm"
@@ -148,7 +144,8 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
                         <div
                             ref={listRef}
                             onScroll={handleScroll}
-                            className="flex flex-col gap-1 overflow-y-auto no-scrollbar max-h-[200px] scroll-smooth relative z-10 py-1 w-full"
+                            // ✅ 스크롤 영역 상하 패딩 조정으로 타이트하게 만듦
+                            className="flex flex-col gap-1 overflow-y-auto no-scrollbar max-h-[200px] scroll-smooth relative z-10 py-0.5 w-full"
                         >
                             {displayRankings.slice(0, 10).map((rank: any, idx: number) => {
                                 const rankName = getRankName(rank);
@@ -156,10 +153,8 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
                                     <div
                                         key={idx}
                                         onClick={() => setSearchQuery && setSearchQuery(rankName)}
-                                        // 🚀 리스트 호버 배경: 오렌지톤 -> 투명하고 시원한 연블루(#EEF2FF)
                                         className="flex items-center gap-2 group cursor-pointer hover:bg-[#EEF2FF] py-1.5 px-2 rounded-xl transition-colors w-full overflow-hidden shrink-0"
                                     >
-                                        {/* 🚀 1~3위 숫자 색상: 오렌지 -> 인디고(accent-action) */}
                                         <span className={`text-[12px] font-black w-4 text-center shrink-0 ${idx < 3 ? 'text-accent-action' : 'text-gray-400'}`}>{idx + 1}</span>
                                         <div className="shrink-0">{getTrendIcon(rank.id || String(idx))}</div>
                                         <MarqueeText text={rankName} />
@@ -170,7 +165,6 @@ export default function RightUtilities({ realtimeRankings, properties = [], setS
 
                         {showBottomArrow && displayRankings.length > 5 && (
                             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-20">
-                                {/* 🚀 화살표 호버: 오렌지 -> 인디고 */}
                                 <button
                                     onClick={scrollDown}
                                     className="p-1 flex items-center justify-center text-gray-300 hover:text-accent-action transition-colors drop-shadow-sm"

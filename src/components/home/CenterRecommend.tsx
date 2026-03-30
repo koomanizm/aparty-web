@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, ChevronLeft, ChevronRight, Pause, Play, Crown } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 
 type Property = {
     id?: string | number;
@@ -21,6 +21,9 @@ export default function CenterRecommend({
     properties: Property[];
     userName?: string | null;
 }) {
+    // ==========================================
+    // 기존 로직 완벽 보존
+    // ==========================================
     const allItems = properties || [];
     const len = allItems.length;
 
@@ -120,149 +123,181 @@ export default function CenterRecommend({
 
     if (len === 0) return null;
 
-    return (
-        <div className="relative h-auto w-full flex flex-col min-w-0 px-0 pt-3 pb-8">
-            <div className="relative flex flex-col gap-1 min-w-0 w-full mx-auto">
-                <div
-                    className="group block h-[440px] md:h-[460px] xl:h-[480px] w-full rounded-[24px] overflow-hidden border border-white/80 bg-white shadow-[0_12px_40px_rgba(74,64,58,0.1)] transition-shadow duration-300 hover:shadow-[0_24px_56px_rgba(74,64,58,0.15)] relative"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    onMouseDown={handleDragStart}
-                    onMouseUp={handleDragEnd}
-                    onTouchStart={handleDragStart}
-                    onTouchEnd={handleDragEnd}
-                >
-                    <div className="absolute top-5 right-5 md:top-6 md:right-6 z-10">
-                        <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#7E22CE] via-[#EC4899] to-[#F97316] px-4 py-2 text-white shadow-xl shadow-orange-950/20">
-                            <Crown size={16} className="text-white drop-shadow-sm" />
-                            <span className="text-[12px] md:text-[13px] font-extrabold tracking-tight drop-shadow-sm">
-                                오늘의 추천
-                            </span>
-                        </div>
-                    </div>
+    // ==========================================
+    // 데이터 추적 & 타이핑 효과
+    // ==========================================
+    let realIndex = currentIndex;
+    if (len > 0) {
+        if (currentIndex === 0) realIndex = len - 1;
+        else if (currentIndex === len + 1) realIndex = 0;
+        else realIndex = currentIndex - 1;
+    }
+    const activeItem = len > 0 ? allItems[realIndex] : null;
 
+    const aiTextRef = useRef<HTMLParagraphElement>(null);
+
+    const aiTexts = [
+        "주변 시세 대비 합리적인 평당가와 뛰어난 교통 인프라를 갖춘 추천 매물입니다.",
+        "우수한 학군과 풍부한 생활 상권을 자랑하여 실거주 만족도가 매우 높습니다.",
+        "향후 다양한 개발 호재가 예정되어 있어 투자 가치까지 훌륭한 프리미엄 단지입니다."
+    ];
+
+    useEffect(() => {
+        if (!aiTextRef.current || !activeItem) return;
+
+        const textToType = aiTexts[realIndex % aiTexts.length];
+        aiTextRef.current.textContent = "";
+
+        const delayTimer = setTimeout(() => {
+            let i = 0;
+            const typeTimer = setInterval(() => {
+                if (i < textToType.length) {
+                    if (aiTextRef.current) aiTextRef.current.textContent += textToType.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typeTimer);
+                }
+            }, 40);
+
+            return () => clearInterval(typeTimer);
+        }, 150);
+
+        return () => clearTimeout(delayTimer);
+    }, [realIndex]);
+
+    // ==========================================
+    // UI 렌더링
+    // ==========================================
+    return (
+        <div className="w-full px-5 pt-0 pb-8 bg-white">
+
+            {/* 상단 헤더 */}
+            <div className="flex justify-between items-center mb-3 px-1">
+                <div className="bg-gradient-to-r from-[#3b82f6] via-[#a855f7] to-[#ec4899] text-white text-[11px] font-black px-4 py-1.5 rounded-full tracking-widest shadow-sm flex items-center">
+                    <span>APARTY'S PICK</span>
+                </div>
+
+                {len > 1 && (
+                    <div className="text-[13px] font-extrabold text-gray-400">
+                        <span className="text-[#111]">{displayIndex}</span> / {len}
+                    </div>
+                )}
+            </div>
+
+            <div
+                className="relative w-full flex flex-col gap-2.5"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onMouseDown={handleDragStart}
+                onMouseUp={handleDragEnd}
+                onTouchStart={handleDragStart}
+                onTouchEnd={handleDragEnd}
+            >
+                {/* 1번 위젯: 메인 이미지 박스 */}
+                <div className="relative w-full overflow-hidden rounded-[24px]">
                     <div
-                        className={`flex h-full w-full ${isTransitioning ? "transition-transform duration-500 ease-out" : ""}`}
+                        className={`flex w-full ${isTransitioning ? "transition-transform duration-500 ease-out" : ""}`}
                         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                         onTransitionEnd={handleTransitionEnd}
                     >
                         {extendedItems.map((item, idx) => (
-                            <Link
-                                key={`${item.id}-${idx}`}
-                                href={`/property/${item.id || idx}`}
-                                className="relative w-full h-full flex-shrink-0 block overflow-hidden"
-                            >
-                                <Image
-                                    src={getSafeImageUrl(item.image)}
-                                    alt={item.title || "추천 단지"}
-                                    fill
-                                    draggable={false}
-                                    className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-                                />
+                            <div key={`${item.id}-${idx}`} className="w-full flex-shrink-0">
+                                <Link href={`/property/${item.id || idx}`} className="block w-full">
+                                    {/* ✅ 💡 높이를 h-[280px]에서 h-[270px]로 소폭 줄였습니다. */}
+                                    <div className="relative w-full h-[270px] rounded-[24px] overflow-hidden bg-gray-100 group">
+                                        <Image
+                                            src={getSafeImageUrl(item.image)}
+                                            alt={item.title || "추천 단지"}
+                                            fill
+                                            draggable={false}
+                                            className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                                        />
 
-                                <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/30 to-[#1A100B]/98 z-5" />
+                                        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-black/60 to-transparent opacity-80 pointer-events-none" />
 
-                                <div className="absolute top-5 left-5 md:top-6 md:left-6 flex flex-wrap gap-1.5 z-10 max-w-[80%]">
-                                    {getReasonChips(item).map((chip, chipIdx) => (
-                                        <span
-                                            key={`${chip}-${chipIdx}`}
-                                            className={`inline-flex items-center rounded-full px-3 py-1.5 text-[11px] md:text-[12px] font-extrabold shadow-sm ${chipIdx === 0
-                                                ? "bg-white text-[#4A403A]"
-                                                : "bg-white/15 text-white border border-white/20 backdrop-blur-sm hover:bg-white/25 transition-colors"
-                                                }`}
-                                        >
-                                            {chip}
-                                        </span>
-                                    ))}
-                                </div>
-
-                                <div className="absolute inset-x-0 bottom-0 z-10 p-6 xl:p-10">
-                                    <div className="max-w-[85%]">
-                                        <h3 className="text-[24px] xl:text-[34px] font-black text-white tracking-tighter leading-[1.2] drop-shadow-lg line-clamp-2 break-keep">
-                                            {item.title}
-                                        </h3>
-
-                                        <p className="mt-3 flex items-center gap-1.5 text-[14px] xl:text-[15px] text-white/95 font-semibold truncate">
-                                            <MapPin size={16} className="text-[#FF9A57] shrink-0" />
-                                            {item.location}
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-5 pt-5 border-t border-white/20 flex items-end justify-between gap-4">
-                                        <div className="min-w-0 flex-1 hidden md:block">
-                                            <p className="text-[13px] xl:text-[14px] text-white/80 font-medium line-clamp-1 tracking-tight">
-                                                상세 분양가와 조건을 먼저 확인해보세요
+                                        {/* 좌측 상단 단지명 & 주소 */}
+                                        <div className="absolute top-5 left-5 z-10 flex flex-col gap-1.5">
+                                            <h3 className="text-[20px] font-black text-white leading-tight drop-shadow-md">
+                                                {item.title}
+                                            </h3>
+                                            <p className="text-[13px] font-bold text-white/90 flex items-center gap-1 drop-shadow-sm">
+                                                <MapPin size={13} className="text-red-500" /> {item.location}
                                             </p>
                                         </div>
 
-                                        <div className="shrink-0 text-right ml-auto">
-                                            {item.pyeongPrice && (
-                                                <div className="mb-2">
-                                                    <p className="text-[11px] xl:text-[12px] text-white/70 font-bold mb-0.5">
-                                                        예상 평당가
-                                                    </p>
-                                                    <p className="text-[22px] xl:text-[26px] font-black text-[#FF9A57] tracking-tight leading-none drop-shadow-md">
-                                                        {item.pyeongPrice}
-                                                        <span className="ml-1 text-[13px] xl:text-[14px] font-bold text-white">
-                                                            만원
-                                                        </span>
-                                                    </p>
-                                                </div>
+                                        {/* 우측 하단 가격 정보 */}
+                                        <div className="absolute bottom-5 right-5 z-10 text-right">
+                                            {item.pyeongPrice ? (
+                                                <p className="text-[24px] font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] leading-none tracking-tighter">
+                                                    {item.pyeongPrice}<span className="text-[13px] font-bold text-white/90 ml-0.5">만원/평</span>
+                                                </p>
+                                            ) : (
+                                                <p className="text-[15px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">가격 문의</p>
                                             )}
-
-                                            <span className="inline-flex items-center text-[12px] xl:text-[13px] font-extrabold text-white group-hover:text-[#FFD4B8] transition-colors bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                                상세 보기 <ChevronRight size={14} className="ml-1" />
-                                            </span>
                                         </div>
+
                                     </div>
-                                </div>
-                            </Link>
+                                </Link>
+                            </div>
                         ))}
                     </div>
-                </div>
 
-                {len > 1 && (
-                    <div className="flex justify-center items-center mt-1">
-                        <div className="flex items-center gap-2">
+                    {/* 화살표 오버레이 */}
+                    {len > 1 && (
+                        <>
+                            {/* ✅ 💡 화살표 버튼 위치도 이미지 높이에 맞춰 top-[135px]로 소폭 올렸습니다. */}
                             <button
-                                type="button"
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrevMain(); }}
-                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#FF7A2F] transition-colors active:scale-90"
+                                className="absolute left-2 top-[135px] -translate-y-1/2 p-2 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] hover:text-gray-200 transition-colors z-20 active:scale-90"
                                 aria-label="이전"
                             >
-                                <ChevronLeft size={20} strokeWidth={2.5} />
+                                <ChevronLeft size={36} strokeWidth={2.5} />
                             </button>
-
-                            <div className="text-[13px] font-medium tracking-wide w-12 text-center text-gray-500 cursor-default">
-                                <span className="font-extrabold text-gray-800">{displayIndex}</span>
-                                <span className="text-gray-400"> / {len}</span>
-                            </div>
-
                             <button
-                                type="button"
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNextMain(); }}
-                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#FF7A2F] transition-colors active:scale-90"
+                                className="absolute right-2 top-[135px] -translate-y-1/2 p-2 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] hover:text-gray-200 transition-colors z-20 active:scale-90"
                                 aria-label="다음"
                             >
-                                <ChevronRight size={20} strokeWidth={2.5} />
+                                <ChevronRight size={36} strokeWidth={2.5} />
                             </button>
+                        </>
+                    )}
+                </div>
 
-                            <div className="w-px h-3.5 bg-gray-300 mx-1"></div>
+                {/* 2번, 3번 위젯: 하단 고정창 */}
+                {activeItem && (
+                    <Link href={`/property/${activeItem.id || realIndex}`} className="flex gap-2.5 w-full h-[100px] group">
 
-                            <button
-                                type="button"
-                                onClick={() => setIsPaused(!isPaused)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#FF7A2F] transition-colors active:scale-90"
-                                aria-label={isPaused ? "재생" : "일시정지"}
-                            >
-                                {isPaused ? (
-                                    <Play size={14} strokeWidth={3} className="ml-0.5" />
-                                ) : (
-                                    <Pause size={14} strokeWidth={3} />
-                                )}
-                            </button>
+                        {/* 2번 위젯: AI 설명 박스 */}
+                        <div className="flex-1 bg-[#F8F9FA] rounded-[24px] p-4 flex flex-col justify-center gap-1.5 transition-colors group-hover:bg-gray-100">
+                            <div>
+                                <p className="text-[13px] font-black text-blue-600 mb-1 flex items-center gap-1.5">
+                                    <Image
+                                        src="/roboticon.png"
+                                        alt="AI Robot"
+                                        width={16}
+                                        height={16}
+                                        className="shrink-0 object-contain"
+                                    />
+                                    APARTY AI 요약
+                                </p>
+                                <p
+                                    ref={aiTextRef}
+                                    className="text-[13px] font-bold text-[#444] leading-snug line-clamp-2 break-keep tracking-tight min-h-[36px]"
+                                >
+                                </p>
+                            </div>
                         </div>
-                    </div>
+
+                        {/* 3번 위젯: 강력한 액션 유도 박스 */}
+                        <div className="w-[100px] shrink-0 bg-[#172554] rounded-[24px] flex flex-col items-center justify-center text-white shadow-[0_8px_16px_rgba(23,37,84,0.3)] transition-all duration-300 group-hover:bg-[#20347a] group-hover:-translate-y-1 group-hover:shadow-[0_12px_24px_rgba(23,37,84,0.4)] active:scale-95 active:translate-y-0">
+                            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mb-1.5 backdrop-blur-sm border border-white/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-white/20">
+                                <ArrowUpRight size={19} strokeWidth={2.5} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                            </div>
+                            <span className="text-[13px] font-extrabold tracking-wide text-white/90 transition-colors duration-300 group-hover:text-white">둘러보기</span>
+                        </div>
+
+                    </Link>
                 )}
             </div>
         </div>
