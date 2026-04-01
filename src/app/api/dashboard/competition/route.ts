@@ -1,39 +1,127 @@
+export const dynamic = 'force-dynamic'; // 🚨 캐시 완벽 파괴! 무조건 실시간 최신 데이터만 가져옵니다.
+
 import { NextResponse } from "next/server";
 
+// 🚀 대표님의 찐 API 키
+const API_KEY = "dd35353d775e77d0d73c80313a57ba01602b407a478f7905984bd12be150b59d";
+
 export async function GET(request: Request) {
-    // 🚀 기존에 쓰시던 키 그대로 둡니다. (Decoding 키)
-    const apiKey = "dd35353d775e77d0d73c80313a57ba01602b407a478f7905984bd12be150b59d";
-
     try {
-        // 🚀 [핵심 원인 해결] 기존 1613000 주소를 버리고, 새로운 공공데이터 클라우드(odcloud) 주소로 접속합니다!
-        const url = `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail?page=1&perPage=100&serviceKey=${apiKey}`;
+        console.log("==================================================");
+        console.log("🔥 [최종 무결점] 6개월치 리얼 데이터 + NaN 완벽 방어 엔진 가동!");
 
-        console.log("📡 [신규 청약 클라우드 접속]:", url);
+        // 🚀 1. 6개월 전 날짜 계산
+        const today = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(today.getMonth() - 6);
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }, // XML이 아닌 JSON으로 받습니다.
-            cache: 'no-store'
+        const formatDate = (date: Date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return Number(`${y}${m}${d}`);
+        };
+
+        const minDateLimit = formatDate(sixMonthsAgo);
+
+        // 🚀 2. 분양공고 API 호출
+        const listUrl = `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail?page=1&perPage=500&serviceKey=${API_KEY}`;
+        const listRes = await fetch(listUrl);
+        const listData = await listRes.json();
+
+        let aptList = listData.data || [];
+        if (aptList.length === 0) return NextResponse.json({ success: true, data: [] });
+
+        // 🚀 3. '6개월 이내'에 올라온 공고만 필터링!
+        const recentApts = aptList.filter((apt: any) => {
+            const dateNum = Number(String(apt.RCRIT_PBLANC_DE || "0").replace(/-/g, ''));
+            return dateNum >= minDateLimit;
         });
 
-        const data = await response.json();
-        console.log(`✅ [신규 API 성공] 받아온 데이터 개수: ${data.data?.length || 0}개`);
+        recentApts.sort((a: any, b: any) => Number(b.RCRIT_PBLANC_DE?.replace(/-/g, '')) - Number(a.RCRIT_PBLANC_DE?.replace(/-/g, '')));
 
-        // 만약 데이터가 비어있다면, 화면 깨짐 방지용 우회 데이터를 보냅니다.
-        if (!data || !data.data || data.data.length === 0) {
-            const mockData = {
-                data: [
-                    { HOUSE_NM: "디에이치 대치 에델루이", HSSPLY_ADRES: "서울 강남구 대치동", GNRL_RNK1_SUBSCRPT_AT: "1순위 마감", PBLANC_PBLANC_ON: "2026-02-15" },
-                    { HOUSE_NM: "에코델타시티 푸르지오 센터파크", HSSPLY_ADRES: "부산 강서구 강동동", GNRL_RNK1_SUBSCRPT_AT: "일정 미정", PBLANC_PBLANC_ON: "2026-03-01" },
-                    { HOUSE_NM: "창원 센트럴파크 에일린의뜰", HSSPLY_ADRES: "경남 창원시 성산구", GNRL_RNK1_SUBSCRPT_AT: "2026-04-05", PBLANC_PBLANC_ON: "2026-03-15" }
-                ]
-            };
-            return new NextResponse(JSON.stringify([mockData]), { status: 200 });
+        const validResults: any[] = [];
+
+        // 🚀 4. API 서버 순차 호출 (누락 방지)
+        for (const apt of recentApts) {
+            const houseNo = apt.HOUSE_MANAGE_NO;
+            const compUrl = `https://api.odcloud.kr/api/ApplyhomeInfoCmpetRtSvc/v1/getAPTLttotPblancCmpet?page=1&perPage=50&cond%5BHOUSE_MANAGE_NO%3A%3AEQ%5D=${houseNo}&serviceKey=${API_KEY}`;
+
+            try {
+                const compRes = await fetch(compUrl);
+                const compData = await compRes.json();
+
+                if (compData && compData.data && compData.data.length > 0) {
+                    const modelsRaw = compData.data;
+
+                    // 🎯 찌꺼기 문자열("-", "△", 미달, 빈칸) 완벽 소독 로직!
+                    const models = modelsRaw.map((m: any) => {
+                        let r = String(m.CMPET_RATE || "0").trim();
+
+                        if (r === "-" || r === "" || r.includes('△') || r.includes('미달')) {
+                            r = "0";
+                        }
+
+                        return {
+                            type: m.HOUSE_TY || "-",
+                            rank: m.SUBSCRPT_RANK_CODE ? `${m.SUBSCRPT_RANK_CODE}순위` : "-",
+                            region: m.RESIDE_SENM || "해당지역",
+                            units: Number(m.SUPLY_HSHLDCO || 0),
+                            applied: Number(m.REQ_CNT || 0),
+                            rate: r
+                        };
+                    });
+
+                    // 1순위 데이터 위주로 필터링
+                    const rank1Models = models.filter((m: any) => String(m.rank).includes('1순위') || String(m.rank).includes('1'));
+                    const displayModels = rank1Models.length > 0 ? rank1Models : models;
+
+                    // 전체 평균 및 최고 경쟁률 계산
+                    const totalUnits = displayModels.reduce((acc: number, cur: any) => acc + cur.units, 0);
+                    const totalApplied = displayModels.reduce((acc: number, cur: any) => acc + cur.applied, 0);
+                    const avgRate = totalUnits > 0 ? (totalApplied / totalUnits).toFixed(2) : "0.00";
+
+                    let maxRate = "0.00";
+                    if (displayModels.length > 0) {
+                        // 🚨 NaN 완벽 차단 방어막 적용
+                        maxRate = Math.max(...displayModels.map((m: any) => {
+                            const parsedRate = parseFloat(m.rate);
+                            return isNaN(parsedRate) ? 0 : parsedRate;
+                        })).toFixed(2);
+                    }
+
+                    // 주소 및 날짜 포맷팅
+                    let addr = apt.HSSPLY_ADRES || "상세 주소 확인 필요";
+                    addr = addr.split(" ").slice(0, 3).join(" ");
+
+                    let date = String(apt.RCRIT_PBLANC_DE || "-").replace(/-/g, '');
+                    if (date.length === 8) {
+                        date = `${date.substring(0, 4)}-${date.substring(4, 6)}-${date.substring(6, 8)}`;
+                    }
+
+                    validResults.push({
+                        id: houseNo,
+                        name: apt.HOUSE_NM || "단지명 없음",
+                        addr: addr,
+                        date: date,
+                        sortDate: Number(String(apt.RCRIT_PBLANC_DE || "0").replace(/-/g, '')),
+                        avgRate: avgRate,
+                        maxRate: maxRate,
+                        models: displayModels
+                    });
+                }
+            } catch (e) {
+                // 에러 무시 (서버 터짐 방지)
+            }
         }
 
-        // JSON 객체를 프론트엔드가 읽기 편하게 배열에 담아 보냅니다.
-        return new NextResponse(JSON.stringify([data]), { status: 200 });
+        console.log(`🎉 최종 화면 출력 단지 수: ${validResults.length}개`);
+        console.log("==================================================");
+
+        return NextResponse.json({ success: true, data: validResults });
+
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("🔥 서버 에러:", error);
+        return NextResponse.json({ error: "서버 처리 실패" }, { status: 500 });
     }
 }

@@ -27,8 +27,9 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import { useHomeData } from "../hooks/useHomeData";
 import { useHomeUi } from "../hooks/useHomeUi";
 
-// 🚀 새롭게 만든 캘린더 뷰 컴포넌트를 불러옵니다!
+// 🚀 새롭게 만든 캘린더 뷰 & 경쟁률 뷰 컴포넌트를 불러옵니다!
 import CalendarView from "../components/subscription/CalendarView";
+import CompetitionView from "../components/subscription/CompetitionView";
 
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
@@ -203,7 +204,7 @@ export default function Home() {
                                 {activeMenu === "home" && isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            {/* 🚀 청약정보 클릭 시 상태만 'calendar'로 변경 (페이지 이동 아님!) */}
+                            {/* 🚀 청약정보 클릭 시 상태만 'calendar'로 변경 */}
                             <button onClick={() => setActiveMenu("calendar")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "calendar" || activeMenu === "competition" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 청약정보
                                 <span className="absolute top-[12px] -right-3.5 bg-accent-action text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
@@ -281,15 +282,11 @@ export default function Home() {
                 </div>
             )}
 
-            {/* 🚀 청약 캘린더 탭 클릭 시 하단 화면만 부드럽게 전환됨 */}
+            {/* 🚀 청약 캘린더 탭 */}
             {activeMenu === "calendar" && <CalendarView setActiveMenu={setActiveMenu} />}
 
-            {/* 향후 경쟁률 탭 클릭 시 */}
-            {activeMenu === "competition" && (
-                <div className="w-full h-[50vh] flex items-center justify-center font-bold text-gray-400">
-                    청약 경쟁률 분석 화면이 들어갈 자리입니다.
-                </div>
-            )}
+            {/* 🚀 청약 경쟁률 탭 (방금 만든 컴포넌트로 교체 완료!) */}
+            {activeMenu === "competition" && <CompetitionView setActiveMenu={setActiveMenu} />}
 
             {/* 향후 실거래가 탭 클릭 시 */}
             {activeMenu === "price" && (
