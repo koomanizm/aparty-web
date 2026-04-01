@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Activity, Trophy, CalendarDays, Users2, RefreshCcw, X, Building, MapPin, Phone, TrendingUp } from "lucide-react";
+import { ArrowLeft, Activity, Trophy, CalendarDays, Users2, RefreshCcw, X, Building, MapPin, Phone, TrendingUp, ChevronRight } from "lucide-react";
 
 // 시도 및 구 데이터 매핑
 const SIDO_DATA: { [key: string]: string } = { "11": "서울시", "26": "부산시", "27": "대구시", "28": "인천시", "29": "광주시", "30": "대전시", "31": "울산시", "36": "세종시", "41": "경기도", "42": "강원도", "48": "경남도", "47": "경북도", "43": "충북도", "44": "충남도", "45": "전북도", "50": "제주도" };
@@ -48,7 +48,7 @@ const fetchTradeData = async (codes: string[]) => {
                     val: price >= 10000 ? `${Math.floor(price / 10000)}억 ${price % 10000 || ''}` : `${price}만`,
                     date: `${year}.${month}.${day}`,
                     sub: `전용 ${item.getElementsByTagName("excluUseAr")[0]?.textContent || "-"}㎡ · ${item.getElementsByTagName("floor")[0]?.textContent || ""}층`,
-                    lawdCd: code, // 🚀 실거래 히스토리 추적용 핵심 데이터
+                    lawdCd: code,
                     details: { area: item.getElementsByTagName("excluUseAr")[0]?.textContent, floor: item.getElementsByTagName("floor")[0]?.textContent, buildYear: item.getElementsByTagName("buildYear")[0]?.textContent, fullDate: `${year}.${month}.${day}` }
                 });
             });
@@ -99,12 +99,10 @@ export default function MorePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
-    // 🚀 실거래 히스토리 및 차트 상태
     const [historyData, setHistoryData] = useState<any[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    // 🚀 12개월 실거래 데이터 수집 로직 (메인 엔진 동일 이식)
     const fetchApartmentHistory = useCallback(async (aptName: string, lawdCd: string) => {
         setIsHistoryLoading(true); setHistoryData([]); setActiveIndex(null);
         try {
@@ -160,57 +158,59 @@ export default function MorePage() {
 
     const getTabInfo = () => {
         switch (tab) {
-            case "transaction": return { title: "실거래 전체보기", icon: Activity, color: "text-[#FF8C42]" };
-            case "competition": return { title: "청약경쟁률 전체보기", icon: Trophy, color: "text-blue-500" };
-            case "calendar": return { title: "청약일정 전체보기", icon: CalendarDays, color: "text-emerald-500" };
-            case "population": return { title: "인구유입 전체보기", icon: Users2, color: "text-purple-500" };
-            default: return { title: "전체보기", icon: Activity, color: "text-[#FF8C42]" };
+            // 🚀 타이틀 색상을 네이비(#172554)와 블루 계열로 통일하여 전문성 강조
+            case "transaction": return { title: "실거래 상세 분석", icon: Activity, color: "text-[#172554]" };
+            case "competition": return { title: "청약경쟁률 상세 내역", icon: Trophy, color: "text-[#172554]" };
+            case "calendar": return { title: "청약일정 캘린더", icon: CalendarDays, color: "text-[#172554]" };
+            case "population": return { title: "인구이동 리포트", icon: Users2, color: "text-[#172554]" };
+            default: return { title: "대시보드 상세", icon: Activity, color: "text-[#172554]" };
         }
     };
 
     const { title, icon: Icon, color } = getTabInfo();
 
     return (
-        <main className="min-h-screen bg-[#f8f9fa] pb-32">
+        <main className="min-h-screen bg-[#F8FAFC] pb-32">
             {/* 🚀 상세 정보 모달 (인터랙티브 차트 포함) */}
             {selectedItem && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => { setSelectedItem(null); setActiveIndex(null); }}>
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-[#4A403A] p-5 flex justify-between items-center text-white">
-                            <h3 className="font-black text-lg truncate pr-4">{selectedItem.type === "transaction" ? "단지 실거래 분석" : "상세 내역"}</h3>
-                            <button onClick={() => { setSelectedItem(null); setActiveIndex(null); }} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setSelectedItem(null); setActiveIndex(null); }}>
+                    <div className="bg-white rounded-[28px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        {/* 🚀 모달 헤더: 시그니처 네이비 적용 */}
+                        <div className="bg-[#172554] p-5 flex justify-between items-center text-white">
+                            <h3 className="font-extrabold text-[16px] truncate pr-4">{selectedItem.type === "transaction" ? "실거래 정밀 분석" : "청약 상세 정보"}</h3>
+                            <button onClick={() => { setSelectedItem(null); setActiveIndex(null); }} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><X size={20} strokeWidth={2.5} /></button>
                         </div>
                         <div className="p-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
-                            <h4 className="text-xl font-black text-[#2d2d2d] mb-1">{selectedItem.title}</h4>
-                            <p className="text-sm font-bold text-[#FF8C42] mb-6 flex items-center gap-1"><MapPin size={14} /> {selectedItem.addr}</p>
+                            <h4 className="text-[20px] font-black text-slate-900 mb-1.5 leading-tight break-keep">{selectedItem.title}</h4>
+                            <p className="text-[13px] font-bold text-blue-600 mb-6 flex items-center gap-1.5"><MapPin size={14} /> {selectedItem.addr}</p>
 
-                            {/* 🚀 1년 실거래가 인터랙티브 차트 (전체보기 전용 이식) */}
+                            {/* 🚀 1년 실거래가 인터랙티브 차트 */}
                             {selectedItem.type === "transaction" && (
-                                <div className="mb-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h5 className="text-[12px] font-black text-gray-700 flex items-center gap-1.5"><TrendingUp size={14} className="text-blue-500" /> 최근 1년 실거래 추이</h5>
-                                        <span className="text-[9px] font-bold text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-100">단위: 만원</span>
+                                <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h5 className="text-[13px] font-black text-slate-700 flex items-center gap-1.5"><TrendingUp size={16} className="text-blue-600" /> 최근 1년 실거래 추이</h5>
+                                        <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-sm">단위: 만원</span>
                                     </div>
-                                    <div className="h-6 mb-2 flex items-center justify-center">
+                                    <div className="h-7 mb-2 flex items-center justify-center">
                                         {activeIndex !== null && historyData[activeIndex] ? (
-                                            <div className="animate-in fade-in zoom-in duration-200 flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md">{historyData[activeIndex].date}</span>
-                                                <span className="text-[13px] font-black text-[#4A403A]">{historyData[activeIndex].price.toLocaleString()}만원</span>
+                                            <div className="animate-in fade-in zoom-in duration-200 flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                                <span className="text-[11px] font-black text-blue-600">{historyData[activeIndex].date}</span>
+                                                <span className="text-[14px] font-black text-[#172554]">{historyData[activeIndex].price.toLocaleString()}만원</span>
                                             </div>
                                         ) : historyData.length > 0 && (
-                                            <span className="text-[9px] text-gray-300 font-bold">점을 클릭해 정확한 가격을 확인하세요!</span>
+                                            <span className="text-[11px] text-slate-400 font-bold bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">차트의 점을 클릭해 보세요!</span>
                                         )}
                                     </div>
                                     {isHistoryLoading ? (
-                                        <div className="h-[100px] flex flex-col items-center justify-center text-gray-400 text-[10px] animate-pulse">
-                                            <RefreshCcw size={18} className="animate-spin mb-2" />데이터 분석 중...
+                                        <div className="h-[120px] flex flex-col items-center justify-center text-slate-400 text-[11px] font-bold animate-pulse">
+                                            <RefreshCcw size={20} className="animate-spin mb-2 text-[#172554]" />데이터 정밀 분석 중...
                                         </div>
                                     ) : historyData.length > 1 ? (
                                         <div className="relative w-full h-[120px] mt-2">
                                             <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible">
-                                                <line x1="0" y1="0" x2="300" y2="0" stroke="#f1f1f1" strokeWidth="1" strokeDasharray="3,3" />
-                                                <line x1="0" y1="50" x2="300" y2="50" stroke="#f1f1f1" strokeWidth="1" strokeDasharray="3,3" />
-                                                <line x1="0" y1="100" x2="300" y2="100" stroke="#f1f1f1" strokeWidth="1" strokeDasharray="3,3" />
+                                                <line x1="0" y1="0" x2="300" y2="0" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3,3" />
+                                                <line x1="0" y1="50" x2="300" y2="50" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3,3" />
+                                                <line x1="0" y1="100" x2="300" y2="100" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3,3" />
                                                 {(() => {
                                                     const minPrice = Math.min(...historyData.map(d => d.price));
                                                     const maxPrice = Math.max(...historyData.map(d => d.price));
@@ -222,17 +222,17 @@ export default function MorePage() {
                                                     }).join(" ");
                                                     return (
                                                         <>
-                                                            <path d={`M ${points}`} fill="none" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <path d={`M ${points}`} fill="none" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                                                             {historyData.map((d, i) => {
                                                                 const x = (i / (historyData.length - 1)) * 300;
                                                                 const y = 100 - ((d.price - minPrice) / range) * 80 - 10;
                                                                 const isActive = activeIndex === i;
                                                                 return (
                                                                     <g key={i} onClick={() => setActiveIndex(i)} className="cursor-pointer">
-                                                                        {isActive && <line x1={x} y1="0" x2={x} y2="100" stroke="#3B82F6" strokeWidth="1" strokeDasharray="2,2" />}
-                                                                        <circle cx={x} cy={y} r={isActive ? "6" : "3.5"} fill={isActive ? "#3B82F6" : "white"} stroke="#3B82F6" strokeWidth="2.5" className="transition-all" />
+                                                                        {isActive && <line x1={x} y1="0" x2={x} y2="100" stroke="#2563EB" strokeWidth="1" strokeDasharray="2,2" />}
+                                                                        <circle cx={x} cy={y} r={isActive ? "6" : "3.5"} fill={isActive ? "#2563EB" : "white"} stroke="#2563EB" strokeWidth="2.5" className="transition-all shadow-sm" />
                                                                         <circle cx={x} cy={y} r="15" fill="transparent" />
-                                                                        <text x={x} y={120} textAnchor="middle" fontSize="9" fill={isActive ? "#3B82F6" : "#9CA3AF"} fontWeight={isActive ? "900" : "bold"}>{d.date}</text>
+                                                                        <text x={x} y={120} textAnchor="middle" fontSize="9" fill={isActive ? "#172554" : "#94a3b8"} fontWeight={isActive ? "900" : "bold"}>{d.date}</text>
                                                                     </g>
                                                                 );
                                                             })}
@@ -241,65 +241,99 @@ export default function MorePage() {
                                                 })()}
                                             </svg>
                                         </div>
-                                    ) : (<div className="h-[100px] flex items-center justify-center text-gray-400 text-[10px] italic">거래 이력이 분석 중입니다.</div>)}
+                                    ) : (<div className="h-[120px] flex items-center justify-center text-slate-400 text-[11px] font-bold">충분한 거래 이력이 없습니다.</div>)}
                                 </div>
                             )}
 
-                            <div className="space-y-4">
+                            {/* 🚀 상세 정보 리스트 레이아웃 개선 */}
+                            <div className="space-y-3">
                                 {selectedItem.type === "transaction" ? (
                                     <>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><Activity size={16} /> 최근 실거래가</span><span className="font-black text-lg text-[#2d2d2d]">{selectedItem.val}</span></div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 거래일자</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.fullDate}</span></div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><Building size={16} /> 연식</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.buildYear}년</span></div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><MapPin size={16} /> 면적/층수</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.area}㎡ / {selectedItem.details.floor}층</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><Activity size={16} /> 최근 실거래가</span><span className="font-black text-[18px] text-[#172554]">{selectedItem.val}</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><CalendarDays size={16} /> 거래일자</span><span className="font-bold text-slate-800">{selectedItem.details.fullDate}</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><Building size={16} /> 연식</span><span className="font-bold text-slate-800">{selectedItem.details.buildYear}년</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><MapPin size={16} /> 면적/층수</span><span className="font-bold text-slate-800">{selectedItem.details.area}㎡ / {selectedItem.details.floor}층</span></div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><Trophy size={16} /> 일정/비율</span><span className="font-black text-blue-500">{selectedItem.val}</span></div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><Users2 size={16} /> 공급세대</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.totHshld} 세대</span></div>
-                                        <div className="flex justify-between items-center py-3 border-b border-gray-50"><span className="text-gray-500 font-bold flex items-center gap-2"><Phone size={16} /> 문의처</span><span className="font-bold text-[#2d2d2d]">{selectedItem.details.contact}</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><Trophy size={16} /> 일정/비율</span><span className="font-black text-[16px] text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">{selectedItem.val}</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><Users2 size={16} /> 공급세대</span><span className="font-bold text-slate-800">{selectedItem.details.totHshld} 세대</span></div>
+                                        <div className="flex justify-between items-center py-3.5 border-b border-slate-100"><span className="text-slate-500 font-bold flex items-center gap-2"><Phone size={16} /> 문의처</span><span className="font-bold text-slate-800">{selectedItem.details.contact}</span></div>
                                     </>
                                 )}
                             </div>
-                            <button onClick={() => { setSelectedItem(null); setActiveIndex(null); }} className="w-full mt-8 py-3.5 bg-[#4A403A] text-white font-black rounded-xl shadow-lg active:scale-95 transition-all">닫기</button>
+                            <button onClick={() => { setSelectedItem(null); setActiveIndex(null); }} className="w-full mt-8 py-4 bg-[#172554] text-white font-black rounded-xl shadow-[0_8px_20px_rgba(23,37,84,0.2)] active:scale-95 transition-all">확인 완료</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-                <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-all"><ArrowLeft size={20} /></button>
-                <h1 className="text-lg font-black text-[#2d2d2d] flex items-center gap-2"><Icon size={20} className={color} /> {title}</h1>
+            {/* 🚀 상단 네비게이션바 (더 깨끗하고 명확하게) */}
+            <nav className="sticky top-0 z-50 flex items-center justify-between px-5 md:px-8 py-4 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                <button onClick={() => router.back()} className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-all"><ArrowLeft size={20} strokeWidth={2.5} /></button>
+                <h1 className="text-[17px] md:text-lg font-black text-[#172554] flex items-center gap-2"><Icon size={22} className={color} strokeWidth={2.5} /> {title}</h1>
                 <div className="w-10"></div>
             </nav>
 
-            <div className="max-w-3xl mx-auto px-4 mt-6">
-                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+            <div className="max-w-4xl mx-auto px-4 mt-6">
+                {/* 🚀 지역 탭 (네이비 컬러 활성화) */}
+                <div className="flex gap-2.5 overflow-x-auto pb-4 scrollbar-hide mb-2">
                     {Object.keys(REGION_CODES).map(region => (
-                        <button key={region} onClick={() => setActiveRegion(region)} className={`shrink-0 px-5 py-2.5 rounded-full text-[13px] font-black transition-all ${activeRegion === region ? "bg-[#4A403A] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200"}`}>{region}</button>
+                        <button
+                            key={region}
+                            onClick={() => setActiveRegion(region)}
+                            className={`shrink-0 px-5 py-2.5 rounded-full text-[13px] font-black transition-all border ${activeRegion === region ? "bg-[#172554] border-[#172554] text-white shadow-md" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`}
+                        >
+                            {region}
+                        </button>
                     ))}
                 </div>
 
-                <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-4 md:p-6 min-h-[50vh]">
-                    <div className="flex items-center justify-between mb-4 px-2"><span className="text-sm font-bold text-gray-500">총 <span className="text-[#ff6f42]">{dataList.length}</span>건의 데이터</span></div>
+                {/* 🚀 데이터 대시보드 리스트 */}
+                <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 p-4 md:p-6 min-h-[60vh]">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                        <span className="text-[13px] font-bold text-slate-500">
+                            총 <span className="text-blue-600 font-black text-[14px]">{dataList.length}</span>건의 전문가 데이터
+                        </span>
+                    </div>
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-32 opacity-50"><RefreshCcw className="animate-spin text-[#FF8C42] mb-3" size={32} /><p className="text-sm font-bold text-gray-400">데이터를 분석 중입니다...</p></div>
+                        <div className="flex flex-col items-center justify-center py-32 opacity-80">
+                            <RefreshCcw className="animate-spin text-[#172554] mb-3" size={32} />
+                            <p className="text-[13px] font-bold text-slate-500">대규모 부동산 데이터를 컴파일 중입니다...</p>
+                        </div>
                     ) : dataList.length > 0 ? (
                         <div className="space-y-3">
                             {dataList.map((item, idx) => (
-                                <div key={idx} onClick={() => { if (item.type) setSelectedItem(item); }} className={`flex justify-between items-center p-4 bg-[#fdfbf7] rounded-xl border border-gray-50 transition-all ${item.type ? 'cursor-pointer hover:border-orange-200 hover:bg-orange-50/30' : ''}`}>
+                                <div
+                                    key={idx}
+                                    onClick={() => { if (item.type) setSelectedItem(item); }}
+                                    className={`group flex justify-between items-center p-4 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all ${item.type ? 'cursor-pointer hover:border-blue-300 hover:shadow-md hover:bg-blue-50/20' : ''}`}
+                                >
                                     <div className="max-w-[70%] text-left">
-                                        <div className="flex items-center gap-2 mb-1"><span className="text-xs font-bold text-white bg-gray-300 px-2 py-0.5 rounded-full shrink-0">{idx + 1}</span><p className="text-[15px] font-black text-[#4A403A] truncate">{item.title}</p></div>
-                                        <div className="flex items-center gap-1.5 mt-1.5"><span className="text-[10px] text-gray-500 font-bold bg-white border border-gray-200 px-1.5 py-0.5 rounded">{item.addr}</span><p className="text-[11px] text-gray-400 font-medium truncate">{item.sub}</p></div>
+                                        <div className="flex items-center gap-2.5 mb-1.5">
+                                            <span className="text-[10px] font-black text-white bg-[#172554] px-2 py-0.5 rounded shadow-sm shrink-0">{idx + 1}</span>
+                                            <p className="text-[15px] font-extrabold text-slate-800 truncate group-hover:text-[#172554] transition-colors">{item.title}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] text-slate-500 font-bold bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">{item.addr}</span>
+                                            <p className="text-[11px] text-slate-400 font-medium truncate">{item.sub}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right shrink-0 ml-3">
-                                        <p className={`text-[16px] font-black ${color}`}>{item.val}</p>
-                                        <p className="text-[10px] font-bold text-gray-400 mt-1">{tab === "transaction" ? item.date : "정보 제공: 아파티"}</p>
+                                    <div className="text-right shrink-0 ml-3 flex flex-col items-end">
+                                        <p className="text-[16px] md:text-[18px] font-black text-[#172554]">{item.val}</p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <p className="text-[10px] font-bold text-slate-400">{tab === "transaction" ? item.date : "상세보기"}</p>
+                                            {item.type && <ChevronRight size={12} className="text-slate-300 group-hover:text-blue-500 transition-colors" strokeWidth={3} />}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    ) : (<div className="text-center py-32 text-sm text-gray-400 font-bold">해당 지역의 데이터가 없습니다.</div>)}
+                    ) : (
+                        <div className="text-center py-32 text-[13px] text-slate-400 font-bold">
+                            해당 지역에 수집된 데이터가 없습니다.
+                        </div>
+                    )}
                 </div>
             </div>
         </main>

@@ -28,8 +28,6 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
     const isNew = statusArray.includes("신규") || signalsArray.includes("신규") || judgmentBadge === "신규등록";
     const isVip = statusArray.includes("VIP") || signalsArray.includes("VIP") || judgmentBadge === "VIP";
 
-    const isPremium = adGrade === "프리미엄" || adGrade === "Premium" || adGrade === "premium";
-
     const displayStatuses = statusArray.filter(tag => tag !== "신규" && tag !== "VIP");
     const displaySignals = signalsArray.filter(tag => tag !== "신규" && tag !== "VIP");
 
@@ -88,46 +86,9 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
 
     return (
         <div className="h-full">
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes gradientFlow {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-
-                .premium-aurora-card-pc {
-                    border-color: transparent !important;
-                    box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15) !important;
-                    background-image: linear-gradient(white, white), 
-                                      linear-gradient(270deg, #A855F7, #EC4899, #A855F7);
-                    background-size: 200% 200%;
-                    animation: gradientFlow 1s ease infinite;
-                    background-origin: border-box;
-                    background-clip: padding-box, border-box;
-                    border-width: 2px !important;
-                }
-                .premium-aurora-card-pc:hover {
-                    box-shadow: 0 8px 28px rgba(236, 72, 153, 0.25) !important;
-                }
-
-                .premium-aurora-card-mobile {
-                    border-color: transparent !important;
-                    box-shadow: 0 0 12px rgba(236, 72, 153, 0.3) !important;
-                    background-image: linear-gradient(#111827, #111827), 
-                                      linear-gradient(270deg, #A855F7, #EC4899, #A855F7);
-                    background-size: 200% 200%;
-                    animation: gradientFlow 1s ease infinite;
-                    background-origin: border-box;
-                    background-clip: padding-box, border-box;
-                    border-width: 2px !important;
-                }
-            `}} />
-
             <Link href={`/property/${id}`} className="block group h-full">
                 {/* 📱 모바일 뷰 */}
-                <div className={`md:hidden relative w-full h-[110px] rounded-xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-end bg-gray-900 
-                    ${isPremium ? 'premium-aurora-card-mobile' : ''}`}>
+                <div className="md:hidden relative w-full h-[110px] rounded-xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform flex flex-col justify-end bg-gray-900 border border-transparent">
                     <Image src={safeImage} alt={title} fill className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/10 pointer-events-none"></div>
 
@@ -158,15 +119,11 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
                     <div className="relative p-3 flex flex-col z-10 pointer-events-none w-full pr-7">
                         {bodyBadges.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-1 pr-6">
-                                {bodyBadges.map((badge, i) => {
-                                    const isPremiumBadge = isPremium && i === 0;
-                                    return (
-                                        <span key={i} className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold shadow-sm items-center gap-0.5 ${isPremiumBadge ? "text-white bg-[#EC4899]" : "text-[#2F8CFF] bg-white/90 backdrop-blur-sm"}`}>
-                                            {isPremiumBadge && <Flame size={8} />}
-                                            {badge}
-                                        </span>
-                                    );
-                                })}
+                                {bodyBadges.map((badge, i) => (
+                                    <span key={i} className="inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold shadow-sm items-center gap-0.5 text-[#2F8CFF] bg-white/90 backdrop-blur-sm">
+                                        {badge}
+                                    </span>
+                                ))}
                             </div>
                         )}
 
@@ -180,18 +137,12 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
                         </div>
                     </div>
 
-                    {!isPremium && (
-                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2F8CFF] to-[#A855F7] z-30 opacity-90"></div>
-                    )}
+                    {/* 모든 카드에 동일하게 하단 라인 적용 */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#2F8CFF] to-[#A855F7] z-30 opacity-90"></div>
                 </div>
 
                 {/* 💻 PC 뷰 */}
-                <div className={`hidden md:flex rounded-2xl transition-all duration-300 overflow-hidden flex-col h-full transform hover:-translate-y-1 relative bg-white 
-                    ${isPremium
-                        ? 'premium-aurora-card-pc'
-                        : 'border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]'
-                    }`}
-                >
+                <div className="hidden md:flex rounded-2xl transition-all duration-300 overflow-hidden flex-col h-full transform hover:-translate-y-1 relative bg-white border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]">
                     <div className="w-full h-44 lg:h-48 bg-gray-100 relative overflow-hidden shrink-0">
                         <Image src={safeImage} alt={title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
 
@@ -224,18 +175,11 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
                         <div className="flex flex-col gap-1.5 mb-auto">
                             {bodyBadges.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-0.5">
-                                    {bodyBadges.map((badge, i) => {
-                                        const isPremiumBadge = isPremium && i === 0;
-                                        return (
-                                            <span key={i} className={`inline-flex h-5 px-2 rounded-[4px] text-[10px] font-extrabold items-center tracking-tight border transition-colors ${isPremiumBadge
-                                                ? "bg-[#EC4899] text-white border-[#EC4899]"
-                                                : "bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-200"
-                                                }`}>
-                                                {isPremiumBadge && <Flame size={10} className="mr-0.5 text-white" />}
-                                                {badge}
-                                            </span>
-                                        );
-                                    })}
+                                    {bodyBadges.map((badge, i) => (
+                                        <span key={i} className="inline-flex h-5 px-2 rounded-[4px] text-[10px] font-extrabold items-center tracking-tight border transition-colors bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-200">
+                                            {badge}
+                                        </span>
+                                    ))}
                                 </div>
                             )}
 
@@ -249,7 +193,6 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
                             </div>
                         </div>
 
-                        {/* 🚀 [PC] 세로폭(상하 여백) 확대! mt-3 pt-3 -> mt-4 pt-4 pb-1 적용 */}
                         <div className="mt-4 pt-4 pb-1 border-t border-gray-100 flex items-center justify-between shrink-0">
                             <span className="text-[12px] font-semibold text-gray-500 truncate pr-2 tracking-tight">
                                 {getDynamicCtaText()}
@@ -257,9 +200,8 @@ const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice
                         </div>
                     </div>
 
-                    {!isPremium && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#2F8CFF] to-[#A855F7] z-30 opacity-90"></div>
-                    )}
+                    {/* 모든 카드에 동일하게 하단 라인 적용 */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#2F8CFF] to-[#A855F7] z-30 opacity-90"></div>
                 </div>
             </Link>
         </div>

@@ -1,39 +1,87 @@
 import { NextResponse } from "next/server";
 
+export const revalidate = 0; // 캐시 무효화 (달을 넘길 때마다 새로 가져와야 함)
+
+// 🚀 request 매개변수를 추가하여 프론트에서 보낸 년/월을 받습니다.
 export async function GET(request: Request) {
-    // 🚀 기존에 쓰시던 키 그대로 둡니다. (Decoding 키)
-    const apiKey = "dd35353d775e77d0d73c80313a57ba01602b407a478f7905984bd12be150b59d";
-
     try {
-        // 🚀 [핵심 원인 해결] 기존 1613000 주소를 버리고, 새로운 공공데이터 클라우드(odcloud) 주소로 접속합니다!
-        const url = `https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail?page=1&perPage=100&serviceKey=${apiKey}`;
+        console.log("🕵️‍♂️ [내부 API 타격]: 청약홈 실시간 달력 데이터 수집 중...");
 
-        console.log("📡 [신규 청약 클라우드 접속]:", url);
+        // 🚀 프론트엔드에서 보낸 ?year=2026&month=04 값을 뽑아냅니다.
+        const { searchParams } = new URL(request.url);
+        const queryYear = searchParams.get('year');
+        const queryMonth = searchParams.get('month');
 
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }, // XML이 아닌 JSON으로 받습니다.
-            cache: 'no-store'
+        // 프론트에서 값을 안 보내면(첫 로딩 시) 기본값으로 이번 달을 씁니다.
+        const now = new Date();
+        const year = queryYear || String(now.getFullYear());
+        const month = queryMonth || String(now.getMonth() + 1).padStart(2, '0');
+        const inqirePd = `${year}${month}`; // 예: "202604"
+
+        const targetUrl = "https://www.applyhome.co.kr/ai/aib/selectSubscrptCalender.do";
+
+        const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ reqData: { inqirePd: inqirePd } })
         });
 
         const data = await response.json();
-        console.log(`✅ [신규 API 성공] 받아온 데이터 개수: ${data.data?.length || 0}개`);
+        const list = data.schdulList || [];
+        let combinedEvents: any[] = [];
 
-        // 만약 데이터가 비어있다면, 화면 깨짐 방지용 우회 데이터를 보냅니다.
-        if (!data || !data.data || data.data.length === 0) {
-            const mockData = {
-                data: [
-                    { HOUSE_NM: "디에이치 대치 에델루이", HSSPLY_ADRES: "서울 강남구 대치동", GNRL_RNK1_SUBSCRPT_AT: "1순위 마감", PBLANC_PBLANC_ON: "2026-02-15" },
-                    { HOUSE_NM: "에코델타시티 푸르지오 센터파크", HSSPLY_ADRES: "부산 강서구 강동동", GNRL_RNK1_SUBSCRPT_AT: "일정 미정", PBLANC_PBLANC_ON: "2026-03-01" },
-                    { HOUSE_NM: "창원 센트럴파크 에일린의뜰", HSSPLY_ADRES: "경남 창원시 성산구", GNRL_RNK1_SUBSCRPT_AT: "2026-04-05", PBLANC_PBLANC_ON: "2026-03-15" }
-                ]
-            };
-            return new NextResponse(JSON.stringify([mockData]), { status: 200 });
+        // 8개 카테고리로 완벽 분리
+        const getCustomType = (rcept: string) => {
+            const rceptSe = String(rcept || "").trim();
+
+            switch (rceptSe) {
+                case "01": return "특별공급";
+                case "02": return "1순위";
+                case "03": return "2순위";
+                case "06": return "무순위";
+                case "11": return "임의공급";
+                case "07": return "재공급";
+                case "05": return "오피스텔/생숙/도생/민간임대";
+                case "04": return "공공지원민간임대";
+                default: return "1순위";
+            }
+        };
+
+        if (Array.isArray(list)) {
+            list.forEach((item: any) => {
+                const rawDate = item.IN_DATE || "";
+                let formattedDate = rawDate;
+                if (rawDate.length === 8) {
+                    formattedDate = `${rawDate.substring(0, 4)}-${rawDate.substring(4, 6)}-${rawDate.substring(6, 8)}`;
+                }
+
+                if (formattedDate) {
+                    combinedEvents.push({
+                        id: `${item.HOUSE_MANAGE_NO || 'ID'}_${item.RCEPT_SE || 'R'}_${Math.random().toString(36).substr(2, 5)}`,
+                        RCRIT_PBLANC_DE: formattedDate,
+                        HOUSE_NM: item.HOUSE_NM || "단지명 미상",
+                        HSSPLY_ADRES: item.SUBSCRPT_AREA_CODE_NM || "전국",
+                        CUSTOM_TYPE: getCustomType(item.RCEPT_SE),
+                        TOT_SUPLY_HSHLDCO: "-",
+                        MDHS_TELNO: "청약홈 확인 요망"
+                    });
+                }
+            });
         }
 
-        // JSON 객체를 프론트엔드가 읽기 편하게 배열에 담아 보냅니다.
-        return new NextResponse(JSON.stringify([data]), { status: 200 });
+        if (combinedEvents.length === 0) {
+            combinedEvents = [
+                { id: 'fb1', HOUSE_NM: "해당 월의 청약 일정이 없습니다.", HSSPLY_ADRES: "전국", RCRIT_PBLANC_DE: `${year}-${month}-01`, CUSTOM_TYPE: "1순위" }
+            ];
+        }
+
+        return new NextResponse(JSON.stringify([{ data: combinedEvents }]), { status: 200 });
+
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return new NextResponse(JSON.stringify([{ data: [] }]), { status: 200 });
     }
 }

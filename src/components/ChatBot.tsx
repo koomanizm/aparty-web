@@ -3,53 +3,45 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Send, MessageCircle, ChevronDown, Bot, ChevronRight, Loader2, Link as LinkIcon } from "lucide-react";
 import { getPropertiesFromSheet, Property } from "../lib/sheet";
-import Link from "next/link"; // 🚀 링크 연결을 위해 추가됨
+import Link from "next/link";
+import Image from "next/image";
 
 interface Message {
     role: "assistant" | "user";
     text: string;
 }
 
-// 🚀 [업그레이드] properties 데이터를 넘겨받아 버튼에 실제 ID를 매칭합니다.
+// ========================================================
+// 💡 기존 로직 완벽 보존 (답변 렌더링 & 링크 연결 부분)
+// ========================================================
 const renderMessageContent = (text: string, role: "assistant" | "user", properties: Property[]) => {
-    // 1. 불필요한 마크다운 기호 제거
     const cleanText = text.replace(/## /g, "").replace(/##/g, "");
-
-    // 2. 텍스트, 단지명, 라벨, 중요포인트, 그리고 "버튼"까지 한 번에 순서대로 분리!
     const parts = cleanText.split(/(\*\*.*?\*\*|\^\^.*?\^\^|\[.*?\]\s*:|\[버튼:.*?\])/g);
 
     const FormattedText = parts.map((part, index) => {
         if (part.startsWith('**') && part.endsWith('**')) {
-            // 🔸 단지명
             const content = part.slice(2, -2);
             return <strong key={index} className={`font-extrabold text-[13px] ${role === 'assistant' ? 'text-[#FF8C42]' : 'text-white'}`}>{content}</strong>;
         }
         else if (part.startsWith('^^') && part.endsWith('^^')) {
-            // 🔹 중요 포인트 형광펜
             const content = part.slice(2, -2);
             return <span key={index} className="font-bold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded-md mx-0.5 shadow-sm">{content}</span>;
         }
         else if (part.match(/^\[.*?\]\s*:/)) {
-            // 🌿 항목 라벨
             return <strong key={index} className="text-[#059669] mr-1">{part}</strong>;
         }
         else if (part.startsWith('[버튼:') && part.endsWith(']')) {
-            // 🚀 [핵심 포인트] 단지 상세페이지로 이동하는 링크 버튼 생성
-            const btnName = part.slice(4, -1).trim(); // "버튼:" 글자를 떼어내고 이름만 추출
+            const btnName = part.slice(4, -1).trim();
 
             if (role === 'assistant') {
                 const cleanBtnName = btnName.replace(/\s+/g, '');
-
-                // 🚀 [해결 완료] 구글 시트의 실제 컬럼명인 'title'을 정확하게 찾습니다!
                 const matchedProperty = properties.find(p => {
                     const item = p as any;
-                    // 대표님이 말씀하신 'title' 속성에서 데이터를 꺼내옵니다.
                     const rawName = item.title || item.Title || "";
                     const dbName = String(rawName).replace(/\s+/g, '');
                     return dbName === cleanBtnName;
                 });
 
-                // ID를 찾으면 /property/아이디 로 가고, 못 찾으면 임시로 검색페이지로 이동합니다.
                 const targetUrl = matchedProperty ? `/property/${matchedProperty.id}` : `/search?q=${encodeURIComponent(btnName)}`;
 
                 return (
@@ -66,13 +58,10 @@ const renderMessageContent = (text: string, role: "assistant" | "user", properti
             }
             return null;
         }
-
-        // 나머지 일반 텍스트 (줄바꿈도 자연스럽게 유지됨)
         return <span key={index}>{part}</span>;
     });
 
     return (
-        // 🚀 leading-[1.8] 로 줄 간격을 쾌적하게 늘렸습니다.
         <div className="whitespace-pre-wrap leading-[1.8] text-[12px] tracking-tight">
             {FormattedText}
         </div>
@@ -89,7 +78,11 @@ export default function ChatBot() {
     const [inputValue, setInputValue] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
     const [bottomOffset, setBottomOffset] = useState(0);
+    const [isHovered, setIsHovered] = useState(false);
 
+    // ========================================================
+    // 💡 기존 로직 완벽 보존 (데이터 패칭 & API 호출 부분)
+    // ========================================================
     useEffect(() => {
         async function loadData() {
             setProperties(await getPropertiesFromSheet());
@@ -133,18 +126,93 @@ export default function ChatBot() {
 
     return (
         <div className="fixed bottom-5 right-4 md:bottom-10 md:right-10 z-[100] transition-transform" style={{ transform: `translateY(-${bottomOffset}px)` }}>
+
+            {/* 🚀 SVG 애니메이션 스타일 */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .chatbot-base-circle {
+                    stroke: #E5E7EB; /* 평소 얇은 회색 선 */
+                    stroke-width: 2.5;
+                    fill: white;
+                }
+                
+                .chatbot-draw-circle {
+                    stroke: url(#aurora-spinning-gradient); /* 그라데이션 선 적용 */
+                    stroke-width: 2.5;
+                    fill: transparent;
+                    stroke-dasharray: 180; 
+                    stroke-dashoffset: 180; /* 숨김 상태 */
+                    transition: stroke-dashoffset 0.6s ease-in-out; /* 원 그리기 속도 */
+                    stroke-linecap: round; 
+                }
+
+                .chatbot-btn-wrapper:hover .chatbot-draw-circle {
+                    stroke-dashoffset: 0; /* 마우스 올리면 그려짐 */
+                }
+
+                .chatbot-btn-wrapper:hover {
+                    transform: scale(1.05); /* 버튼 커짐 */
+                    box-shadow: 0 10px 25px rgba(168, 85, 247, 0.25); /* 오로라 그림자 */
+                }
+                
+                .chatbot-btn-wrapper:active {
+                    transform: scale(0.95);
+                }
+                `
+            }} />
+
+            {/* 🚀 로봇 아이콘 버튼 */}
             {!isOpen && (
-                <button onClick={() => setIsOpen(true)} className="w-14 h-14 bg-[#FF8C42] text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
-                    <MessageCircle size={26} fill="white" />
+                <button
+                    onClick={() => setIsOpen(true)}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    className="chatbot-btn-wrapper relative w-[60px] h-[60px] rounded-full shadow-lg outline-none transition-all duration-300 group flex items-center justify-center bg-white"
+                    aria-label="챗봇 열기"
+                >
+                    <svg width="60" height="60" viewBox="0 0 60 60" className="absolute top-0 left-0 w-full h-full -rotate-90 pointer-events-none">
+                        <defs>
+                            {/* 🚀 빙글빙글 도는 오로라 그라데이션 */}
+                            <linearGradient id="aurora-spinning-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="60" y2="60">
+                                <animateTransform
+                                    attributeName="gradientTransform"
+                                    type="rotate"
+                                    from="0 30 30"
+                                    to="360 30 30"
+                                    dur="2s"
+                                    repeatCount="indefinite"
+                                />
+                                <stop offset="0%" stopColor="#A855F7" />
+                                <stop offset="50%" stopColor="#EC4899" />
+                                <stop offset="100%" stopColor="#3b82f6" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="30" cy="30" r="28" className="chatbot-base-circle" />
+                        <circle cx="30" cy="30" r="28" className="chatbot-draw-circle" />
+                    </svg>
+
+                    {/* ✅ 🚀 [복구] 버튼 아이콘 크기는 딱 좋다고 하셔서 원상복구 (38px) */}
+                    <div className="relative z-10 w-[38px] h-[38px] flex items-center justify-center">
+                        <Image
+                            src="/roboticon.png"
+                            alt="AI 챗봇"
+                            width={38}
+                            height={38}
+                            className={`object-contain transition-transform duration-300 ${isHovered ? 'scale-110 drop-shadow-md' : 'drop-shadow-sm'}`}
+                        />
+                    </div>
                 </button>
             )}
 
             {isOpen && (
                 <div className="w-[calc(100vw-2rem)] md:w-[360px] h-[75dvh] max-h-[600px] bg-white rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in fade-in slide-in-from-bottom-5">
-                    <div className="bg-[#4A403A] p-5 text-white flex justify-between items-center shrink-0">
+                    <div className="bg-[#172554] p-5 text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-[#FF8C42] rounded-xl flex items-center justify-center shadow-inner"><Bot size={18} /></div>
-                            <h3 className="text-[15px] font-black tracking-tighter">아파티 AI 상담사</h3>
+                            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                {/* ✅ 🚀 [핵심 포인트] 챗봇 창 내 상단 아이콘 크기 더 키움 (20px -> 28px) */}
+                                <Image src="/roboticon.png" alt="로봇" width={28} height={28} className="object-contain" />
+                            </div>
+                            <h3 className="text-[15px] font-bold tracking-tighter">아파티 AI 상담사</h3>
                         </div>
                         <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-1"><ChevronDown size={24} /></button>
                     </div>
@@ -152,10 +220,7 @@ export default function ChatBot() {
                     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 bg-[#fdfbf7] space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                {/* 🚀 줄 간격 충돌을 막기 위해 leading-relaxed 제거, 텍스트 크기 13px 유지 */}
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-[12px] font-medium shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#FF8C42] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"
-                                    }`}>
-                                    {/* 🚀 properties 배열을 넘겨주어 단지 ID를 찾을 수 있게 연결! */}
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-[12px] font-medium shadow-sm whitespace-pre-wrap ${msg.role === "user" ? "bg-[#172554] text-white rounded-tr-none" : "bg-white text-[#4A403A] rounded-tl-none border border-gray-100"}`}>
                                     {renderMessageContent(msg.text, msg.role, properties)}
                                 </div>
                             </div>
@@ -163,7 +228,7 @@ export default function ChatBot() {
                         {isLoading && (
                             <div className="flex items-start">
                                 <div className="p-4 rounded-2xl bg-white text-gray-400 border border-gray-100 flex items-center gap-2">
-                                    <Loader2 size={16} className="animate-spin text-[#FF8C42]" />
+                                    <Loader2 size={16} className="animate-spin text-[#172554]" />
                                     <span className="text-[13px] font-medium">아파티 데이터를 분석 중...</span>
                                 </div>
                             </div>
@@ -181,7 +246,7 @@ export default function ChatBot() {
                                 className="flex-1 bg-transparent border-none outline-none px-3 text-[13px] font-medium"
                                 disabled={isLoading}
                             />
-                            <button onClick={() => sendMessage(inputValue)} disabled={isLoading} className="bg-[#4A403A] text-white p-2.5 rounded-xl">
+                            <button onClick={() => sendMessage(inputValue)} disabled={isLoading} className="bg-[#172554] text-white p-2.5 rounded-xl transition-transform active:scale-95">
                                 <Send size={14} />
                             </button>
                         </div>
