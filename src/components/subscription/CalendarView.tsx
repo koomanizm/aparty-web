@@ -19,38 +19,38 @@ const REGION_KEYWORDS: { [key: string]: string[] } = {
     "강원/제주": ["강원", "제주"]
 };
 
-// 🎨 [컬러 롤백 & 생동감 UP] 칙칙함은 빼고, 쨍하고 산뜻한 포인트 컬러 추가!
+// 🎨 [최종 컬러 완벽 반영] 재공급 색상 업데이트 및 최종 라인업
 const TYPE_FILTERS = [
-    { id: "전체", label: "전체보기", baseClass: "bg-[#24324A] text-white border border-[#24324A]" }, // 시그니처 네이비 (기준점)
-    { id: "특별공급", label: "특별공급", baseClass: "bg-[#E67E22] text-white border border-[#E67E22]" }, // 쨍한 오렌지 (스페셜한 느낌)
-    { id: "1순위", label: "1순위", baseClass: "bg-[#2563EB] text-white border border-[#2563EB]" }, // 트렌디한 로얄 블루 (메인 청약)
-    { id: "2순위", label: "2순위", baseClass: "bg-[#059669] text-white border border-[#059669]" }, // 생기있는 에메랄드 그린 (서브 청약)
-    { id: "무순위", label: "무순위", baseClass: "bg-white text-[#DC2626] border border-[#FCA5A5]" }, // 강렬한 레드 (줍줍 찬스 강조!)
-    { id: "임의공급", label: "임의공급", baseClass: "bg-white text-[#7C3AED] border border-[#C4B5FD]" }, // 비비드 퍼플 (유니크함)
-    { id: "재공급", label: "재공급", baseClass: "bg-white text-[#DB2777] border border-[#F9A8D4]" }, // 핫 핑크/로즈 (눈에 띄게)
-    { id: "오피스텔/생숙/도생/민간임대", label: "오피/도생/임대", baseClass: "bg-white text-[#475569] border border-[#CBD5E1]" }, // 깔끔한 슬레이트 그레이
-    { id: "공공지원민간임대", label: "공공지원임대", baseClass: "bg-white text-[#0891B2] border border-[#A5F3FC]" } // 산뜻한 시안/민트
+    { id: "전체", label: "전체보기", baseClass: "bg-[#172554] text-white border border-[#172554]" },
+    { id: "특별공급", label: "특별공급", baseClass: "bg-[#06bf0c] text-white border border-[#06bf0c]" },
+    { id: "1순위", label: "1순위", baseClass: "bg-[#042fc9] text-white border border-[#042fc9]" },
+    { id: "2순위", label: "2순위", baseClass: "bg-[#fc670a] text-white border border-[#fc670a]" },
+    { id: "무순위", label: "무순위", baseClass: "bg-white text-[#29bf04] border border-[#29bf04]" },
+    { id: "임의공급", label: "임의공급", baseClass: "bg-white text-[#6B21A8] border border-[#D8B4FE]" },
+    { id: "재공급", label: "재공급", baseClass: "bg-white text-[#f205ab] border border-[#f205ab]" }, // 👈 재공급: #f205ab
+    { id: "오피스텔/생숙/도생/민간임대", label: "오피/도생/임대", baseClass: "bg-white text-[#d40606] border border-[#d40606]" },
+    { id: "공공지원민간임대", label: "공공지원임대", baseClass: "bg-white text-[#0369A1] border border-[#BAE6FD]" }
 ];
 
 const getTypeStyle = (type: string) => {
     switch (type) {
         case "무순위":
-            return { boxClass: "bg-white border border-[#FCA5A5]", textClass: "text-[#DC2626] font-bold", label: "무순위", solid: false };
+            return { boxClass: "bg-white border border-[#29bf04]", textClass: "text-[#29bf04] font-bold", label: "무순위", solid: false };
         case "임의공급":
-            return { boxClass: "bg-white border border-[#C4B5FD]", textClass: "text-[#7C3AED] font-bold", label: "임의공급", solid: false };
+            return { boxClass: "bg-white border border-[#D8B4FE]", textClass: "text-[#6B21A8] font-bold", label: "임의공급", solid: false };
         case "재공급":
-            return { boxClass: "bg-white border border-[#F9A8D4]", textClass: "text-[#DB2777] font-bold", label: "재공급", solid: false };
+            return { boxClass: "bg-white border border-[#f205ab]", textClass: "text-[#f205ab] font-bold", label: "재공급", solid: false }; // 👈 재공급: #f205ab
         case "오피스텔/생숙/도생/민간임대":
-            return { boxClass: "bg-white border border-[#CBD5E1]", textClass: "text-[#475569] font-bold", label: "오피/도생/임대", solid: false };
+            return { boxClass: "bg-white border border-[#d40606]", textClass: "text-[#d40606] font-bold", label: "오피/도생/임대", solid: false };
         case "공공지원민간임대":
-            return { boxClass: "bg-white border border-[#A5F3FC]", textClass: "text-[#0891B2] font-bold", label: "공공지원임대", solid: false };
+            return { boxClass: "bg-white border border-[#BAE6FD]", textClass: "text-[#0369A1] font-bold", label: "공공지원임대", solid: false };
         case "특별공급":
-            return { boxClass: "bg-[#E67E22] border border-[#E67E22]", textClass: "text-white", label: "특별공급", solid: true };
+            return { boxClass: "bg-[#06bf0c] border border-[#06bf0c]", textClass: "text-white", label: "특별공급", solid: true };
         case "2순위":
-            return { boxClass: "bg-[#059669] border border-[#059669]", textClass: "text-white", label: "2순위", solid: true };
+            return { boxClass: "bg-[#fc670a] border border-[#fc670a]", textClass: "text-white", label: "2순위", solid: true };
         case "1순위":
         default:
-            return { boxClass: "bg-[#2563EB] border border-[#2563EB]", textClass: "text-white", label: "1순위", solid: true };
+            return { boxClass: "bg-[#042fc9] border border-[#042fc9]", textClass: "text-white", label: "1순위", solid: true };
     }
 };
 
@@ -161,7 +161,7 @@ export default function CalendarView({ setActiveMenu }: { setActiveMenu: (menu: 
                                 key={region}
                                 onClick={() => setSelectedRegion(region)}
                                 className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all border ${selectedRegion === region
-                                    ? "bg-[#24324A] border-[#24324A] text-white shadow-md"
+                                    ? "bg-[#172554] border-[#172554] text-white shadow-md"
                                     : "bg-white border-[#E3E8EF] text-[#667085] hover:bg-[#F8FAFC]"
                                     }`}
                             >
@@ -271,7 +271,7 @@ export default function CalendarView({ setActiveMenu }: { setActiveMenu: (menu: 
                                             <div className="flex justify-between items-start mb-2 px-1">
                                                 <span
                                                     className={`text-[13px] md:text-[15px] font-black ${new Date().toISOString().split("T")[0] === cell.dateString
-                                                        ? "bg-[#24324A] text-white w-6 h-6 flex items-center justify-center rounded-full shadow-md -ml-1 -mt-1"
+                                                        ? "bg-[#172554] text-white w-6 h-6 flex items-center justify-center rounded-full shadow-md -ml-1 -mt-1"
                                                         : "text-[#475467]"
                                                         }`}
                                                 >
