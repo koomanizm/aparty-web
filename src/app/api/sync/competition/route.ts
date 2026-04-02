@@ -10,6 +10,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const API_KEY = "dd35353d775e77d0d73c80313a57ba01602b407a478f7905984bd12be150b59d";
 
 export async function GET(request: Request) {
+    // 🚨 [보안 패치] 누군가 주소창에 직접 치고 들어오는 것을 막습니다.
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+
+    // 대표님만의 비밀번호를 설정하세요! (예: aparty-super-secret-2026)
+    if (key !== "aparty-super-secret-2026") {
+        return NextResponse.json({ error: "접근 권한이 없습니다." }, { status: 401 });
+    }
     try {
         console.log("🔥 [데이터 수집 봇] 1순위 + 2순위 + 특별공급 통합 수집 시작...");
 
