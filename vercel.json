@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/sync/competition?key=aparty-super-secret-2026",
-            "schedule": "0 22,10 * * *"
+            "schedule": "0 22 * * *"
         }
     ]
 }
