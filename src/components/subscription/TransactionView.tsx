@@ -280,7 +280,7 @@ export default function TransactionView({ setActiveMenu }: { setActiveMenu: (men
                     </div>
                 </div>
 
-                {/* 3단계: 5대 핵심 지표 융합 분석 (원본 유지) */}
+                {/* 3단계: 5대 핵심 지표 데이터 융합 분석 (원본 유지) */}
                 {selectedDistrict && (
                     <div className="space-y-4 animate-in slide-in-from-bottom-6 fade-in duration-500">
                         <h3 className="text-[22px] font-black text-[#172554] ml-1 flex items-center gap-2">
