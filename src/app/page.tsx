@@ -27,15 +27,16 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import { useHomeData } from "../hooks/useHomeData";
 import { useHomeUi } from "../hooks/useHomeUi";
 
-// 🚀 새롭게 만든 캘린더 뷰 & 경쟁률 뷰 컴포넌트를 불러옵니다!
+// 🚀 새롭게 만든 캘린더 뷰, 경쟁률 뷰 & 실거래 뷰 컴포넌트를 모두 불러옵니다!
 import CalendarView from "../components/subscription/CalendarView";
 import CompetitionView from "../components/subscription/CompetitionView";
+import TransactionView from "../components/subscription/TransactionView";
 
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
 interface NewsItem { title: string; link: string; pubDate: string; imageUrl?: string; }
 
-const SENTIMENT_DATA: any = { /* 기존 생략... */
+const SENTIMENT_DATA: any = {
     "전국 평균": { score: 82, status: "회복 조짐", trend: [75, 78, 80, 79, 82], unsoldTrend: [10, 12, 11, 8, 7], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
     "서울/수도권": { score: 112, status: "매수 우위", trend: [102, 108, 110, 112, 112], unsoldTrend: [3, 2, 2, 3, 2], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
     "부산/경남": { score: 68, status: "관망세", trend: [70, 68, 67, 66, 68], unsoldTrend: [18, 22, 25, 27, 30], labels: ["'25.10", "'25.11", "'25.12", "'26.01", "'26.02"] },
@@ -60,7 +61,7 @@ export default function Home() {
     const [placeholderIdx, setPlaceholderIdx] = useState(0);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-    // 🚀 SPA 탭 전환을 위한 핵심 상태 ("home", "calendar", "competition", "price")
+    // 🚀 SPA 탭 전환을 위한 핵심 상태 
     const [activeMenu, setActiveMenu] = useState("home");
 
     const searchPlaceholders = [
@@ -102,7 +103,7 @@ export default function Home() {
 
     const handleHomeClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        setActiveMenu("home"); // 🚀 로고나 홈 버튼 누르면 메인으로 복귀!
+        setActiveMenu("home");
         data.setSearchQuery("");
         data.setActiveFilter("전체");
         data.setActiveRegion("전국");
@@ -115,7 +116,7 @@ export default function Home() {
     };
 
     const scrollToFeed = (mode: "gallery" | "map") => {
-        setActiveMenu("home"); // 피드 볼 때도 홈으로 전환
+        setActiveMenu("home");
         ui.setViewMode(mode);
         setIsExploreMode(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -134,7 +135,6 @@ export default function Home() {
             <Script strategy="afterInteractive" src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services,clusterer&autoload=false`} onLoad={() => ui.setIsMapReady(true)} />
             <WelcomePopup />
 
-            {/* 💡 헤더(GNB) 영역은 고정! */}
             <header className="w-full bg-surface flex flex-col items-center z-50 sticky top-0 shadow-sm border-b border-border-light">
                 {!isSearchActive && data.activeRegion === "전국" && activeMenu === "home" && <TrustRibbonBanner />}
 
@@ -164,7 +164,6 @@ export default function Home() {
                         ) : (
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-action pointer-events-none"><Search size={18} strokeWidth={2.5} /></div>
                         )}
-                        {/* 검색 드롭다운 (생략 없이 원본 유지) */}
                         {isSearchFocused && !data.searchQuery && (
                             <div className="absolute top-full left-0 w-full mt-2 bg-surface rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-border-light p-4 animate-in fade-in slide-in-from-top-2">
                                 <p className="text-[11px] font-bold text-gray-400 mb-2.5 px-1">어떤 분양을 찾으시나요?</p>
@@ -204,16 +203,16 @@ export default function Home() {
                                 {activeMenu === "home" && isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            {/* 🚀 청약정보 클릭 시 상태만 'calendar'로 변경 */}
                             <button onClick={() => setActiveMenu("calendar")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "calendar" || activeMenu === "competition" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 청약정보
                                 <span className="absolute top-[12px] -right-3.5 bg-accent-action text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
                                 {(activeMenu === "calendar" || activeMenu === "competition") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => setActiveMenu("price")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "price" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            {/* 🚀 메뉴 상태값 변경 완료: 'transaction' */}
+                            <button onClick={() => setActiveMenu("transaction")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "transaction" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 실거래가
-                                {activeMenu === "price" && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {activeMenu === "transaction" && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
                             <div className="w-px h-3.5 bg-border-light mx-1 hidden md:block"></div>
@@ -227,10 +226,6 @@ export default function Home() {
                     </div>
                 </div>
             </header>
-
-            {/* ========================================================= */}
-            {/* 💡 아래부터는 메뉴 상태에 따라 보여주는 화면이 달라집니다! */}
-            {/* ========================================================= */}
 
             {activeMenu === "home" && (
                 <div className="w-full w-full flex flex-col items-center">
@@ -285,15 +280,11 @@ export default function Home() {
             {/* 🚀 청약 캘린더 탭 */}
             {activeMenu === "calendar" && <CalendarView setActiveMenu={setActiveMenu} />}
 
-            {/* 🚀 청약 경쟁률 탭 (방금 만든 컴포넌트로 교체 완료!) */}
+            {/* 🚀 청약 경쟁률 탭 */}
             {activeMenu === "competition" && <CompetitionView setActiveMenu={setActiveMenu} />}
 
-            {/* 향후 실거래가 탭 클릭 시 */}
-            {activeMenu === "price" && (
-                <div className="w-full h-[50vh] flex items-center justify-center font-bold text-gray-400">
-                    실거래가 화면이 들어갈 자리입니다.
-                </div>
-            )}
+            {/* 🚀 새로 만든 실거래가 뷰 연동 완료! */}
+            {activeMenu === "transaction" && <TransactionView setActiveMenu={setActiveMenu} />}
 
             <DashboardDetailModal {...ui} />
             <ChatBot />
