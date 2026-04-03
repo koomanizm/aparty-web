@@ -30,6 +30,7 @@ import { useHomeUi } from "../hooks/useHomeUi";
 import CalendarView from "../components/subscription/CalendarView";
 import CompetitionView from "../components/subscription/CompetitionView";
 import TransactionView from "../components/subscription/TransactionView";
+import RealPriceView from "../components/subscription/RealPriceView"; // 🚀 방금 만든 실거래가 컴포넌트 임포트!
 
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
@@ -207,7 +208,6 @@ export default function Home() {
                                 {(activeMenu === "calendar" || activeMenu === "competition") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
                             </button>
 
-                            {/* 🚀 '데이터뷰' 메인 탭 */}
                             <button onClick={() => setActiveMenu("indicator")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "indicator" || activeMenu === "realprice" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
                                 데이터뷰
                                 {(activeMenu === "indicator" || activeMenu === "realprice") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
@@ -224,9 +224,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* 🚀 중복되었던 '청약정보' 2단 메뉴 코드는 완전히 삭제했습니다. (CalendarView 내부에서 정상 작동 중) */}
-
-                {/* 🚀 데이터뷰 하위(2단) 메뉴만 깔끔하게 유지 */}
+                {/* 데이터뷰 하위 메뉴 */}
                 {(activeMenu === "indicator" || activeMenu === "realprice") && (
                     <div className="w-full border-t border-border-light bg-white flex justify-center animate-in slide-in-from-top-1 fade-in duration-300">
                         <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center h-[44px] px-5 md:px-6 gap-6`}>
@@ -243,7 +241,6 @@ export default function Home() {
                 )}
             </header>
 
-            {/* 아래는 컨텐츠 렌더링 영역 */}
             {activeMenu === "home" && (
                 <div className="w-full w-full flex flex-col items-center">
                     <div className="md:hidden w-full max-w-6xl px-4 text-center pb-8 mt-4">
@@ -297,17 +294,11 @@ export default function Home() {
             {activeMenu === "calendar" && <CalendarView setActiveMenu={setActiveMenu} />}
             {activeMenu === "competition" && <CompetitionView setActiveMenu={setActiveMenu} />}
 
-            {/* 🚀 종합지표 컴포넌트 */}
+            {/* 데이터뷰 - 종합지표 */}
             {activeMenu === "indicator" && <TransactionView setActiveMenu={setActiveMenu} />}
 
-            {/* 🚀 실거래가 상세 페이지 임시 배너 */}
-            {activeMenu === "realprice" && (
-                <div className="w-full max-w-7xl mx-auto min-h-[50vh] flex flex-col items-center justify-center bg-[#F5F7FA] mt-10 rounded-[24px] animate-in fade-in zoom-in-95">
-                    <Loader2 className="animate-spin text-[#042fc9] mb-4" size={40} />
-                    <h2 className="text-[20px] font-black text-[#172554]">실거래가 상세 리스트 준비 중...</h2>
-                    <p className="text-[#667085] mt-2 font-medium text-[14px]">지도 좌측 + 우측 실거래가 내역 + 단지 클릭 시 10년 차트</p>
-                </div>
-            )}
+            {/* 🚀 데이터뷰 - 실거래가 리스트 연결 완료! */}
+            {activeMenu === "realprice" && <RealPriceView setActiveMenu={setActiveMenu} />}
 
             <DashboardDetailModal {...ui} />
             <ChatBot />

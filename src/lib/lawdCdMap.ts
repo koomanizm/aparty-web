@@ -36,7 +36,7 @@ export const LAWD_CODE_MAP: Record<string, string> = {
     // 🏢 세종특별자치시 (36)
     "세종특별자치시 세종시": "36110", "세종특별자치시 세종특별자치시": "36110",
 
-    // 🌳 경기도 (41) - 주요 시군구 및 구 단위 분리
+    // 🌳 경기도 (41)
     "경기도 수원시": "41110", "경기도 수원시 장안구": "41111", "경기도 수원시 권선구": "41113", "경기도 수원시 팔달구": "41115", "경기도 수원시 영통구": "41117",
     "경기도 성남시": "41130", "경기도 성남시 수정구": "41131", "경기도 성남시 중원구": "41133", "경기도 성남시 분당구": "41135",
     "경기도 의정부시": "41150", "경기도 안양시": "41170", "경기도 안양시 만안구": "41171", "경기도 안양시 동안구": "41173",
@@ -50,7 +50,7 @@ export const LAWD_CODE_MAP: Record<string, string> = {
     "경기도 화성시": "41590", "경기도 광주시": "41610", "경기도 양주시": "41630", "경기도 포천시": "41650",
     "경기도 여주시": "41670", "경기도 연천군": "41820", "경기도 가평군": "41830", "경기도 양평군": "41830",
 
-    // 🏔️ 강원특별자치도 (42) - 테스트하셨던 동해시, 평창군 포함!
+    // 🏔️ 강원특별자치도 (42)
     "강원특별자치도 춘천시": "42110", "강원특별자치도 원주시": "42130", "강원특별자치도 강릉시": "42150",
     "강원특별자치도 동해시": "42170", "강원특별자치도 태백시": "42190", "강원특별자치도 속초시": "42210",
     "강원특별자치도 삼척시": "42230", "강원특별자치도 홍천군": "42720", "강원특별자치도 횡성군": "42730",
@@ -101,3 +101,35 @@ export const LAWD_CODE_MAP: Record<string, string> = {
     // 🌴 제주특별자치도 (50)
     "제주특별자치도 제주시": "50110", "제주특별자치도 서귀포시": "50130"
 };
+
+export function getLawdCd(province: string | null, district: string | null): string {
+    if (!province) return "11680";
+
+    if (district && district.trim() !== "") {
+        const exactKey = `${province} ${district}`;
+        if (LAWD_CODE_MAP[exactKey]) return LAWD_CODE_MAP[exactKey];
+
+        const partialKey = Object.keys(LAWD_CODE_MAP).find(k => k.includes(district));
+        if (partialKey) return LAWD_CODE_MAP[partialKey];
+    }
+
+    if (province.includes("서울")) return "11680";
+    if (province.includes("부산")) return "26350";
+    if (province.includes("경기")) return "41135";
+    if (province.includes("인천")) return "28185";
+    if (province.includes("세종")) return "36110";
+    if (province.includes("제주")) return "50110";
+    if (province.includes("대구")) return "27260";
+    if (province.includes("광주")) return "29140";
+    if (province.includes("대전")) return "30170";
+    if (province.includes("울산")) return "31140";
+    if (province.includes("강원")) return "42110";
+    if (province.includes("충북") || province.includes("충청북도")) return "43110";
+    if (province.includes("충남") || province.includes("충청남도")) return "44130";
+    if (province.includes("전북") || province.includes("전라북도")) return "45110";
+    if (province.includes("전남") || province.includes("전라남도")) return "46110";
+    if (province.includes("경북") || province.includes("경상북도")) return "47110";
+    if (province.includes("경남") || province.includes("경상남도")) return "48120";
+
+    return "11680";
+}
