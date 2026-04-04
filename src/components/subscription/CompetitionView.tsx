@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, TrendingUp, MapPin, Calendar, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, TrendingUp, MapPin, Calendar, Filter, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 
 // 🚀 지역 필터 키워드 유지
 const REGION_CATEGORIES = ["전체", "서울/수도권", "부산/경남", "대구/경북", "충청/호남", "강원/제주"];
@@ -30,7 +30,9 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
     const [cardFilters, setCardFilters] = useState<{ [key: string]: string }>({});
     const [visibleCount, setVisibleCount] = useState(15);
 
-    // 🚨 [아코디언 UI 핵심] 어떤 단지(카드)가 열려있는지 저장하는 상태 (기본값은 모두 닫힘)
+    // 🚨 [정렬 상태 추가] 최신순 vs 경쟁률 높은순
+    const [sortBy, setSortBy] = useState<"latest" | "highest">("latest");
+
     const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
@@ -46,16 +48,31 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
 
     useEffect(() => {
         setVisibleCount(15);
-    }, [selectedRegion]);
+    }, [selectedRegion, sortBy]); // 정렬이 바뀌어도 더보기 카운트 초기화
 
-    const filteredList = useMemo(() => {
-        return list.filter(item => {
+    // 🚀 [핵심] 필터링과 정렬을 동시에 처리하는 useMemo
+    const sortedAndFilteredList = useMemo(() => {
+        // 1. 먼저 지역 필터링을 거칩니다.
+        let result = list.filter(item => {
             if (selectedRegion === "전체") return true;
             return REGION_KEYWORDS[selectedRegion].some(kw => item.addr.includes(kw));
         });
-    }, [list, selectedRegion]);
 
-    const displayedList = filteredList.slice(0, visibleCount);
+        // 2. 경쟁률 높은순으로 정렬합니다. (최신순은 DB 원본 순서 유지)
+        if (sortBy === "highest") {
+            result.sort((a, b) => {
+                // 단지 내 최고 경쟁률 추출
+                const maxA = Math.max(...a.models.map((m: any) => parseFloat(m.rate) || 0));
+                const maxB = Math.max(...b.models.map((m: any) => parseFloat(m.rate) || 0));
+                return maxB - maxA; // 내림차순 정렬
+            });
+        }
+
+        return result;
+    }, [list, selectedRegion, sortBy]);
+
+    // 🚀 필터 및 정렬이 완료된 리스트를 보여줄 만큼만 자릅니다.
+    const displayedList = sortedAndFilteredList.slice(0, visibleCount);
 
     const handleCardFilterChange = (id: string, filter: string) => {
         setCardFilters(prev => ({ ...prev, [id]: filter }));
@@ -65,25 +82,15 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
         setVisibleCount(prev => prev + 15);
     };
 
-    // 🚨 [아코디언 토글 함수] 클릭 시 해당 카드의 열림/닫힘 상태를 반전시킵니다.
     const toggleCard = (id: string) => {
         setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     return (
-        <div className="w-full bg-[#F5F7FA] pb-32 animate-in fade-in duration-500">
-            <div className="bg-white border-b border-[#E5E9F0] shadow-[0_4px_10px_rgba(0,0,0,0.02)]">
-                <div className="w-full max-w-[1200px] mx-auto px-5 md:px-6 flex gap-6 overflow-x-auto scrollbar-hide">
-                    <button onClick={() => setActiveMenu("calendar")} className="py-4 text-[14px] font-bold text-[#94A3B8] hover:text-[#172554] transition-colors whitespace-nowrap">
-                        청약 일정 달력
-                    </button>
-                    <button onClick={() => setActiveMenu("competition")} className="py-4 text-[14px] font-black text-[#172554] border-b-[3px] border-[#172554] whitespace-nowrap">
-                        청약 경쟁률 분석
-                    </button>
-                </div>
-            </div>
+        <div className="w-full bg-[#F5F7FA] pb-32 animate-in fade-in duration-500 relative">
 
-            <div className="max-w-5xl mx-auto px-4 mt-8">
+
+            <div className="max-w-5xl mx-auto px-4 mt-8 relative">
                 <div className="mb-6">
                     <h2 className="text-[24px] font-black text-[#172554] flex items-center gap-2">
                         <TrendingUp className="text-[#d40606]" /> 최근 6개월 청약 결과 리포트
@@ -91,22 +98,43 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                     <p className="text-[#667085] text-[14px] mt-1 font-medium">최근 6개월 이내에 마감된 주요 단지의 경쟁률을 분석합니다.</p>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide mb-6 pb-2">
-                    <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-[#EEF2F6] text-[#7B8794] mr-1">
-                        <MapPin size={14} />
+                {/* ✨ 디자인 포인트 2: Sticky 필터 바 적용 (스크롤 시 상단 고정 & 배경 블러 효과) */}
+                <div className="sticky top-0 z-20 bg-[#F5F7FA]/95 backdrop-blur-sm py-3 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all">
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 lg:pb-0 w-full lg:w-auto">
+                        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-[#EEF2F6] text-[#7B8794] mr-1">
+                            <MapPin size={14} />
+                        </div>
+                        {REGION_CATEGORIES.map(region => (
+                            <button
+                                key={region}
+                                onClick={() => setSelectedRegion(region)}
+                                className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all border ${selectedRegion === region
+                                    ? "bg-[#172554] border-[#172554] text-white shadow-md"
+                                    : "bg-white border-[#E3E8EF] text-[#667085] hover:bg-[#F8FAFC]"
+                                    }`}
+                            >
+                                {region}
+                            </button>
+                        ))}
                     </div>
-                    {REGION_CATEGORIES.map(region => (
+
+                    {/* 정렬 토글 버튼 */}
+                    <div className="flex items-center shrink-0 bg-white border border-[#E3E8EF] rounded-full p-1 shadow-sm w-fit">
                         <button
-                            key={region}
-                            onClick={() => setSelectedRegion(region)}
-                            className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all border ${selectedRegion === region
-                                ? "bg-[#172554] border-[#172554] text-white shadow-md"
-                                : "bg-white border-[#E3E8EF] text-[#667085] hover:bg-[#F8FAFC]"
+                            onClick={() => setSortBy("latest")}
+                            className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-1 ${sortBy === "latest" ? "bg-[#172554] text-white shadow-md" : "text-[#667085] hover:text-[#172554]"
                                 }`}
                         >
-                            {region}
+                            최신순
                         </button>
-                    ))}
+                        <button
+                            onClick={() => setSortBy("highest")}
+                            className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-1 ${sortBy === "highest" ? "bg-[#172554] text-white shadow-md" : "text-[#667085] hover:text-[#172554]"
+                                }`}
+                        >
+                            경쟁률 높은순 <ArrowUpDown size={12} className={sortBy === "highest" ? "text-white" : "text-[#94A3B8]"} />
+                        </button>
+                    </div>
                 </div>
 
                 {isLoading ? (
@@ -118,7 +146,7 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                     <div className="grid grid-cols-1 gap-4 md:gap-6">
                         {displayedList.length > 0 ? displayedList.map((item) => {
                             const activeFilter = cardFilters[item.id] || "전체";
-                            const isExpanded = expandedCards[item.id]; // 👈 현재 카드의 열림 상태
+                            const isExpanded = expandedCards[item.id];
 
                             const itemDisplayedModels = item.models.filter((m: any) => {
                                 if (activeFilter === "전체") return true;
@@ -140,8 +168,8 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                             const labelPrefix = activeFilter === "전체" ? "전체" : activeFilter;
 
                             return (
-                                <div key={item.id} className="bg-white rounded-[24px] border border-[#E3E8EF] overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                                    {/* 🚀 [헤더 영역] 이 부분을 누르면 접히고 펴집니다! 커서 포인터 추가 */}
+                                // ✨ 디자인 포인트 3: hover:-translate-y-1 hover:shadow-lg 추가로 입체감 부여
+                                <div key={item.id} className="bg-white rounded-[24px] border border-[#E3E8EF] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
                                     <div
                                         className="p-5 md:p-8 cursor-pointer select-none"
                                         onClick={() => toggleCard(item.id)}
@@ -163,7 +191,6 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                                                 </div>
                                             </div>
 
-                                            {/* 경쟁률 박스 & 화살표 아이콘 */}
                                             <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 mt-2 md:mt-0">
                                                 <div className="flex gap-2 md:gap-4">
                                                     <div className="bg-[#F8FAFC] border border-[#EEF2F6] rounded-2xl px-4 py-3 md:px-5 md:py-4 text-center min-w-[90px] md:min-w-[100px]">
@@ -175,7 +202,6 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                                                         <p className="text-[16px] md:text-[18px] font-black text-[#d40606]">{dynamicMaxRate}<span className="text-[12px] md:text-[13px] ml-0.5">:1</span></p>
                                                     </div>
                                                 </div>
-                                                {/* 🚀 열림/닫힘 상태에 따른 화살표 아이콘 */}
                                                 <div className="text-[#94A3B8] ml-1 md:ml-2">
                                                     {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                                                 </div>
@@ -183,7 +209,6 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                                         </div>
                                     </div>
 
-                                    {/* 🚀 [상세 내용 영역] isExpanded가 true일 때만 부드럽게 나타납니다! */}
                                     {isExpanded && (
                                         <div className="px-5 pb-5 md:px-8 md:pb-8 pt-0 animate-in fade-in duration-300">
                                             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 border-b border-[#F2F4F7]">
@@ -201,7 +226,7 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                                                         <button
                                                             key={filter}
                                                             onClick={(e) => {
-                                                                e.stopPropagation(); // 🚀 버튼 클릭 시 카드가 닫히지 않도록 막아줍니다.
+                                                                e.stopPropagation();
                                                                 handleCardFilterChange(item.id, filter);
                                                             }}
                                                             className={`shrink-0 px-3 py-1.5 rounded-md text-[12px] font-bold transition-all border ${isActive ? activeClass : "bg-white text-[#667085] border-[#E3E8EF] hover:bg-[#F8FAFC]"}`}
@@ -224,28 +249,40 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-[#F2F4F7]">
-                                                        {itemDisplayedModels.length > 0 ? itemDisplayedModels.map((model: any, idx: number) => (
-                                                            <tr key={idx} className="hover:bg-[#FBFCFD] transition-colors">
-                                                                <td className="px-4 py-3 font-black text-[#344054] flex items-center gap-2 whitespace-nowrap">
-                                                                    {model.type}
-                                                                    {model.rank && model.rank !== "-" && (
-                                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full border whitespace-nowrap ${getRankBadgeStyle(model.rank)}`}>
-                                                                            {model.rank}
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-[#667085] font-medium whitespace-nowrap">{model.region}</td>
-                                                                <td className="px-4 py-3 text-right font-bold text-[#667085] whitespace-nowrap">{model.units}</td>
-                                                                <td className="px-4 py-3 text-right font-bold text-[#344054] whitespace-nowrap">{model.applied.toLocaleString()}건</td>
-                                                                <td className="px-4 py-3 text-right font-black text-[#172554] whitespace-nowrap">
-                                                                    {model.rate === "0" || model.rate === 0 ? (
-                                                                        <span className="text-[#d40606] font-bold">미달</span>
-                                                                    ) : (
-                                                                        `${model.rate} : 1`
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        )) : (
+                                                        {itemDisplayedModels.length > 0 ? itemDisplayedModels.map((model: any, idx: number) => {
+                                                            const rateNum = parseFloat(model.rate) || 0;
+                                                            return (
+                                                                <tr key={idx} className="hover:bg-[#FBFCFD] transition-colors">
+                                                                    <td className="px-4 py-3 font-black text-[#344054] flex items-center gap-2 whitespace-nowrap">
+                                                                        {model.type}
+                                                                        {model.rank && model.rank !== "-" && (
+                                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border whitespace-nowrap ${getRankBadgeStyle(model.rank)}`}>
+                                                                                {model.rank}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-[#667085] font-medium whitespace-nowrap">{model.region}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-[#667085] whitespace-nowrap">{model.units}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-[#344054] whitespace-nowrap">{model.applied.toLocaleString()}건</td>
+                                                                    <td className="px-4 py-3 text-right font-black text-[#172554] whitespace-nowrap min-w-[100px]">
+                                                                        {/* ✨ 디자인 포인트 1: 경쟁률 온도계(Heat) 막대 그래프 추가 */}
+                                                                        {model.rate === "0" || model.rate === 0 ? (
+                                                                            <span className="text-[#d40606] font-bold">미달</span>
+                                                                        ) : (
+                                                                            <div className="flex flex-col items-end gap-1">
+                                                                                <span>{model.rate} : 1</span>
+                                                                                <div className="w-16 h-1.5 bg-[#F2F4F7] rounded-full overflow-hidden">
+                                                                                    <div
+                                                                                        className={`h-full rounded-full transition-all duration-500 ${rateNum >= 10 ? 'bg-[#d40606]' : rateNum >= 3 ? 'bg-[#fc670a]' : 'bg-[#172554]'}`}
+                                                                                        style={{ width: `${Math.min(100, rateNum * 5)}%` }}
+                                                                                    ></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        }) : (
                                                             <tr>
                                                                 <td colSpan={5} className="px-4 py-8 text-center text-[#98A2B3] font-bold text-[13px]">
                                                                     해당 순위의 청약 결과 데이터가 없습니다.
@@ -265,13 +302,13 @@ export default function CompetitionView({ setActiveMenu }: { setActiveMenu: (men
                             </div>
                         )}
 
-                        {visibleCount < filteredList.length && (
+                        {visibleCount < sortedAndFilteredList.length && (
                             <div className="flex justify-center mt-4 mb-10">
                                 <button
                                     onClick={loadMore}
                                     className="flex items-center gap-2 bg-white border border-[#E3E8EF] text-[#24324A] font-bold px-6 py-3 rounded-full shadow-sm hover:bg-[#F8FAFC] hover:shadow-md transition-all"
                                 >
-                                    더보기 ({visibleCount} / {filteredList.length})
+                                    더보기 ({visibleCount} / {sortedAndFilteredList.length})
                                     <ChevronDown size={16} />
                                 </button>
                             </div>

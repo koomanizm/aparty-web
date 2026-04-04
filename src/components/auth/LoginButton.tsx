@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
-import LoginModal from "./LoginModal";
+import { supabase } from "@/lib/supabase";
+import LoginModal from "@/components/auth/LoginModal";
 import {
     User, LogOut, ChevronDown, Coins,
     CreditCard, LayoutDashboard, ArrowRight, Bell, Loader2
@@ -56,7 +56,7 @@ export default function LoginButton({ compact = false }: LoginButtonProps) {
     useEffect(() => {
         fetchProfileAndNotifications();
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
             if (event === "SIGNED_IN") {
                 fetchProfileAndNotifications();
                 if (window.location.hash.includes("access_token")) {

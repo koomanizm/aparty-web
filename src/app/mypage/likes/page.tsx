@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Heart, Search } from "lucide-react";
 import { supabase } from "../../../lib/supabase"; // 🚀 경로 확인!
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet"; // 🚀 경로 확인!
-import PropertyCard from "../../../components/PropertyCard"; // 🚀 경로 확인!
+import PropertyCard from "../../../components/property/PropertyCard"; // 🚀 경로 확인!
 
 export default function LikedPropertiesPage() {
     const router = useRouter();

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, MapPin, ChevronRight, Flame } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 const PropertyCard = ({ id, title, location, status, signals, price, pyeongPrice, image, judgmentBadge, adGrade }: any) => {
     const [isLiked, setIsLiked] = useState(false);

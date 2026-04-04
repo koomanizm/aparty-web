@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ChatBot from "../components/ChatBot";
-import WelcomePopup from "../components/WelcomePopup";
+import ChatBot from "../components/support/ChatBot";
+import WelcomePopup from "../components/common/WelcomePopup";
 import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
-import LoginButton from "../components/LoginButton";
-import NewsSection from "../components/NewsSection";
+import LoginButton from "../components/auth/LoginButton";
+import NewsSection from "../components/market/NewsSection";
 
 // 🚀 분리된 컴포넌트 & 훅 Import
 import HomeInsightSection from "../components/home/HomeInsightSection";

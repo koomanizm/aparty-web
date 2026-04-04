@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Send, MessageCircle, ChevronDown, Bot, ChevronRight, Loader2, Link as LinkIcon } from "lucide-react";
-import { getPropertiesFromSheet, Property } from "../lib/sheet";
+import { getPropertiesFromSheet, Property } from "@/lib/sheet";
 import Link from "next/link";
 import Image from "next/image";
 

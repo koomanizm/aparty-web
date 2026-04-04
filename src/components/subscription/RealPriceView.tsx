@@ -430,7 +430,10 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
 
                                                     <div className="flex items-center justify-between mb-3">
                                                         <h5 className="text-[14px] font-black text-[#172554] flex items-center gap-1.5">
-                                                            <LineChartIcon size={16} className="text-[#042fc9]" /> 단지 10년 시세 추이
+                                                            <LineChartIcon size={16} className="text-[#042fc9]" />
+                                                            {detailData.chart && detailData.chart.length > 1
+                                                                ? `단지 ${parseInt(detailData.chart[detailData.chart.length - 1].year) - parseInt(detailData.chart[0].year) || 1}년 시세 추이`
+                                                                : `단지 최근 시세 추이`}
                                                         </h5>
                                                         <span className="text-[11px] font-bold text-[#64748B] bg-[#F1F5F9] px-2 py-1 rounded-md">{apt.size} 기준</span>
                                                     </div>

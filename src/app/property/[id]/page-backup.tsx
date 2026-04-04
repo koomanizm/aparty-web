@@ -15,9 +15,9 @@ import {
 import { getPropertiesFromSheet, Property } from "../../../lib/sheet";
 import { getPropertyStats, incrementView, fetchPropertyViews } from "../../../lib/propertyUtils";
 
-import ReviewSection from "../../../components/ReviewSection";
-import PropertyLikeButton from "../../../components/PropertyLikeButton";
-import LoginButton from "../../../components/LoginButton";
+import ReviewSection from "../../../components/community/ReviewSection";
+import PropertyLikeButton from "../../../components/property/PropertyLikeButton";
+import LoginButton from "../../../components/auth/LoginButton";
 
 declare global {
     interface Window {

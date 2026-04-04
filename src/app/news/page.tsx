@@ -16,7 +16,7 @@ import {
     CalendarDays,
     LineChart
 } from "lucide-react";
-import LoginButton from "../../components/LoginButton";
+import LoginButton from "../../components/auth/LoginButton";
 
 interface NewsItem {
     title: string;

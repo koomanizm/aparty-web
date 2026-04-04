@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Star, MessageSquare, Loader2, User, Trash2, Heart, Pencil, Lock } from "lucide-react";
-import { supabase } from "../lib/supabase";
-import LoginModal from "./LoginModal";
+import { supabase } from "@/lib/supabase";
+import LoginModal from "@/components/auth/LoginModal";
 
 const ReviewItem = ({ review, currentUser, onDelete, onLike, onEdit }: { review: any, currentUser: any, onDelete: (id: string) => void, onLike: (id: string, currentLikes: number) => void, onEdit: (id: string, newContent: string, newRating: number) => void }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -164,7 +164,7 @@ export default function ReviewSection({ propertyId }: { propertyId: string }) {
         };
         fetchAuth();
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
             if (session) {
                 setUser(session.user);
                 setIsLoginModalOpen(false);

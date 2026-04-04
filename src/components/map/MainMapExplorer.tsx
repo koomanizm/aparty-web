@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Script from "next/script";
-import { Property } from "../lib/sheet";
+import { Property } from "@/lib/sheet";
 import { MapPin, ChevronLeft, ChevronRight, Search, Navigation, Maximize, Minimize, RefreshCw, Flame } from "lucide-react";
 
 interface MainMapExplorerProps {

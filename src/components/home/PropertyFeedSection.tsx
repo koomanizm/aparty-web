@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { LayoutGrid, Map as MapIcon, ChevronLeft, ChevronRight, MapPin, ChevronDown, ChevronUp, Grid, Search, Filter, RefreshCw } from "lucide-react";
 import Image from "next/image";
-import PropertyCard from "../PropertyCard";
-import MainMapExplorer from "../MainMapExplorer";
+import PropertyCard from "@/components/property/PropertyCard";
+import MainMapExplorer from "@/components/map/MainMapExplorer";
 
 const REGION_COORDS: Record<string, { lat: number; lng: number; level: number }> = {
     전국: { lat: 36.3504, lng: 127.3845, level: 10 }, 서울: { lat: 37.5665, lng: 126.978, level: 8 }, 경기: { lat: 37.4138, lng: 127.5183, level: 9 },

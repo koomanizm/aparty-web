@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MessageSquare, Pencil, Loader2, User, Heart, ChevronLeft, Search } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import LoginModal from "../../components/LoginModal";
-import LoginButton from "../../components/LoginButton"; // 🚀 [신규 추가] 프로필 & 알림 버튼 불러오기
+import LoginModal from "../../components/auth/LoginModal";
+import LoginButton from "../../components/auth/LoginButton"; // 🚀 [신규 추가] 프로필 & 알림 버튼 불러오기
 
 export default function CommunityPage() {
     const [posts, setPosts] = useState<any[]>([]);

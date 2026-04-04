@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, MessageCircle, Gift, Sparkles } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export default function WelcomePopup() {
     const [isOpen, setIsOpen] = useState(false);

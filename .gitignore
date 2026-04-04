@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 데이터베이스용 무거운 파일 업로드 제외
+csv_data/
+*.csv

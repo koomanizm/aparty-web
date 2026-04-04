@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import Footer from "../components/Footer";
-import ChatBot from "../components/ChatBot";
+import Footer from "../components/common/Footer";
+import ChatBot from "../components/support/ChatBot";
 // 🚀 1. 방금 만든 AuthContext를 불러옵니다.
-import AuthContext from "../components/AuthContext";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import AuthContext from "../components/auth/AuthContext";
 
 export const metadata: Metadata = {
   // ✅ 1. 기본 주소 설정 (이게 있어야 이미지가 잘 뜹니다)
@@ -57,7 +46,8 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className="antialiased min-h-screen flex flex-col"
+        style={{ fontFamily: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif" }}
       >
         {/* 🚀 2. 전체 사이트를 AuthContext로 감싸서 로그인 정보를 공유합니다. */}
         <AuthContext>

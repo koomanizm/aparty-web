@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ChatBot from "../components/ChatBot";
-import WelcomePopup from "../components/WelcomePopup";
+import ChatBot from "../components/support/ChatBot";
+import WelcomePopup from "../components/common/WelcomePopup";
 import Script from "next/script";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, Search, X, Loader2 } from "lucide-react";
-import LoginButton from "../components/LoginButton";
+import LoginButton from "../components/auth/LoginButton";
 
 import HomeInsightSection from "../components/home/HomeInsightSection";
 import HomeHeroSection from "../components/home/HomeHeroSection";
@@ -30,7 +30,7 @@ import { useHomeUi } from "../hooks/useHomeUi";
 import CalendarView from "../components/subscription/CalendarView";
 import CompetitionView from "../components/subscription/CompetitionView";
 import TransactionView from "../components/subscription/TransactionView";
-import RealPriceView from "../components/subscription/RealPriceView"; // 🚀 방금 만든 실거래가 컴포넌트 임포트!
+import RealPriceView from "../components/subscription/RealPriceView";
 
 const KAKAO_JS_KEY = "8385849bc4b562f952656a171fb9a844";
 
@@ -179,7 +179,7 @@ export default function Home() {
 
                     <div className="flex items-center gap-3 md:gap-4 shrink-0">
                         <LoginButton />
-                        <button className="md:hidden p-1.5 text-text-main hover:text-accent-action transition-colors focus:outline-none"><Menu size={24} strokeWidth={2.5} /></button>
+                        <button className="md:hidden p-1.5 text-text-main hover:text-[#1D4ED8] transition-colors focus:outline-none"><Menu size={24} strokeWidth={2.5} /></button>
                     </div>
                 </div>
 
@@ -187,36 +187,37 @@ export default function Home() {
                     <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center justify-between h-[48px] md:h-[52px] px-5 md:px-6`}>
                         <div className="flex items-center justify-start h-full overflow-x-auto no-scrollbar gap-5 md:gap-7 whitespace-nowrap">
 
-                            <button onClick={handleHomeClick} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && !isSearchActive ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            <button onClick={handleHomeClick} className={`text-[13px] md:text-[15px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && !isSearchActive ? 'font-black text-[#1D4ED8]' : 'font-bold text-text-sub hover:text-[#1D4ED8]'}`}>
                                 홈
-                                {activeMenu === "home" && !isSearchActive && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {activeMenu === "home" && !isSearchActive && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => scrollToFeed("gallery")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && isSearchActive && ui.viewMode === 'gallery' ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            <button onClick={() => scrollToFeed("gallery")} className={`text-[13px] md:text-[15px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && isSearchActive && ui.viewMode === 'gallery' ? 'font-black text-[#1D4ED8]' : 'font-bold text-text-sub hover:text-[#1D4ED8]'}`}>
                                 단지로보기
-                                {activeMenu === "home" && isSearchActive && ui.viewMode === 'gallery' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {activeMenu === "home" && isSearchActive && ui.viewMode === 'gallery' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => scrollToFeed("map")} className={`text-[14px] md:text-[16px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && isSearchActive && ui.viewMode === 'map' ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            <button onClick={() => scrollToFeed("map")} className={`text-[13px] md:text-[15px] relative h-full flex items-center tracking-tight transition-colors ${activeMenu === "home" && isSearchActive && ui.viewMode === 'map' ? 'font-black text-[#1D4ED8]' : 'font-bold text-text-sub hover:text-[#1D4ED8]'}`}>
                                 지도로보기
-                                {activeMenu === "home" && isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {activeMenu === "home" && isSearchActive && ui.viewMode === 'map' && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => setActiveMenu("calendar")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "calendar" || activeMenu === "competition" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            <button onClick={() => setActiveMenu("calendar")} className={`relative text-[13px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "calendar" || activeMenu === "competition" ? 'font-black text-[#1D4ED8]' : 'font-bold text-text-sub hover:text-[#1D4ED8]'}`}>
                                 청약정보
-                                <span className="absolute top-[12px] -right-3.5 bg-accent-action text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
-                                {(activeMenu === "calendar" || activeMenu === "competition") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {/* 🚀 진한 붉은색(#D40606)으로 변경된 N 뱃지 */}
+                                <span className="absolute top-[12px] -right-3.5 bg-[#D40606] text-white text-[8px] font-black px-1 py-0.5 rounded-[4px] leading-none">N</span>
+                                {(activeMenu === "calendar" || activeMenu === "competition") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
 
-                            <button onClick={() => setActiveMenu("indicator")} className={`relative text-[14px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "indicator" || activeMenu === "realprice" ? 'font-black text-accent-action' : 'font-bold text-text-sub hover:text-accent-action'}`}>
+                            <button onClick={() => setActiveMenu("indicator")} className={`relative text-[13px] md:text-[15px] transition-colors h-full flex items-center ${activeMenu === "indicator" || activeMenu === "realprice" ? 'font-black text-[#1D4ED8]' : 'font-bold text-text-sub hover:text-[#1D4ED8]'}`}>
                                 데이터뷰
-                                {(activeMenu === "indicator" || activeMenu === "realprice") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-accent-action rounded-t-md"></span>}
+                                {(activeMenu === "indicator" || activeMenu === "realprice") && <span className="absolute bottom-0 left-0 w-full h-[4px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
 
                             <div className="w-px h-3.5 bg-border-light mx-1 hidden md:block"></div>
-                            <Link href="/notice" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">공지사항</Link>
-                            <Link href="/lounge" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">라운지</Link>
-                            <Link href="/column" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-accent-action transition-colors h-full flex items-center hidden lg:flex">칼럼</Link>
+                            <Link href="/notice" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1D4ED8] transition-colors h-full flex items-center hidden lg:flex">공지사항</Link>
+                            <Link href="/lounge" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1D4ED8] transition-colors h-full flex items-center hidden lg:flex">라운지</Link>
+                            <Link href="/column" className="text-[13px] md:text-[14px] font-semibold text-gray-400 hover:text-[#1D4ED8] transition-colors h-full flex items-center hidden lg:flex">칼럼</Link>
                         </div>
                         <div className="hidden md:flex shrink-0 w-[300px] lg:w-[400px] ml-4 h-full items-center justify-end opacity-90 hover:opacity-100 transition-opacity">
                             <HomeHeroSection tickerNews={tickerNews} />
@@ -224,17 +225,33 @@ export default function Home() {
                     </div>
                 </div>
 
+                {/* 청약정보 하위 메뉴 */}
+                {(activeMenu === "calendar" || activeMenu === "competition") && (
+                    <div className="w-full border-t border-border-light bg-white flex justify-center animate-in slide-in-from-top-1 fade-in duration-300">
+                        <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center h-[44px] px-5 md:px-6 gap-6`}>
+                            <button onClick={() => setActiveMenu("calendar")} className={`h-full relative text-[11px] md:text-[12px] transition-colors flex items-center ${activeMenu === "calendar" ? 'font-bold text-[#1D4ED8]' : 'font-bold text-[#94A3B8] hover:text-[#1D4ED8]'}`}>
+                                청약 캘린더
+                                {activeMenu === "calendar" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#1D4ED8] rounded-t-md"></span>}
+                            </button>
+                            <button onClick={() => setActiveMenu("competition")} className={`h-full relative text-[11px] md:text-[12px] transition-colors flex items-center ${activeMenu === "competition" ? 'font-bold text-[#1D4ED8]' : 'font-bold text-[#94A3B8] hover:text-[#1D4ED8]'}`}>
+                                경쟁률 분석
+                                {activeMenu === "competition" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#1D4ED8] rounded-t-md"></span>}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* 데이터뷰 하위 메뉴 */}
                 {(activeMenu === "indicator" || activeMenu === "realprice") && (
                     <div className="w-full border-t border-border-light bg-white flex justify-center animate-in slide-in-from-top-1 fade-in duration-300">
                         <div className={`w-full ${MAIN_CONTENT_WIDTH} flex items-center h-[44px] px-5 md:px-6 gap-6`}>
-                            <button onClick={() => setActiveMenu("indicator")} className={`h-full relative text-[13px] md:text-[14px] transition-colors flex items-center ${activeMenu === "indicator" ? 'font-black text-[#172554]' : 'font-bold text-[#94A3B8] hover:text-[#172554]'}`}>
+                            <button onClick={() => setActiveMenu("indicator")} className={`h-full relative text-[11px] md:text-[12px] transition-colors flex items-center ${activeMenu === "indicator" ? 'font-bold text-[#1D4ED8]' : 'font-bold text-[#94A3B8] hover:text-[#1D4ED8]'}`}>
                                 종합지표
-                                {activeMenu === "indicator" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#172554] rounded-t-md"></span>}
+                                {activeMenu === "indicator" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
-                            <button onClick={() => setActiveMenu("realprice")} className={`h-full relative text-[13px] md:text-[14px] transition-colors flex items-center ${activeMenu === "realprice" ? 'font-black text-[#172554]' : 'font-bold text-[#94A3B8] hover:text-[#172554]'}`}>
+                            <button onClick={() => setActiveMenu("realprice")} className={`h-full relative text-[11px] md:text-[12px] transition-colors flex items-center ${activeMenu === "realprice" ? 'font-bold text-[#1D4ED8]' : 'font-bold text-[#94A3B8] hover:text-[#1D4ED8]'}`}>
                                 실거래가
-                                {activeMenu === "realprice" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#172554] rounded-t-md"></span>}
+                                {activeMenu === "realprice" && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#1D4ED8] rounded-t-md"></span>}
                             </button>
                         </div>
                     </div>
@@ -269,7 +286,7 @@ export default function Home() {
                                         <div className="w-full py-0">
                                             <div className="w-full animate-in fade-in duration-500 pt-0 flex justify-center">
                                                 <div className="grid gap-3 xl:gap-4 items-start text-left w-full max-w-[1200px] pt-0 mt-0" style={{ gridTemplateColumns: "minmax(260px, 250px) minmax(480px, 1fr) minmax(220px, 280px)" }}>
-                                                    <LeftInsightBoard dashboard={dashboard} ui={ui} sentimentRegion={sentimentRegion} SENTIMENT_DATA={SENTIMENT_DATA} />
+                                                    <LeftInsightBoard dashboard={dashboard} ui={ui} sentimentRegion={sentimentRegion} SENTIMENT_DATA={SENTIMENT_DATA} setActiveMenu={setActiveMenu} />
                                                     <CenterRecommend properties={data.properties} />
                                                     <RightUtilities realtimeRankings={data.realtimeRankings} properties={data.properties} setSearchQuery={data.setSearchQuery} />
                                                 </div>
@@ -296,8 +313,6 @@ export default function Home() {
 
             {/* 데이터뷰 - 종합지표 */}
             {activeMenu === "indicator" && <TransactionView setActiveMenu={setActiveMenu} />}
-
-            {/* 🚀 데이터뷰 - 실거래가 리스트 연결 완료! */}
             {activeMenu === "realprice" && <RealPriceView setActiveMenu={setActiveMenu} />}
 
             <DashboardDetailModal {...ui} />

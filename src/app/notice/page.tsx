@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase"; // 🚀 구글 시트 대신 Supabase 임포트
 import { ChevronLeft, Calendar, Megaphone, Plus, Minus, Clock } from "lucide-react";
 import Link from "next/link";
-import LoginButton from "../../components/LoginButton";
+import LoginButton from "../../components/auth/LoginButton";
 
 // 🚀 [신규 추가] 구글 시트 타입 대신 로컬 타입 정의 (UI 에러 방지용)
 type Notice = {

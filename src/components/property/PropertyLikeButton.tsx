@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export default function PropertyLikeButton({ propertyId }: { propertyId: string }) {
     const [isLiked, setIsLiked] = useState(false);

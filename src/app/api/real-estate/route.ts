@@ -1,5 +1,8 @@
 import { NextResponse, NextRequest } from 'next/server';
 
+// 🚀 [추가] 1시간(3600초) 단위 캐싱 적용 (0.1초 응답 마법)
+export const revalidate = 3600;
+
 const LAWD_CODE_MAP: Record<string, string> = {
     // 서울
     "서울특별시 종로구": "11110", "서울특별시 중구": "11140", "서울특별시 용산구": "11170", "서울특별시 성동구": "11200",

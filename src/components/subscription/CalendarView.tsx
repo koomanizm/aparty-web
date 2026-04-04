@@ -27,7 +27,7 @@ const TYPE_FILTERS = [
     { id: "2순위", label: "2순위", baseClass: "bg-[#fc670a] text-white border border-[#fc670a]" },
     { id: "무순위", label: "무순위", baseClass: "bg-white text-[#29bf04] border border-[#29bf04]" },
     { id: "임의공급", label: "임의공급", baseClass: "bg-white text-[#6B21A8] border border-[#D8B4FE]" },
-    { id: "재공급", label: "재공급", baseClass: "bg-white text-[#f205ab] border border-[#f205ab]" }, // 👈 재공급: #f205ab
+    { id: "재공급", label: "재공급", baseClass: "bg-white text-[#f205ab] border border-[#f205ab]" },
     { id: "오피스텔/생숙/도생/민간임대", label: "오피/도생/임대", baseClass: "bg-white text-[#d40606] border border-[#d40606]" },
     { id: "공공지원민간임대", label: "공공지원임대", baseClass: "bg-white text-[#0369A1] border border-[#BAE6FD]" }
 ];
@@ -39,7 +39,7 @@ const getTypeStyle = (type: string) => {
         case "임의공급":
             return { boxClass: "bg-white border border-[#D8B4FE]", textClass: "text-[#6B21A8] font-bold", label: "임의공급", solid: false };
         case "재공급":
-            return { boxClass: "bg-white border border-[#f205ab]", textClass: "text-[#f205ab] font-bold", label: "재공급", solid: false }; // 👈 재공급: #f205ab
+            return { boxClass: "bg-white border border-[#f205ab]", textClass: "text-[#f205ab] font-bold", label: "재공급", solid: false };
         case "오피스텔/생숙/도생/민간임대":
             return { boxClass: "bg-white border border-[#d40606]", textClass: "text-[#d40606] font-bold", label: "오피/도생/임대", solid: false };
         case "공공지원민간임대":
@@ -139,17 +139,6 @@ export default function CalendarView({ setActiveMenu }: { setActiveMenu: (menu: 
 
     return (
         <div className="w-full bg-[#F5F7FA] pb-32 animate-in fade-in duration-500">
-            <div className="bg-white border-b border-[#E5E9F0] shadow-[0_4px_10px_rgba(0,0,0,0.02)]">
-                <div className="w-full max-w-[1200px] mx-auto px-5 md:px-6 flex gap-6 overflow-x-auto scrollbar-hide">
-                    <button onClick={() => setActiveMenu("calendar")} className="py-4 text-[14px] font-black text-[#24324A] border-b-[3px] border-[#24324A] whitespace-nowrap">
-                        청약 일정 달력
-                    </button>
-                    <button onClick={() => setActiveMenu("competition")} className="py-4 text-[14px] font-bold text-[#94A3B8] hover:text-[#24324A] transition-colors whitespace-nowrap">
-                        청약 경쟁률 분석
-                    </button>
-                </div>
-            </div>
-
             <div className="max-w-5xl mx-auto px-4 mt-6">
                 <div className="flex flex-col gap-3 mb-4 pb-1">
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">

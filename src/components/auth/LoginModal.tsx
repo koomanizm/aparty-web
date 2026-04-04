@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom"; // 🚀 포탈 사용
 import { X, MessageCircle } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Provider } from "@supabase/supabase-js";
 import Link from "next/link";
 

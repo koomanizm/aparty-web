@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Megaphone, MessageSquare, ChevronRight, Gift } from "lucide-react";
-import NewsSection from "../NewsSection";
+import NewsSection from "@/components/market/NewsSection";
 
 export default function HomePromoSection() {
     return (
