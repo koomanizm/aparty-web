@@ -17,7 +17,7 @@ jobs:
           # 🚨 중요: 아래 "https://대표님의-주소.vercel.app" 부분을 실제 주소로 꼭 수정하세요!
           
           # 1. 단지 정보 동기화 시작
-          URL="https://대표님의-주소.vercel.app/api/sync/apt-info?key=aparty-super-secret-2026"
+          URL="https://aparty-web-pbyl.vercel.app/api/sync/apt-info?key=aparty-super-secret-2026"
           while [ "$URL" != "null" ] && [ -n "$URL" ]; do
             echo "👉 단지정보 요청: $URL"
             RESPONSE=$(curl -s "$URL")
