@@ -26,7 +26,7 @@ jobs:
           done
 
           # 2. 실거래가 동기화 시작
-          URL="https://대표님의-주소.vercel.app/api/sync/real-trades?key=aparty-super-secret-2026"
+          URL="https://aparty-web-pbyl.vercel.app/api/sync/real-trades?key=aparty-super-secret-2026"
           while [ "$URL" != "null" ] && [ -n "$URL" ]; do
             echo "👉 실거래가 요청: $URL"
             RESPONSE=$(curl -s "$URL")
