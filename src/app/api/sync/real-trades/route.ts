@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
             success: true,
             message: isFinished ? `🎉 ${dealMonth}월 전국 실거래가 동기화가 모두 완료되었습니다!` : `⏳ ${currentIndex}번째 지역까지 완료했습니다. 아래 링크로 이어달리세요.`,
             totalSyncedThisRun: totalSynced,
-            nextUrl: isFinished ? null : `http://localhost:3000/api/sync/real-trades?key=aparty-super-secret-2026&dealMonth=${dealMonth}&startIndex=${currentIndex + 1}`
+            nextUrl: isFinished ? null : `${request.nextUrl.origin}/api/sync/real-trades?key=aparty-super-secret-2026&dealMonth=${dealMonth}&startIndex=${currentIndex + 1}`
         });
 
     } catch (e: any) {

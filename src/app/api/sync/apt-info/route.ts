@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
             success: true,
             message: isFinished ? "🎉 (스마트 동기화) 전국 단지 정보 업데이트 완료!" : `⏳ ${currentIndex}번째 지역까지 검사 완료.`,
             newAptFoundAndSynced: totalSynced, // 새로 추가된 아파트 개수만 표시
-            nextUrl: isFinished ? null : `http://localhost:3000/api/sync/apt-info?key=aparty-super-secret-2026&startIndex=${currentIndex + 1}`
+            nextUrl: isFinished ? null : `${request.nextUrl.origin}/api/sync/apt-info?key=aparty-super-secret-2026&startIndex=${currentIndex + 1}`
         });
 
     } catch (e: any) {
