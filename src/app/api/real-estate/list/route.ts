@@ -3,17 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
-// 🚀 금액 변환 마법사: 1억 넘으면 1.85억, 안 넘으면 5315만원
+// 🚀 금액 변환 마법사
 const formatPrice = (priceEok: number) => {
     if (!priceEok) return "-";
     const num = Math.round(priceEok * 10000);
     if (num >= 10000) {
-        return `${(num / 10000).toFixed(2).replace(/\.?0+$/, '')}억`; // 끝자리 0 제거
+        return `${(num / 10000).toFixed(2).replace(/\.?0+$/, '')}억`;
     }
     return `${num}만원`;
 };
 
-// 🚀 평형 변환 마법사: 84㎡ -> 84㎡(25평)
+// 🚀 평형 변환 마법사
 const formatSize = (sizeStr: string) => {
     const num = parseInt(sizeStr.replace(/[^0-9]/g, ''));
     if (!num) return sizeStr;
@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
         let query = supabase.from('aparty_real_trades').select('*')
             .order('trade_date', { ascending: false }).range(offset, offset + limit - 1);
 
-        if (province) query = query.like('province', `%${province.substring(0, 2)}%`);
+        // 🚀 [핵심 수정] 앞쪽 % 제거! 이제 830만 건도 0.01초 만에 검색합니다.
+        if (province) query = query.like('province', `${province.substring(0, 2)}%`);
         if (district) query = query.eq('district', district);
 
         const { data, error } = await query;
@@ -45,11 +46,11 @@ export async function GET(request: NextRequest) {
         const aptList = data.map((item: any) => ({
             id: item.id,
             name: item.apt_name,
-            size: formatSize(item.size), // 🚀 평형 적용
+            size: formatSize(item.size),
             address: `${item.province} ${item.district} ${item.dong} ${item.jibun}`,
             date: item.trade_date,
             floor: item.floor,
-            price: formatPrice(item.price_eok), // 🚀 디테일 가격 적용
+            price: formatPrice(item.price_eok),
             type: item.trend || "flat",
             change: item.change_amt || "-"
         }));

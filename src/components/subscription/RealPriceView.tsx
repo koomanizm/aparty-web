@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, Calendar, LineChart as LineChartIcon, ArrowUpRight, ArrowDownRight, Minus, Loader2, ArrowLeft, ChevronDown, MapPin, Building, Car, Info } from "lucide-react";
+import { Search, Building2, Calendar, LineChart as LineChartIcon, ArrowUpRight, ArrowDownRight, Minus, Loader2, ArrowLeft, ChevronDown, MapPin, Building, Car } from "lucide-react";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
@@ -58,7 +58,11 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
 
     const [searchTerm, setSearchTerm] = useState<string>("");
 
-    const [detailData, setDetailData] = useState<{ chart: any[], txList: any[], hasMore: boolean } | null>(null);
+    // 🚀 차트 기간 설정 State (기본 1년)
+    const [chartPeriod, setChartPeriod] = useState<1 | 2 | 5 | 10>(1);
+
+    // 🚀 수정됨: aptInfo 타입 추가
+    const [detailData, setDetailData] = useState<{ chart: any[], txList: any[], hasMore: boolean, aptInfo?: any } | null>(null);
     const [isDetailLoading, setIsDetailLoading] = useState<boolean>(false);
     const [detailPage, setDetailPage] = useState<number>(1);
     const [isDetailMoreLoading, setIsDetailMoreLoading] = useState<boolean>(false);
@@ -117,6 +121,7 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
             const params = new URLSearchParams();
             params.append('aptName', apt.name);
             params.append('currentPrice', apt.price);
+            params.append('aptSize', apt.size); // 🚀 [추가됨] 평형 정보를 서버로 쏴줍니다!
             params.append('page', dPage.toString());
 
             const response = await fetch(`/api/real-estate/detail?${params.toString()}`);
@@ -124,6 +129,7 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
 
             if (dPage === 1) {
                 setDetailData(data);
+                setChartPeriod(1);
             } else {
                 setDetailData(prev => prev ? {
                     ...prev,
@@ -188,6 +194,60 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
     const filteredAptList = aptList.filter(apt =>
         apt?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // 🚀 수정된 로직: 뼈대 철거! 빈 곳은 땡겨서 동일한 간격으로 정렬 (모바일 최적화)
+    const getFilteredChartData = () => {
+        if (!detailData?.chart || detailData.chart.length === 0) return [];
+
+        const currentYear = new Date().getFullYear();
+        const currentYearYY = parseInt(currentYear.toString().slice(-2), 10);
+
+        // 1. 기간 필터링
+        const periodFiltered = detailData.chart.filter((item: any) => {
+            const dateStr = String(item.year || item.trade_date || '');
+            const y = parseInt(dateStr.split(/[.-]/)[0], 10);
+            const targetY = y > 2000 ? y - 2000 : y;
+            return targetY >= (currentYearYY - chartPeriod);
+        });
+
+        // 🚨 데이터가 없으면 방어 (최소한의 과거 데이터 노출)
+        const dataToProcess = periodFiltered.length > 0 ? periodFiltered : detailData.chart.slice(-20);
+
+        // 2. 월평균/연평균 그룹화
+        const grouped: Record<string, { sum: number, count: number }> = {};
+
+        dataToProcess.forEach((item: any) => {
+            const dateStr = String(item.year || item.trade_date || '');
+            let key = "";
+
+            if (chartPeriod <= 2) {
+                // 월별 그룹화 (예: "2026.03")
+                const parts = dateStr.split(/[.-]/);
+                const y = parts[0].length === 4 ? parts[0] : `20${parts[0].slice(-2)}`;
+                const m = parts[1] ? parts[1].padStart(2, '0') : "01";
+                key = `${y}.${m}`;
+            } else {
+                // 연도별 그룹화 (예: "2026년")
+                const y = dateStr.split(/[.-]/)[0];
+                const fullY = y.length === 4 ? y : `20${y.slice(-2)}`;
+                key = `${fullY}년`;
+            }
+
+            if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
+            grouped[key].sum += parseFloat(item.price);
+            grouped[key].count += 1;
+        });
+
+        // 3. 🚀 있는 데이터만 정렬해서 반환 (Recharts가 알아서 동일한 간격으로 분배함)
+        return Object.entries(grouped)
+            .map(([displayYear, data]) => ({
+                displayYear,
+                price: parseFloat((data.sum / data.count).toFixed(2)) // 평균가 계산
+            }))
+            .sort((a, b) => a.displayYear.localeCompare(b.displayYear));
+    };
+
+    const chartData = getFilteredChartData();
 
     return (
         <div className="w-full bg-[#F5F7FA] pb-32 animate-in fade-in duration-500">
@@ -403,53 +463,93 @@ export default function RealPriceView({ setActiveMenu }: { setActiveMenu: (menu:
                                             {isDetailLoading ? (
                                                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                                                     <Loader2 className="animate-spin text-[#042fc9]" size={32} />
-                                                    <span className="text-[13px] font-bold text-[#64748B]">10년 치 시세 데이터를 분석하고 있습니다...</span>
+                                                    <span className="text-[13px] font-bold text-[#64748B]">시세 데이터를 분석하고 있습니다...</span>
                                                 </div>
                                             ) : detailData && (
                                                 <>
                                                     <div className="flex items-center gap-1.5 text-[13px] font-bold text-[#64748B] mb-4">
                                                         <MapPin size={16} className="shrink-0 text-[#042fc9]" /> {apt.address}
                                                     </div>
+                                                    {/* 🚀 수정됨: 서버에서 받은 aptInfo 데이터를 연동하는 부분 */}
                                                     <div className="grid grid-cols-3 gap-3 mb-6">
                                                         <div className="bg-white rounded-xl p-3 flex flex-col items-center justify-center border border-[#E3E8EF] shadow-sm">
                                                             <Building size={18} className="text-[#94A3B8] mb-1" />
                                                             <span className="text-[11px] font-bold text-[#64748B]">세대수</span>
-                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">1,240세대</span>
+                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">
+                                                                {detailData.aptInfo?.total_households ? `${detailData.aptInfo.total_households.toLocaleString()}세대` : "정보 없음"}
+                                                            </span>
                                                         </div>
                                                         <div className="bg-white rounded-xl p-3 flex flex-col items-center justify-center border border-[#E3E8EF] shadow-sm">
                                                             <Calendar size={18} className="text-[#94A3B8] mb-1" />
                                                             <span className="text-[11px] font-bold text-[#64748B]">준공년월</span>
-                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">2018.05</span>
+                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">
+                                                                {detailData.aptInfo?.completion_date || "정보 없음"}
+                                                            </span>
                                                         </div>
                                                         <div className="bg-white rounded-xl p-3 flex flex-col items-center justify-center border border-[#E3E8EF] shadow-sm">
                                                             <Car size={18} className="text-[#94A3B8] mb-1" />
                                                             <span className="text-[11px] font-bold text-[#64748B]">주차대수</span>
-                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">1.34대</span>
+                                                            <span className="text-[13px] font-black text-[#1E293B] mt-0.5">
+                                                                {detailData.aptInfo?.parking_count ? `${detailData.aptInfo.parking_count}대` : "정보 없음"}
+                                                            </span>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                                                         <h5 className="text-[14px] font-black text-[#172554] flex items-center gap-1.5">
                                                             <LineChartIcon size={16} className="text-[#042fc9]" />
-                                                            {detailData.chart && detailData.chart.length > 1
-                                                                ? `단지 ${parseInt(detailData.chart[detailData.chart.length - 1].year) - parseInt(detailData.chart[0].year) || 1}년 시세 추이`
-                                                                : `단지 최근 시세 추이`}
+                                                            단지 시세 추이
                                                         </h5>
-                                                        <span className="text-[11px] font-bold text-[#64748B] bg-[#F1F5F9] px-2 py-1 rounded-md">{apt.size} 기준</span>
+
+                                                        <div className="flex items-center gap-1.5 bg-[#F1F5F9] p-1 rounded-lg">
+                                                            {[1, 2, 5, 10].map((period) => (
+                                                                <button
+                                                                    key={period}
+                                                                    onClick={() => setChartPeriod(period as 1 | 2 | 5 | 10)}
+                                                                    className={`px-3 py-1 text-[12px] font-bold rounded-md transition-all ${chartPeriod === period
+                                                                        ? 'bg-white text-[#042fc9] shadow-sm'
+                                                                        : 'text-[#64748B] hover:text-[#1E293B]'
+                                                                        }`}
+                                                                >
+                                                                    {period}년
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
 
-                                                    {detailData.chart && detailData.chart.length > 0 && (
-                                                        <div className="h-[220px] w-full bg-white rounded-xl p-3 border border-[#E3E8EF] shadow-sm mb-6">
+                                                    {chartData.length > 0 && (
+                                                        <div className="h-[240px] w-full bg-white rounded-xl p-3 border border-[#E3E8EF] shadow-sm mb-6">
                                                             <ResponsiveContainer width="100%" height="100%">
-                                                                <LineChart data={detailData.chart} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                                                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E3E8EF" />
-                                                                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#667085' }} dy={10} />
-                                                                    <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#667085' }} tickFormatter={(val) => typeof val === 'number' ? val.toFixed(1) : val} />
+                                                                    <XAxis
+                                                                        dataKey="displayYear"
+                                                                        axisLine={false}
+                                                                        tickLine={false}
+                                                                        tick={{ fontSize: 11, fill: '#667085' }}
+                                                                        dy={10}
+                                                                        minTickGap={20}
+                                                                    />
+                                                                    <YAxis
+                                                                        domain={['auto', 'auto']}
+                                                                        axisLine={false}
+                                                                        tickLine={false}
+                                                                        tick={{ fontSize: 11, fill: '#667085' }}
+                                                                        tickFormatter={(val) => typeof val === 'number' ? val.toFixed(1) : val}
+                                                                    />
                                                                     <RechartsTooltip
                                                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                                        formatter={(value: any) => [typeof value === 'number' ? `${value.toFixed(1)}억` : value, "매매가"]}
+                                                                        formatter={(value: any) => [typeof value === 'number' ? `${value.toFixed(1)}억` : value, "평균 실거래가"]}
                                                                     />
-                                                                    <Line type="monotone" dataKey="price" stroke="#042fc9" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, fill: '#042fc9' }} />
+                                                                    <Line
+                                                                        type="monotone"
+                                                                        dataKey="price"
+                                                                        stroke="#042fc9"
+                                                                        strokeWidth={3}
+                                                                        dot={{ r: 3, strokeWidth: 2, fill: '#fff' }}
+                                                                        activeDot={{ r: 6, fill: '#042fc9' }}
+                                                                        connectNulls={true}
+                                                                    />
                                                                 </LineChart>
                                                             </ResponsiveContainer>
                                                         </div>
